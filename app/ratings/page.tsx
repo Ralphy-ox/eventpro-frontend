@@ -376,7 +376,7 @@ export default function RatingsPage() {
                       </div>
                     ) : (
                       <>
-                        {r.comment && <p className="text-slate-300 text-sm italic leading-relaxed mb-2">"{r.comment}"</p>}
+                        {r.comment && <p className="text-slate-300 text-sm italic leading-relaxed mb-2">&quot;{r.comment}&quot;</p>}
                         <p className="text-xs text-slate-500">{new Date(r.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                       </>
                     )}

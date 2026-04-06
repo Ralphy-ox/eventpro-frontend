@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import { LogoutOverlay, useLogout } from '@/components/LogoutOverlay';
 import { API_BASE } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
@@ -10,6 +11,15 @@ const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(2
 const iCls = "w-full rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all text-sm";
 const lCls = "block text-xs font-bold text-sky-400 uppercase tracking-widest mb-2";
 
+interface UserInfo {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  address?: string;
+  preferred_payment_method?: string;
+  profile_photo?: string;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { loggingOut, logout } = useLogout();
@@ -17,7 +27,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [updatingPayment, setUpdatingPayment] = useState(false);
   const [editingInfo, setEditingInfo] = useState(false);
@@ -34,22 +44,22 @@ export default function ProfilePage() {
   const [emailMsg, setEmailMsg] = useState('');
   const [emailErr, setEmailErr] = useState('');
 
-  useEffect(() => {
-    const token = localStorage.getItem('clientToken');
-    if (!token) { alert('Please login'); router.push('/signin'); return; }
-    loadProfile();
-  }, [router]);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     const token = localStorage.getItem('clientToken');
     const res = await fetch(`${API_BASE}/profile/`, { headers: { Authorization: `Bearer ${token}` } });
     if (res.status === 401) { localStorage.removeItem('clientToken'); router.push('/signin'); return; }
     if (res.ok) {
-      const data = await res.json();
+      const data: UserInfo = await res.json();
       setUserInfo(data); setFirstName(data.first_name || ''); setLastName(data.last_name || '');
       setAddress(data.address || ''); setPaymentMethod(data.preferred_payment_method || 'Cash');
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('clientToken');
+    if (!token) { alert('Please login'); router.push('/signin'); return; }
+    loadProfile();
+  }, [loadProfile, router]);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -159,7 +169,7 @@ export default function ProfilePage() {
           <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center text-4xl font-black text-white shrink-0 relative group"
             style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.4)' }}>
             {userInfo?.profile_photo
-              ? <img src={userInfo.profile_photo} alt="avatar" className="w-full h-full object-cover" />
+              ? <Image src={userInfo.profile_photo} alt="avatar" fill unoptimized className="object-cover" />
               : userInfo ? userInfo.first_name?.[0]?.toUpperCase() : '?'
             }
             <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-2xl">

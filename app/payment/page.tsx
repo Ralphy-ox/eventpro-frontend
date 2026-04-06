@@ -5,13 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { API_BASE } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
 
-const card: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 16,
-  padding: '28px 32px',
-};
-
 function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
