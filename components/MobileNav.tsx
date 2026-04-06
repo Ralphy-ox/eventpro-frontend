@@ -32,12 +32,15 @@ export default function MobileNav({
   showNotification = false,
   notificationTokenKey = 'clientToken',
 }: MobileNavProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
 
+  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
         setDropdownOpen(null);
       }
     };
@@ -45,12 +48,20 @@ export default function MobileNav({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Close mobile menu on route change / resize
+  useEffect(() => {
+    const onResize = () => { if (window.innerWidth >= 768) setMenuOpen(false); };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const hlStyle = {
     background: 'linear-gradient(135deg, #0ea5e9, #0369a1)',
     boxShadow: '0 4px 15px rgba(14,165,233,0.3)',
   };
 
-  const renderLink = (link: NavLink, i: number) => {
+  // ── Desktop link renderer ──────────────────────────────────────────────────
+  const renderDesktopLink = (link: NavLink, i: number) => {
     if (link.dropdown) {
       const isOpen = dropdownOpen === i;
       return (
@@ -68,10 +79,8 @@ export default function MobileNav({
             </svg>
           </button>
           {isOpen && (
-            <div
-              className="absolute right-0 top-full mt-2 w-48 rounded-2xl overflow-hidden shadow-2xl z-50"
-              style={{ background: 'rgba(10,22,40,0.98)', border: '1px solid rgba(14,165,233,0.2)', backdropFilter: 'blur(20px)' }}
-            >
+            <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl overflow-hidden shadow-2xl z-50"
+              style={{ background: 'rgba(10,22,40,0.98)', border: '1px solid rgba(14,165,233,0.2)', backdropFilter: 'blur(20px)' }}>
               {link.dropdown.map((item, j) =>
                 item.href ? (
                   <Link key={j} href={item.href}
@@ -108,20 +117,116 @@ export default function MobileNav({
     );
   };
 
+  // ── Mobile link renderer ───────────────────────────────────────────────────
+  const renderMobileLink = (link: NavLink, i: number) => {
+    if (link.dropdown) {
+      const isOpen = dropdownOpen === i;
+      return (
+        <div key={i}>
+          <button
+            onClick={() => setDropdownOpen(isOpen ? null : i)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+          >
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              {link.label}
+            </span>
+            <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {isOpen && (
+            <div className="ml-4 mt-1 space-y-1 border-l-2 pl-3" style={{ borderColor: 'rgba(14,165,233,0.3)' }}>
+              {link.dropdown.map((item, j) =>
+                item.href ? (
+                  <Link key={j} href={item.href}
+                    onClick={() => { setMenuOpen(false); setDropdownOpen(null); }}
+                    className={`block px-3 py-2.5 text-sm font-semibold rounded-xl transition-all ${item.danger ? 'text-red-400 hover:bg-red-500/10' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                    {item.label}
+                  </Link>
+                ) : (
+                  <button key={j}
+                    onClick={() => { setMenuOpen(false); setDropdownOpen(null); item.onClick?.(); }}
+                    className={`w-full text-left px-3 py-2.5 text-sm font-semibold rounded-xl transition-all ${item.danger ? 'text-red-400 hover:bg-red-500/10' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                    {item.label}
+                  </button>
+                )
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return link.href ? (
+      <Link key={i} href={link.href}
+        onClick={() => setMenuOpen(false)}
+        className={`block px-4 py-3 text-sm font-semibold rounded-xl transition-all ${link.highlight ? 'text-white text-center' : 'text-slate-300 hover:text-white hover:bg-white/10'}`}
+        style={link.highlight ? hlStyle : {}}>
+        {link.label}
+      </Link>
+    ) : (
+      <button key={i}
+        onClick={() => { setMenuOpen(false); link.onClick?.(); }}
+        className={`w-full text-left px-4 py-3 text-sm font-semibold rounded-xl transition-all ${link.highlight ? 'text-white text-center' : 'text-slate-300 hover:text-white hover:bg-white/10'}`}
+        style={link.highlight ? hlStyle : {}}>
+        {link.label}
+      </button>
+    );
+  };
+
   return (
     <nav className="sticky top-0 z-50 border-b" ref={navRef}
       style={{ background: 'rgba(10,22,40,0.96)', borderColor: 'rgba(14,165,233,0.15)', backdropFilter: 'blur(20px)' }}>
+
+      {/* ── Top bar ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+
+        {/* Brand */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black text-white"
             style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>E</div>
           <span className="text-lg font-black text-white">{brand}</span>
         </Link>
-        <div className="flex items-center gap-1 flex-wrap justify-end">
-          {links.map((link, i) => renderLink(link, i))}
+
+        {/* Desktop links */}
+        <div className="hidden md:flex items-center gap-1">
+          {links.map((link, i) => renderDesktopLink(link, i))}
           {showNotification && <NotificationBell tokenKey={notificationTokenKey} />}
         </div>
+
+        {/* Mobile right side: notification + hamburger */}
+        <div className="flex md:hidden items-center gap-2">
+          {showNotification && <NotificationBell tokenKey={notificationTokenKey} />}
+          <button
+            onClick={() => { setMenuOpen(!menuOpen); setDropdownOpen(null); }}
+            className="p-2 rounded-xl transition-all text-slate-400 hover:text-white hover:bg-white/10"
+            aria-label="Toggle menu"
+          >
+            {menuOpen ? (
+              // X icon
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              // Hamburger icon
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
+
+      {/* ── Mobile drawer ── */}
+      {menuOpen && (
+        <div className="md:hidden border-t px-4 py-3 space-y-1"
+          style={{ borderColor: 'rgba(14,165,233,0.15)', background: 'rgba(10,22,40,0.98)' }}>
+          {links.map((link, i) => renderMobileLink(link, i))}
+        </div>
+      )}
     </nav>
   );
 }
