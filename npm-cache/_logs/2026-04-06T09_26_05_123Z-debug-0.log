@@ -1,0 +1,25 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.6.2
+2 info using node@v24.12.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:D:\New folder\SPDATA\frontend\.npmrc
+5 silly config load:file:C:\Users\admin\.npmrc
+6 silly config load:file:C:\Users\admin\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm run vercel-build
+8 verbose argv "run" "vercel-build"
+9 verbose logfile logs-max:10 dir:D:\New folder\SPDATA\frontend\npm-cache\_logs\2026-04-06T09_26_05_123Z-
+10 verbose logfile D:\New folder\SPDATA\frontend\npm-cache\_logs\2026-04-06T09_26_05_123Z-debug-0.log
+11 silly logfile start cleaning logs, removing 2 files
+12 silly logfile error removing log file D:\New folder\SPDATA\frontend\npm-cache\_logs\2026-04-06T08_26_48_843Z-debug-0.log [Error: EPERM: operation not permitted, unlink 'D:\New folder\SPDATA\frontend\npm-cache\_logs\2026-04-06T08_26_48_843Z-debug-0.log'] {
+12 silly logfile   errno: -4048,
+12 silly logfile   code: 'EPERM',
+12 silly logfile   syscall: 'unlink',
+12 silly logfile   path: 'D:\\New folder\\SPDATA\\frontend\\npm-cache\\_logs\\2026-04-06T08_26_48_843Z-debug-0.log'
+12 silly logfile }
+13 silly logfile error removing log file D:\New folder\SPDATA\frontend\npm-cache\_logs\2026-04-06T08_27_47_920Z-debug-0.log [Error: EPERM: operation not permitted, unlink 'D:\New folder\SPDATA\frontend\npm-cache\_logs\2026-04-06T08_27_47_920Z-debug-0.log'] {
+13 silly logfile   errno: -4048,
+13 silly logfile   code: 'EPERM',
+13 silly logfile   syscall: 'unlink',
+13 silly logfile   path: 'D:\\New folder\\SPDATA\\frontend\\npm-cache\\_logs\\2026-04-06T08_27_47_920Z-debug-0.log'
+13 silly logfile }
+14 silly logfile done cleaning log files

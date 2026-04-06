@@ -1,16 +1,16 @@
-/**
- * sendEmail — calls the Next.js /api/send-email route (Nodemailer).
- * Works from any client or server component.
- */
 export async function sendEmail(payload: {
-  type: 'verification' | 'password_reset' | 'booking_confirmation' | 'booking_status' | 'guest_invitation';
-  to: string | string[];
-  [key: string]: unknown;
+  recipient: string;
+  subject: string;
+  textBody: string;
+  htmlBody: string;
 }): Promise<boolean> {
   try {
     const res = await fetch('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-email-bridge-secret': process.env.NEXT_PUBLIC_EMAIL_BRIDGE_SECRET ?? '',
+      },
       body: JSON.stringify(payload),
     });
     return res.ok;

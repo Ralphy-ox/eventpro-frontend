@@ -456,7 +456,7 @@ export default function OrganizerDashboard() {
                             ))}
                           </div>
                         </div>
-                        {r.comment && <p className="text-sm text-slate-300 italic mb-2">"{r.comment}"</p>}
+                        {r.comment && <p className="text-sm text-slate-300 italic mb-2">&ldquo;{r.comment}&rdquo;</p>}
                         <p className="text-xs text-slate-500">{new Date(r.created_at).toLocaleDateString()}</p>
 
                         {r.replies?.length > 0 && (
