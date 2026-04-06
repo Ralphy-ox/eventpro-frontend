@@ -184,9 +184,13 @@ export default function Home() {
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Everything You Need</h2>
             <p className="text-slate-400 max-w-md mx-auto">All the tools and features to make your event a success.</p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1"
+          <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-5">
+            {FEATURES.map((f, index) => (
+              <div
+                key={f.title}
+                className={`rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 sm:col-span-1 lg:col-span-2 ${
+                  FEATURES.length % 3 === 2 && index >= FEATURES.length - 2 ? 'lg:col-span-3' : ''
+                }`}
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div className="w-10 h-10 rounded-xl mb-4 flex items-center justify-center"
                   style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>
