@@ -131,8 +131,8 @@ export default function ClientDashboard() {
       setDate('');
       setEmails('');
       setAvailableRooms(null);
-    } catch (error: any) {
-      alert(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setSubmitting(false);
     }

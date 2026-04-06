@@ -83,7 +83,7 @@ export default function Home() {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold mb-8"
             style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', color: '#7dd3fc' }}>
             <span className="w-1.5 h-1.5 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
-            Ralphy's Venue — Cebu City, Philippines
+            Ralphy&apos;s Venue — Cebu City, Philippines
           </div>
 
           <h1 className="text-5xl sm:text-7xl font-black text-white leading-[1.05] mb-6 tracking-tight">
@@ -140,7 +140,7 @@ export default function Home() {
             <p className="text-slate-400 max-w-md mx-auto">From intimate gatherings to grand celebrations — we handle it all.</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {EVENTS.map((e, i) => (
+            {EVENTS.map((e) => (
               <div key={e.name} className="rounded-2xl p-6 text-center transition-all duration-300 hover:-translate-y-1 cursor-default"
                 style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)' }}>
                 <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
@@ -164,7 +164,7 @@ export default function Home() {
             <p className="text-slate-400 max-w-md mx-auto">All the tools and features to make your event a success.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map((f, i) => (
+            {FEATURES.map((f) => (
               <div key={f.title} className="rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div className="w-10 h-10 rounded-xl mb-4 flex items-center justify-center"
@@ -185,7 +185,7 @@ export default function Home() {
           <div className="text-center mb-12">
             <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-3">See It Live</p>
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Event Highlights</h2>
-            <p className="text-slate-400">Watch real events hosted at Ralphy's Venue</p>
+            <p className="text-slate-400">Watch real events hosted at Ralphy&apos;s Venue</p>
           </div>
 
           {loadingVideos ? (
@@ -220,7 +220,7 @@ export default function Home() {
         <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, #0ea5e9 1px, transparent 1px)', backgroundSize: '25px 25px' }} />
         <div className="max-w-3xl mx-auto px-6 sm:px-8 text-center relative z-10">
           <h2 className="text-3xl sm:text-5xl font-black text-white mb-5 leading-tight">Ready to Create Your Dream Event?</h2>
-          <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">Join hundreds of happy clients who've hosted unforgettable events at Ralphy's Venue.</p>
+          <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">Join hundreds of happy clients who&apos;ve hosted unforgettable events at Ralphy&apos;s Venue.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href={isLoggedIn ? '/client/dashboard' : '/register'}
               className="px-10 py-4 font-black text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95 text-white"
@@ -245,7 +245,7 @@ export default function Home() {
                 style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>E</div>
               <span className="text-white font-black text-lg">EventPro</span>
             </div>
-            <p className="text-slate-500 text-sm leading-relaxed">Professional event management at Ralphy's Venue. Creating unforgettable memories.</p>
+            <p className="text-slate-500 text-sm leading-relaxed">Professional event management at Ralphy&apos;s Venue. Creating unforgettable memories.</p>
           </div>
           <div>
             <h3 className="text-white font-bold text-sm mb-4 uppercase tracking-widest">Quick Links</h3>
@@ -265,9 +265,10 @@ export default function Home() {
           </div>
         </div>
         <div className="text-center py-4 text-xs text-slate-700" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-          © {new Date().getFullYear()} EventPro — Ralphy's Venue. All rights reserved.
+          © {new Date().getFullYear()} EventPro — Ralphy&apos;s Venue. All rights reserved.
         </div>
       </footer>
     </div>
   );
 }
+

@@ -77,7 +77,7 @@ export default function ClientLogin() {
         </form>
 
         <p className="text-sm text-center mt-4">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <span
             onClick={() => router.push('/register')}
             className="text-blue-600 cursor-pointer hover:underline"
@@ -89,3 +89,4 @@ export default function ClientLogin() {
     </div>
   );
 }
+

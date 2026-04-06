@@ -16,7 +16,6 @@ interface Booking {
 }
 
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
-const iCls = "w-full px-4 py-3 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all";
 
 const statusBar: Record<string, string> = {
   pending:   'linear-gradient(90deg, #f59e0b, #d97706)',
@@ -40,9 +39,6 @@ export default function MyBookings() {
   const [editingBooking, setEditingBooking] = useState<number | null>(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
-  const [uploadingProof, setUploadingProof] = useState<number | null>(null);
-  const [proofFile, setProofFile] = useState<File | null>(null);
-  const [gcashRef, setGcashRef] = useState('');
   const [reviewingBooking, setReviewingBooking] = useState<number | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
@@ -93,19 +89,6 @@ export default function MyBookings() {
     if (res.ok) { setEditingBooking(null); setNewDate(''); setNewTime(''); fetchBookings(); }
     else { const d = await res.json(); alert(d.message || 'Failed'); }
   };
-
-  const handleUploadProof = async (id: number) => {
-    if (!proofFile) { alert('Select a screenshot'); return; }
-    if (!gcashRef.trim()) { alert('GCash Reference Number is required!'); return; }
-    const token = localStorage.getItem('clientToken');
-    const formData = new FormData();
-    formData.append('payment_proof', proofFile);
-    formData.append('gcash_reference', gcashRef);
-    const res = await fetch(`${API_BASE}/bookings/${id}/upload-proof/`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
-    if (res.ok) { setUploadingProof(null); setProofFile(null); setGcashRef(''); fetchBookings(); }
-    else { const d = await res.json(); alert(d.message || 'Upload failed'); }
-  };
-
   const handleSubmitReview = async (id: number) => {
     if (reviewRating === 0) { alert('Select a star rating'); return; }
     const token = localStorage.getItem('clientToken');
@@ -432,3 +415,5 @@ export default function MyBookings() {
     </div>
   );
 }
+
+

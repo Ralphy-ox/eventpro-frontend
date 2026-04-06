@@ -92,7 +92,7 @@ export default function ContactPage() {
         <div className="max-w-5xl mx-auto px-6 sm:px-8 py-10 relative z-10">
           <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-2">Get In Touch</p>
           <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Contact Us</h1>
-          <p className="text-sky-400 text-sm mt-2">We'd love to hear from you — reach out anytime</p>
+          <p className="text-sky-400 text-sm mt-2">We&apos;d love to hear from you — reach out anytime</p>
         </div>
       </div>
 
@@ -172,7 +172,7 @@ export default function ContactPage() {
             <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(14,165,233,0.06)' }}>
                 <h2 className="text-base font-black text-white">Send a Message</h2>
-                <p className="text-xs text-slate-400 mt-0.5">We'll reply within 24 hours</p>
+                <p className="text-xs text-slate-400 mt-0.5">We&apos;ll reply within 24 hours</p>
               </div>
               <div className="p-6">
                 {isLoggedIn && (
@@ -265,3 +265,5 @@ export default function ContactPage() {
     </div>
   );
 }
+
+

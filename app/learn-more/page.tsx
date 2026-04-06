@@ -25,7 +25,7 @@ export default function LearnMore() {
           <h2 className="text-3xl font-bold mb-4 text-sky-600">Our Platform</h2>
           <p className="text-lg text-gray-700 mb-4">
             EventPro is a professional event management platform designed to make booking and organizing events seamless and efficient. 
-            Whether you're planning a wedding, birthday party, conference, or corporate event, we provide the tools you need.
+            Whether you&apos;re planning a wedding, birthday party, conference, or corporate event, we provide the tools you need.
           </p>
         </div>
 
@@ -112,3 +112,5 @@ export default function LearnMore() {
     </div>
   );
 }
+
+
