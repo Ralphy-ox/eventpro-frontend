@@ -4,7 +4,7 @@ export const API_BASE =
 
 export const APP_BASE =
   typeof window === 'undefined'
-    ? 'https://event-bookings-git-main-ralphy-777s-projects.vercel.app'
+    ? 'https://events-booking-7udo.vercel.app'
     : window.location.origin;
 
 export const WS_BASE = API_BASE
