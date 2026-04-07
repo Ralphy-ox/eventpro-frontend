@@ -6,11 +6,6 @@ import { LogoutOverlay, useLogout } from '@/components/LogoutOverlay';
 import { API_BASE } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
 
-interface Video {
-  id: number; title: string; video_url: string;
-  thumbnail_url: string; description: string; category: string; order: number;
-}
-
 interface EventType {
   id: number;
   event_type: string;
@@ -32,10 +27,8 @@ const FEATURES = [
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [videos, setVideos] = useState<Video[]>([]);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loadingVideos, setLoadingVideos] = useState(true);
   const { loggingOut, logout } = useLogout();
 
   useEffect(() => {
@@ -48,10 +41,6 @@ export default function Home() {
       .then(r => r.ok ? r.json() : [])
       .then(data => setReviews(Array.isArray(data) ? data : []))
       .catch(() => {});
-    fetch(`${API_BASE}/videos/`)
-      .then(r => r.ok ? r.json() : [])
-      .then(setVideos).catch(() => {})
-      .finally(() => setLoadingVideos(false));
   }, []);
 
   const averageRating = reviews.length > 0
@@ -201,54 +190,6 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* VIDEOS */}
-      <section className="py-20" style={{ background: '#0d1f35', borderTop: '1px solid rgba(14,165,233,0.1)' }}>
-        <div className="max-w-6xl mx-auto px-6 sm:px-8">
-          <div className="text-center mb-12">
-            <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-3">See It Live</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Event Highlights</h2>
-            <p className="text-slate-400">Watch real events hosted at Ralphy&apos;s Venue</p>
-          </div>
-
-          {loadingVideos ? (
-            <div className="flex justify-center py-12">
-              <div className="w-10 h-10 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : videos.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">No videos available yet.</div>
-          ) : (
-            <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
-              {videos.map(v => (
-                <div key={v.id} className="flex-shrink-0 w-[85vw] sm:w-[340px] snap-center rounded-2xl overflow-hidden"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <div className="aspect-video">
-                    {v.video_url ? (
-                      <video
-                        src={v.video_url}
-                        poster={v.thumbnail_url || undefined}
-                        controls
-                        className="w-full h-full object-cover"
-                        preload="metadata"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center" style={{ background: '#0f172a' }}>
-                        <span className="text-slate-500 text-sm">No video</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <span className="text-xs font-bold px-2 py-1 rounded-full mb-2 inline-block"
-                      style={{ background: 'rgba(14,165,233,0.15)', color: '#7dd3fc' }}>{v.category}</span>
-                    <p className="font-bold text-white text-sm">{v.title}</p>
-                    {v.description && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{v.description}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </section>
 
