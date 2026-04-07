@@ -72,10 +72,6 @@ export default function ClientRegister() {
     if (password !== confirmPassword) { setError('Passwords do not match'); return; }
     setLoading(true);
     setLoadingMsg('Creating Account...');
-
-    // Show "waking up server" message after 5s if still loading
-    const wakeTimer = setTimeout(() => setLoadingMsg('Waking up server, please wait...'), 5000);
-
     try {
       const res = await fetchWithRetry(`${API_BASE}/register/`, {
         method: 'POST',
@@ -89,15 +85,9 @@ export default function ClientRegister() {
       const data = await res.json();
       if (data.requires_verification) { setPendingEmail(email); setStep('verify'); startCooldown(); }
       else { setError(data.message || 'Registration failed'); }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.includes('timeout') || msg.includes('fetch') || msg.includes('network') || msg.toLowerCase().includes('failed')) {
-        setError('The server is starting up. Please wait 30 seconds and try again.');
-      } else {
-        setError(`Connection error. ${msg}`);
-      }
+    } catch {
+      setError('Connection error. Please check your internet and try again.');
     } finally {
-      clearTimeout(wakeTimer);
       setLoading(false);
       setLoadingMsg('Creating Account...');
     }

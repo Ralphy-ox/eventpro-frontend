@@ -71,7 +71,6 @@ export default function SignIn() {
         return await fetch(url, { ...options, signal: AbortSignal.timeout(30000) });
       } catch (err) {
         if (i === retries) throw err;
-        setError('Server is waking up, retrying...');
         await new Promise(r => setTimeout(r, 3000));
       }
     }
@@ -134,13 +133,8 @@ export default function SignIn() {
           setError(data.message || `Invalid credentials. ${5 - newAttempts} attempt${5 - newAttempts !== 1 ? 's' : ''} remaining.`);
         }
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.includes('timeout') || msg.includes('fetch') || msg.includes('Failed')) {
-        setError('Server is starting up. Please wait a moment and try again.');
-      } else {
-        setError('Connection error. Please check your internet and try again.');
-      }
+    } catch {
+      setError('Connection error. Please check your internet and try again.');
     } finally {
       setLoading(false);
     }
