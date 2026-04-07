@@ -10,17 +10,20 @@ type EmailPayload = {
   htmlBody?: string;
 };
 
-const getRequiredEnv = (key: string): string => {
-  const value = process.env[key]?.trim();
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
+const getRequiredEnv = (key: string, fallbackKeys: string[] = []): string => {
+  const keys = [key, ...fallbackKeys];
+  for (const candidate of keys) {
+    const value = process.env[candidate]?.trim();
+    if (value) {
+      return value;
+    }
   }
-  return value;
-};
+  throw new Error(`Missing required environment variable: ${keys.join(" or ")}`);
+}
 
 const buildTransport = () => {
-  const user = getRequiredEnv("MAILER_GMAIL_USER");
-  const password = getRequiredEnv("MAILER_GMAIL_APP_PASSWORD").replace(/\s+/g, "");
+  const user = getRequiredEnv("MAILER_GMAIL_USER", ["EMAIL_HOST_USER"]);
+  const password = getRequiredEnv("MAILER_GMAIL_APP_PASSWORD", ["EMAIL_HOST_PASSWORD"]).replace(/\s+/g, "");
 
   return nodemailer.createTransport({
     service: "gmail",
@@ -32,7 +35,10 @@ const buildTransport = () => {
 };
 
 const buildFromAddress = (): string => {
-  const fromEmail = process.env.MAILER_FROM_EMAIL?.trim() || getRequiredEnv("MAILER_GMAIL_USER");
+  const fromEmail =
+    process.env.MAILER_FROM_EMAIL?.trim() ||
+    process.env.EMAIL_HOST_USER?.trim() ||
+    getRequiredEnv("MAILER_GMAIL_USER", ["EMAIL_HOST_USER"]);
   const fromName = process.env.MAILER_FROM_NAME?.trim();
 
   if (!fromName) {
@@ -61,7 +67,7 @@ const formatBridgeError = (error: unknown): string => {
     lowered.includes("username and password not accepted") ||
     lowered.includes('missing credentials for "plain"')
   ) {
-    return "Gmail authentication failed. Check MAILER_GMAIL_USER and MAILER_GMAIL_APP_PASSWORD.";
+    return "Gmail authentication failed. Check MAILER_GMAIL_USER or EMAIL_HOST_USER, and MAILER_GMAIL_APP_PASSWORD or EMAIL_HOST_PASSWORD.";
   }
 
   if (errorWithCode.code === "EENVELOPE" || lowered.includes("from")) {
