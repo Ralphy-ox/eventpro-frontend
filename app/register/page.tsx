@@ -84,8 +84,16 @@ export default function ClientRegister() {
         return;
       }
       const data = await res.json();
-      if (data.requires_verification) { setPendingEmail(email); setStep('verify'); startCooldown(); }
-      else { setError(data.message || 'Registration failed'); }
+      if (data.access) {
+        localStorage.setItem('clientToken', data.access);
+        if (data.refresh) localStorage.setItem('clientRefresh', data.refresh);
+        setStep('success');
+        setTimeout(() => router.push('/'), 2500);
+      } else if (data.requires_verification) {
+        setPendingEmail(email); setStep('verify'); startCooldown();
+      } else {
+        setError(data.message || 'Registration failed');
+      }
     } catch {
       setError('Server is taking too long to respond. Please wait a moment and try again.');
     } finally {
