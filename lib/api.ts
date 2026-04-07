@@ -1,6 +1,6 @@
 export const API_BASE =
   (process.env.NEXT_PUBLIC_API_BASE || '').trim().replace(/\/$/, '') ||
-  'https://eventpro-backend.onrender.com/api/user';
+  'https://event-backend-5-v9tx.onrender.com/api/user';
 
 export const APP_BASE =
   typeof window === 'undefined'
