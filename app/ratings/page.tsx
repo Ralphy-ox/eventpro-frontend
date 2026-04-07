@@ -29,6 +29,8 @@ export default function RatingsPage() {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [guestEligible, setGuestEligible] = useState(false);
+  const [guestEventType, setGuestEventType] = useState('');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 5;
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
@@ -50,7 +52,13 @@ export default function RatingsPage() {
     setCurrentUserName(name);
     setCurrentUserId(uid ? parseInt(uid) : null);
     loadReviews();
-    if (token) loadMyBookings(token);
+    if (token) {
+      loadMyBookings(token);
+      fetch(`${API_BASE}/reviews/guest-eligibility/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : {})
+        .then(d => { setGuestEligible(d.eligible ?? false); setGuestEventType(d.event_type ?? ''); })
+        .catch(() => {});
+    }
   }, []);
 
   const loadReviews = () => {
@@ -163,6 +171,7 @@ export default function RatingsPage() {
   const today = new Date().toISOString().split('T')[0];
   const pastConfirmed = confirmedBookings.filter(b => b.date <= today);
   const unreviewed = pastConfirmed.filter(b => !reviewedIds.includes(b.id));
+  const canReview = unreviewed.length > 0 || guestEligible;
 
   const navLinks = isLoggedIn
     ? [
@@ -237,13 +246,21 @@ export default function RatingsPage() {
             )}
 
             {/* Leave a review */}
-            {isLoggedIn && unreviewed.length > 0 && (
+            {isLoggedIn && canReview && (
               <div className="rounded-2xl p-6 mb-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(14,165,233,0.2)' }}>
                 <h2 className="text-base font-black text-white mb-1">Leave a Review</h2>
-                <p className="text-xs text-slate-400 mb-4">Rate your experience at our venue</p>
+                <p className="text-xs text-slate-400 mb-4">
+                  {guestEligible && unreviewed.length === 0
+                    ? `You were invited to a ${guestEventType} event — share your experience!`
+                    : 'Rate your experience at our venue'}
+                </p>
                 <div className="flex gap-1 mb-4">
                   {[1,2,3,4,5].map(star => (
-                    <button key={star} onClick={() => { setRating(star); setSelectedBookingId(unreviewed[0].id); setShowForm(true); }}
+                    <button key={star} onClick={() => {
+                      setRating(star);
+                      setSelectedBookingId(unreviewed.length > 0 ? unreviewed[0].id : null);
+                      setShowForm(true);
+                    }}
                       className={`text-3xl transition-transform hover:scale-110 ${rating >= star ? 'text-sky-400' : 'text-slate-700'}`}>★</button>
                   ))}
                 </div>
@@ -270,14 +287,14 @@ export default function RatingsPage() {
               </div>
             )}
 
-            {isLoggedIn && confirmedBookings.length === 0 && (
+            {isLoggedIn && !canReview && confirmedBookings.length === 0 && !guestEligible && (
               <div className="rounded-2xl p-6 mb-6 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <p className="font-black text-white mb-1">Leave a Review</p>
-                <p className="text-slate-400 text-sm">You need at least one confirmed booking to leave a review.</p>
+                <p className="text-slate-400 text-sm">You need at least one confirmed booking or event invitation to leave a review.</p>
               </div>
             )}
 
-            {isLoggedIn && confirmedBookings.length > 0 && pastConfirmed.length === 0 && (
+            {isLoggedIn && confirmedBookings.length > 0 && pastConfirmed.length === 0 && !guestEligible && (
               <div className="rounded-2xl p-6 mb-6 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <p className="font-black text-white mb-1">Leave a Review</p>
                 <p className="text-slate-400 text-sm">Your booked event date hasn&apos;t happened yet.</p>
