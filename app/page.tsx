@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LogoutOverlay, useLogout } from '@/components/LogoutOverlay';
 import { API_BASE } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
@@ -30,6 +30,7 @@ export default function Home() {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const { loggingOut, logout } = useLogout();
+  const eventTypesScrollerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem('clientToken'));
@@ -53,6 +54,20 @@ export default function Home() {
     { value: String(eventTypes.length), label: 'Event Types' },
     { value: '100%', label: 'Satisfaction' },
   ];
+
+  const scrollEventTypes = (direction: 'left' | 'right') => {
+    const scroller = eventTypesScrollerRef.current;
+    if (!scroller) return;
+
+    const card = scroller.querySelector<HTMLElement>('[data-event-card="true"]');
+    const gap = 16;
+    const scrollAmount = card ? card.offsetWidth + gap : Math.max(scroller.clientWidth * 0.8, 280);
+
+    scroller.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+  };
 
   const navLinks = isLoggedIn
     ? [
@@ -146,21 +161,82 @@ export default function Home() {
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Events We Specialize In</h2>
             <p className="text-slate-400 max-w-md mx-auto">From intimate gatherings to grand celebrations — we handle it all.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {eventTypes.map((e) => (
-              <div key={e.id} className="rounded-2xl p-6 text-center transition-all duration-300 hover:-translate-y-1 cursor-default"
-                style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)' }}>
-                <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
-                  style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.3)' }}>
-                  <div className="w-3 h-3 rounded-full" style={{ background: '#0ea5e9' }} />
-                </div>
-                <p className="font-bold text-white text-sm mb-1">{e.event_type}</p>
-                <p className="text-xs text-slate-400">{e.description || 'Custom event planning tailored to your celebration.'}</p>
+          {eventTypes.length > 0 && (
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="Scroll event types left"
+                onClick={() => scrollEventTypes('left')}
+                className="hidden sm:flex absolute left-0 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 w-12 h-12 items-center justify-center rounded-full text-white transition-all hover:scale-105"
+                style={{ background: 'rgba(8,47,73,0.95)', border: '1px solid rgba(14,165,233,0.35)', boxShadow: '0 12px 30px rgba(2,12,27,0.35)' }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <div
+                ref={eventTypesScrollerRef}
+                className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {eventTypes.map((e) => (
+                  <div
+                    key={e.id}
+                    data-event-card="true"
+                    className="min-w-[260px] sm:min-w-[280px] lg:min-w-[300px] rounded-2xl p-6 text-center transition-all duration-300 hover:-translate-y-1 cursor-default snap-start"
+                    style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)' }}
+                  >
+                    <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
+                      style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.3)' }}>
+                      <div className="w-3 h-3 rounded-full" style={{ background: '#0ea5e9' }} />
+                    </div>
+                    <p className="font-bold text-white text-sm mb-1">{e.event_type}</p>
+                    <p className="text-xs text-slate-400">{e.description || 'Custom event planning tailored to your celebration.'}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              <button
+                type="button"
+                aria-label="Scroll event types right"
+                onClick={() => scrollEventTypes('right')}
+                className="hidden sm:flex absolute right-0 top-1/2 z-10 translate-x-1/2 -translate-y-1/2 w-12 h-12 items-center justify-center rounded-full text-white transition-all hover:scale-105"
+                style={{ background: 'rgba(8,47,73,0.95)', border: '1px solid rgba(14,165,233,0.35)', boxShadow: '0 12px 30px rgba(2,12,27,0.35)' }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
           {eventTypes.length === 0 && (
             <p className="text-center text-sm text-slate-500 mt-6">No event types available yet.</p>
+          )}
+          {eventTypes.length > 0 && (
+            <div className="sm:hidden flex justify-center gap-3 mt-4">
+              <button
+                type="button"
+                aria-label="Scroll event types left"
+                onClick={() => scrollEventTypes('left')}
+                className="w-11 h-11 rounded-full flex items-center justify-center text-white"
+                style={{ background: 'rgba(8,47,73,0.95)', border: '1px solid rgba(14,165,233,0.35)' }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                aria-label="Scroll event types right"
+                onClick={() => scrollEventTypes('right')}
+                className="w-11 h-11 rounded-full flex items-center justify-center text-white"
+                style={{ background: 'rgba(8,47,73,0.95)', border: '1px solid rgba(14,165,233,0.35)' }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
       </section>
