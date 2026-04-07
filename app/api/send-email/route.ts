@@ -10,6 +10,32 @@ type EmailPayload = {
   htmlBody?: string;
 };
 
+const buildHtmlDocument = (subject: string, htmlBody: string): string => {
+  if (/<html[\s>]/i.test(htmlBody)) {
+    return htmlBody;
+  }
+
+  const safeSubject = subject
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+  return [
+    "<!DOCTYPE html>",
+    '<html lang="en">',
+    "<head>",
+    '<meta charSet="utf-8" />',
+    '<meta name="viewport" content="width=device-width, initial-scale=1" />',
+    `<title>${safeSubject}</title>`,
+    "</head>",
+    '<body style="margin:0;padding:24px;background:#f8fafc;">',
+    htmlBody,
+    "</body>",
+    "</html>",
+  ].join("");
+};
+
 const getRequiredEnv = (key: string, fallbackKeys: string[] = []): string => {
   const keys = [key, ...fallbackKeys];
   for (const candidate of keys) {
@@ -106,19 +132,20 @@ export async function POST(request: Request) {
     const transporter = buildTransport();
     const from = buildFromAddress();
 
-    await transporter.sendMail({
+    const result = await transporter.sendMail({
       from,
       to: recipient,
       subject,
       text: textBody,
-      html: htmlBody,
+      html: buildHtmlDocument(subject, htmlBody),
+      replyTo: from,
       headers: {
-        'X-Priority': '1',
-        'X-Mailer': 'EventPro Mailer',
+        "X-Priority": "1",
+        "X-Mailer": "EventPro Mailer",
       },
     });
 
-    return NextResponse.json({ message: "Email sent." }, { status: 200 });
+    return NextResponse.json({ message: "Email sent.", message_id: result.messageId }, { status: 200 });
   } catch (error) {
     const message = formatBridgeError(error);
     return NextResponse.json({ detail: message }, { status: 500 });
