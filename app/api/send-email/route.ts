@@ -106,6 +106,10 @@ export async function POST(request: Request) {
       subject,
       text: textBody,
       html: htmlBody,
+      headers: {
+        'X-Priority': '1',
+        'X-Mailer': 'EventPro Mailer',
+      },
     });
 
     return NextResponse.json({ message: "Email sent." }, { status: 200 });
