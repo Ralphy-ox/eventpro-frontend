@@ -225,7 +225,19 @@ export default function Home() {
                 <div key={v.id} className="flex-shrink-0 w-[85vw] sm:w-[340px] snap-center rounded-2xl overflow-hidden"
                   style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <div className="aspect-video">
-                    <iframe src={v.video_url} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    {v.video_url ? (
+                      <video
+                        src={v.video_url}
+                        poster={v.thumbnail_url || undefined}
+                        controls
+                        className="w-full h-full object-cover"
+                        preload="metadata"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: '#0f172a' }}>
+                        <span className="text-slate-500 text-sm">No video</span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-4">
                     <span className="text-xs font-bold px-2 py-1 rounded-full mb-2 inline-block"
