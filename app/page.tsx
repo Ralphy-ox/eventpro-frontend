@@ -285,7 +285,7 @@ export default function Home() {
             <ul className="space-y-2 text-sm text-slate-500">
               <li>Basak San Nicolas Villa Kalubihan, Cebu City 6000</li>
               <li>0993 926 1681</li>
-              <li>ralphydev@gmail.com</li>
+              <li>ralph.villarojo@gmail.com</li>
             </ul>
           </div>
         </div>

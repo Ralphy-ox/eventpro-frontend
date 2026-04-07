@@ -131,7 +131,7 @@ export default function ContactPage() {
                       </svg>
                     ),
                     label: 'Email',
-                    value: 'ralphydev@gmail.com',
+                    value: 'ralph.villarojo@gmail.com',
                   },
                   {
                     icon: (
