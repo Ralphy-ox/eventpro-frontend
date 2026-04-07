@@ -5,11 +5,16 @@ export async function sendEmail(payload: {
   htmlBody: string;
 }): Promise<boolean> {
   try {
+    const bridgeSecret = process.env.EMAIL_BRIDGE_SECRET?.trim();
+    if (!bridgeSecret) {
+      return false;
+    }
+
     const res = await fetch('/api/send-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-email-bridge-secret': process.env.NEXT_PUBLIC_EMAIL_BRIDGE_SECRET ?? '',
+        'x-email-bridge-secret': bridgeSecret,
       },
       body: JSON.stringify(payload),
     });
