@@ -225,6 +225,7 @@ export default function OrganizerDashboard() {
     eventTypeRevenue[b.event_type] = (eventTypeRevenue[b.event_type] || 0) + b.total_amount;
   });
   const topEventTypes = Object.entries(eventTypeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const maxEventCount = Math.max(...topEventTypes.map(([, count]) => count), 1);
   const analyticsEventTypes = ['all', ...Object.keys(eventTypeCounts).sort((a, b) => a.localeCompare(b))];
   const analyticsBookings = bookings.filter((booking) =>
     analyticsEventType === 'all' || booking.event_type === analyticsEventType
