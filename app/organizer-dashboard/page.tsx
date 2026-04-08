@@ -2,6 +2,19 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { LogoutOverlay, useLogout } from '@/components/LogoutOverlay';
 import { API_BASE } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
@@ -24,6 +37,9 @@ interface ReviewItem { id: number; user: string; rating: number; comment: string
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
 const iCls = 'w-full px-4 py-3 rounded-xl text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500 transition-all text-sm';
 const btnPrimary = { background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 4px 20px rgba(14,165,233,0.3)' };
+const chartGrid = 'rgba(148,163,184,0.15)';
+const chartAxis = '#64748b';
+const chartText = '#cbd5e1';
 
 export default function OrganizerDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -48,6 +64,7 @@ export default function OrganizerDashboard() {
   const [editingReplyId, setEditingReplyId] = useState<number | null>(null);
   const [editReplyText, setEditReplyText] = useState('');
   const [editReplySubmitting, setEditReplySubmitting] = useState(false);
+  const [analyticsEventType, setAnalyticsEventType] = useState('all');
 
   const router = useRouter();
   const { loggingOut, logout } = useLogout();
@@ -203,19 +220,77 @@ export default function OrganizerDashboard() {
 
   // Analytics data
   const totalRevenue = bookings.filter(b => b.payment_status === 'paid').reduce((s, b) => s + b.total_amount, 0);
-  const bookingsByMonth: Record<string, number> = {};
-  bookings.forEach(b => {
-    const month = new Date(b.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    bookingsByMonth[month] = (bookingsByMonth[month] || 0) + 1;
-  });
-  const sortedMonths = Object.entries(bookingsByMonth).sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime()).slice(-6);
-  const maxMonthCount = Math.max(...sortedMonths.map(m => m[1]), 1);
   const eventTypeRevenue: Record<string, number> = {};
   bookings.filter(b => b.payment_status === 'paid').forEach(b => {
     eventTypeRevenue[b.event_type] = (eventTypeRevenue[b.event_type] || 0) + b.total_amount;
   });
   const topEventTypes = Object.entries(eventTypeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const maxEventCount = Math.max(...topEventTypes.map(e => e[1]), 1);
+  const analyticsEventTypes = ['all', ...Object.keys(eventTypeCounts).sort((a, b) => a.localeCompare(b))];
+  const analyticsBookings = bookings.filter((booking) =>
+    analyticsEventType === 'all' || booking.event_type === analyticsEventType
+  );
+  const analyticsPaidBookings = analyticsBookings.filter((booking) => booking.payment_status === 'paid');
+  const analyticsRevenue = analyticsPaidBookings.reduce((sum, booking) => sum + booking.total_amount, 0);
+  const analyticsConfirmedCount = analyticsBookings.filter((booking) => booking.status === 'confirmed').length;
+  const analyticsMostPopular = analyticsEventType === 'all'
+    ? mostPopular
+    : analyticsBookings.length > 0
+      ? analyticsEventType
+      : '—';
+
+  const monthlyMap = new Map<string, { month: string; bookings: number; confirmed: number; paid: number; revenue: number }>();
+  analyticsBookings.forEach((booking) => {
+    const bookingDate = new Date(booking.date);
+    if (Number.isNaN(bookingDate.getTime())) {
+      return;
+    }
+
+    const monthKey = `${bookingDate.getFullYear()}-${String(bookingDate.getMonth() + 1).padStart(2, '0')}`;
+    if (!monthlyMap.has(monthKey)) {
+      monthlyMap.set(monthKey, {
+        month: bookingDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        bookings: 0,
+        confirmed: 0,
+        paid: 0,
+        revenue: 0,
+      });
+    }
+
+    const currentMonth = monthlyMap.get(monthKey)!;
+    currentMonth.bookings += 1;
+    if (booking.status === 'confirmed') {
+      currentMonth.confirmed += 1;
+    }
+    if (booking.payment_status === 'paid') {
+      currentMonth.paid += 1;
+      currentMonth.revenue += booking.total_amount;
+    }
+  });
+
+  const monthlyAnalytics = Array.from(monthlyMap.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-6)
+    .map(([, value]) => value);
+
+  const eventTypeBreakdown = Object.entries(
+    analyticsBookings.reduce<Record<string, { bookings: number; revenue: number }>>((acc, booking) => {
+      if (!acc[booking.event_type]) {
+        acc[booking.event_type] = { bookings: 0, revenue: 0 };
+      }
+      acc[booking.event_type].bookings += 1;
+      if (booking.payment_status === 'paid') {
+        acc[booking.event_type].revenue += booking.total_amount;
+      }
+      return acc;
+    }, {})
+  )
+    .map(([type, value]) => ({
+      type,
+      bookings: value.bookings,
+      revenue: value.revenue,
+    }))
+    .sort((a, b) => b.bookings - a.bookings)
+    .slice(0, 5);
 
   const unreadMsgs = contactMessages.filter(m => !m.is_read).length;
 
@@ -681,8 +756,8 @@ export default function OrganizerDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {[
                     { label: 'Total Revenue', value: `₱${totalRevenue.toLocaleString()}` },
-                    { label: 'Paid Bookings', value: bookings.filter(b => b.payment_status === 'paid').length },
-                    { label: 'Most Popular', value: mostPopular },
+                    { label: 'Confirmed Bookings', value: analyticsConfirmedCount },
+                    { label: 'Focus Event', value: analyticsMostPopular },
                   ].map(s => (
                     <div key={s.label} className="rounded-2xl p-5 text-center"
                       style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)' }}>
@@ -692,66 +767,102 @@ export default function OrganizerDashboard() {
                   ))}
                 </div>
 
-                {/* Bookings per month bar chart */}
                 <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <p className="text-sm font-black text-white mb-5">Bookings per Month</p>
-                  {sortedMonths.length === 0 ? (
-                    <p className="text-slate-500 text-sm text-center py-8">No data yet</p>
-                  ) : (
-                    <div className="flex items-end gap-3 h-40">
-                      {sortedMonths.map(([month, count]) => (
-                        <div key={month} className="flex-1 flex flex-col items-center gap-2">
-                          <span className="text-xs font-bold text-sky-400">{count}</span>
-                          <div className="w-full rounded-t-lg transition-all"
-                            style={{ height: `${(count / maxMonthCount) * 100}px`, background: 'linear-gradient(180deg, #0ea5e9, #0369a1)', minHeight: 4 }} />
-                          <span className="text-xs text-slate-500 text-center leading-tight">{month}</span>
-                        </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+                    <div>
+                      <p className="text-sm font-black text-white">Event Analytics Graphs</p>
+                      <p className="text-xs text-slate-400 mt-1">Filter by event type and review monthly booking trends.</p>
+                    </div>
+                    <select
+                      value={analyticsEventType}
+                      onChange={(e) => setAnalyticsEventType(e.target.value)}
+                      className={iCls + ' sm:w-auto min-w-[220px]'}
+                      style={iStyle}
+                    >
+                      {analyticsEventTypes.map((eventType) => (
+                        <option key={eventType} value={eventType} style={{ background: '#0f172a', color: '#e2e8f0' }}>
+                          {eventType === 'all' ? 'All Events' : eventType}
+                        </option>
                       ))}
+                    </select>
+                  </div>
+                  {monthlyAnalytics.length === 0 ? (
+                    <p className="text-slate-500 text-sm text-center py-8">No analytics data yet for this selection.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                      <div className="rounded-2xl p-4" style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.12)' }}>
+                        <p className="text-sm font-black text-white mb-4">Bookings Trend by Month</p>
+                        <div className="h-72">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={monthlyAnalytics}>
+                              <CartesianGrid stroke={chartGrid} strokeDasharray="3 3" />
+                              <XAxis dataKey="month" stroke={chartAxis} tick={{ fill: chartAxis, fontSize: 12 }} />
+                              <YAxis allowDecimals={false} stroke={chartAxis} tick={{ fill: chartAxis, fontSize: 12 }} />
+                              <Tooltip
+                                contentStyle={{ background: '#0f172a', border: '1px solid rgba(14,165,233,0.25)', borderRadius: 12, color: chartText }}
+                                labelStyle={{ color: '#f8fafc', fontWeight: 700 }}
+                              />
+                              <Legend wrapperStyle={{ fontSize: '12px' }} />
+                              <Line type="monotone" dataKey="bookings" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Bookings" />
+                              <Line type="monotone" dataKey="confirmed" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} name="Confirmed" />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl p-4" style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.12)' }}>
+                        <p className="text-sm font-black text-white mb-1">Monthly Revenue</p>
+                        <p className="text-xs text-slate-400 mb-3">
+                          {analyticsEventType === 'all'
+                            ? `Current paid revenue: PHP ${analyticsRevenue.toLocaleString()}`
+                            : `${analyticsEventType} paid revenue: PHP ${analyticsRevenue.toLocaleString()}`}
+                        </p>
+                        <div className="h-72">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={monthlyAnalytics}>
+                              <CartesianGrid stroke={chartGrid} strokeDasharray="3 3" />
+                              <XAxis dataKey="month" stroke={chartAxis} tick={{ fill: chartAxis, fontSize: 12 }} />
+                              <YAxis stroke={chartAxis} tick={{ fill: chartAxis, fontSize: 12 }} />
+                              <Tooltip
+                                formatter={(value: number) => [`PHP ${Number(value).toLocaleString()}`, 'Revenue']}
+                                contentStyle={{ background: '#0f172a', border: '1px solid rgba(14,165,233,0.25)', borderRadius: 12, color: chartText }}
+                                labelStyle={{ color: '#f8fafc', fontWeight: 700 }}
+                              />
+                              <Bar dataKey="revenue" radius={[10, 10, 0, 0]} name="Revenue">
+                                {monthlyAnalytics.map((entry) => (
+                                  <Cell key={`revenue-${entry.month}`} fill={entry.revenue > 0 ? '#0ea5e9' : '#1e293b'} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* Monthly ranking */}
-                {(() => {
-                  const now = new Date();
-                  const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                  const monthKey = `${now.getFullYear()}-${now.getMonth()}`;
-                  const monthlyCount: Record<string, number> = {};
-                  bookings.forEach(b => {
-                    const d = new Date(b.date);
-                    if (`${d.getFullYear()}-${d.getMonth()}` === monthKey) {
-                      monthlyCount[b.event_type] = (monthlyCount[b.event_type] || 0) + 1;
-                    }
-                  });
-                  const ranked = Object.entries(monthlyCount).sort((a, b) => b[1] - a[1]);
-                  const maxRank = Math.max(...ranked.map(r => r[1]), 1);
-                  return (
-                    <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div className="flex items-center justify-between mb-5">
-                        <p className="text-sm font-black text-white">Monthly Event Ranking</p>
-                        <span className="text-xs font-bold px-3 py-1 rounded-full text-sky-300" style={{ background: 'rgba(14,165,233,0.12)' }}>{monthLabel}</span>
-                      </div>
-                      {ranked.length === 0 ? (
-                        <p className="text-slate-500 text-sm text-center py-8">No bookings this month</p>
-                      ) : (
-                        <div className="space-y-3">
-                          {ranked.map(([type, count], i) => (
-                            <div key={type}>
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm font-bold text-white">#{i + 1} {type}</span>
-                                <span className="text-xs text-sky-400 font-bold">{count} booking{count !== 1 ? 's' : ''}</span>
-                              </div>
-                              <div className="h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                                <div className="h-2 rounded-full transition-all"
-                                  style={{ width: `${(count / maxRank) * 100}%`, background: i === 0 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : i === 1 ? 'linear-gradient(90deg,#94a3b8,#64748b)' : i === 2 ? 'linear-gradient(90deg,#b45309,#92400e)' : 'linear-gradient(90deg,#0ea5e9,#0369a1)' }} />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <p className="text-sm font-black text-white mb-5">
+                    {analyticsEventType === 'all' ? 'Popular Event Types' : `Breakdown While Viewing ${analyticsEventType}`}
+                  </p>
+                  {eventTypeBreakdown.length === 0 ? (
+                    <p className="text-slate-500 text-sm text-center py-8">No event breakdown available.</p>
+                  ) : (
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={eventTypeBreakdown} layout="vertical" margin={{ left: 24 }}>
+                          <CartesianGrid stroke={chartGrid} strokeDasharray="3 3" />
+                          <XAxis type="number" allowDecimals={false} stroke={chartAxis} tick={{ fill: chartAxis, fontSize: 12 }} />
+                          <YAxis dataKey="type" type="category" width={110} stroke={chartAxis} tick={{ fill: chartAxis, fontSize: 12 }} />
+                          <Tooltip
+                            contentStyle={{ background: '#0f172a', border: '1px solid rgba(14,165,233,0.25)', borderRadius: 12, color: chartText }}
+                            labelStyle={{ color: '#f8fafc', fontWeight: 700 }}
+                          />
+                          <Bar dataKey="bookings" fill="#38bdf8" radius={[0, 10, 10, 0]} name="Bookings" />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
-                  );
-                })()}
+                  )}
+                </div>
 
                 {/* Popular event types */}
                 <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>

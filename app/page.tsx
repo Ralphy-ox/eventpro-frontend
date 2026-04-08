@@ -2,8 +2,25 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import {
+  BellRing,
+  CalendarCheck2,
+  CalendarHeart,
+  CandlestickChart,
+  CircleDollarSign,
+  Clock3,
+  GlassWater,
+  Mail,
+  MapPin,
+  MessageSquareQuote,
+  PartyPopper,
+  Phone,
+  Sparkles,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { LogoutOverlay, useLogout } from '@/components/LogoutOverlay';
-import { API_BASE } from '@/lib/api';
+import { API_BASE, apiFetch } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
 
 interface EventType {
@@ -25,15 +42,75 @@ const FEATURES = [
   { title: 'Verified Reviews', desc: 'Read honest reviews from real clients who\'ve hosted events.' },
 ];
 
+const EVENT_ICON_RULES: Array<{ match: RegExp; icon: LucideIcon }> = [
+  { match: /wedding|bridal|engagement/i, icon: CalendarHeart },
+  { match: /birthday|debut|anniversary|celebration/i, icon: PartyPopper },
+  { match: /corporate|business|conference|seminar|meeting/i, icon: Users },
+  { match: /christening|baptism|baby|shower/i, icon: Sparkles },
+  { match: /dinner|banquet|reception|gala/i, icon: GlassWater },
+];
+
+const getEventTypeIcon = (eventType: string): LucideIcon => {
+  const matchedRule = EVENT_ICON_RULES.find(({ match }) => match.test(eventType));
+  return matchedRule?.icon || CandlestickChart;
+};
+
+const getFeatureIcon = (title: string): LucideIcon => {
+  switch (title) {
+    case 'Easy Booking':
+      return CalendarCheck2;
+    case 'Real-Time Availability':
+      return Clock3;
+    case 'Flexible Payments':
+      return CircleDollarSign;
+    case 'Live Notifications':
+      return BellRing;
+    case 'Verified Reviews':
+      return MessageSquareQuote;
+    default:
+      return Sparkles;
+  }
+};
+
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const { loggingOut, logout } = useLogout();
   const eventTypesScrollerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('clientToken'));
+    const checkClientSession = async () => {
+      const clientToken = localStorage.getItem('clientToken');
+      const organizerToken = localStorage.getItem('organizerToken');
+
+      if (!clientToken || organizerToken) {
+        setIsLoggedIn(false);
+        setAuthChecked(true);
+        return;
+      }
+
+      try {
+        const profileRes = await apiFetch(`${API_BASE}/profile/`, {}, 'clientToken');
+        if (profileRes.ok) {
+          setIsLoggedIn(true);
+        } else {
+          localStorage.removeItem('clientToken');
+          localStorage.removeItem('clientRefresh');
+          localStorage.removeItem('userName');
+          localStorage.removeItem('userId');
+          localStorage.setItem('isOrganizer', 'false');
+          setIsLoggedIn(false);
+        }
+      } catch {
+        setIsLoggedIn(false);
+      } finally {
+        setAuthChecked(true);
+      }
+    };
+
+    checkClientSession();
     fetch(`${API_BASE}/event-types/`)
       .then(r => r.ok ? r.json() : [])
       .then(data => setEventTypes(Array.isArray(data) ? data : []))
@@ -89,6 +166,10 @@ export default function Home() {
         { label: 'Register', href: '/register', highlight: true },
       ];
 
+  const ctaHref = authChecked && isLoggedIn ? '/client/dashboard' : '/register';
+  const ctaLabel = authChecked && isLoggedIn ? 'Book Your Event' : 'Get Started Free';
+  const finalCtaLabel = authChecked && isLoggedIn ? 'Book Now' : 'Create Free Account';
+
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ background: '#0a1628' }}>
       <LogoutOverlay visible={loggingOut} />
@@ -122,10 +203,10 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link href={isLoggedIn ? '/client/dashboard' : '/register'}
+            <Link href={ctaHref}
               className="px-10 py-4 text-white font-bold text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
               style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.35)' }}>
-              {isLoggedIn ? 'Book Your Event' : 'Get Started Free'}
+              {ctaLabel}
             </Link>
             <Link href="/learn-more"
               className="px-10 py-4 font-semibold text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
@@ -179,21 +260,25 @@ export default function Home() {
                 ref={eventTypesScrollerRef}
                 className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               >
-                {eventTypes.map((e) => (
-                  <div
-                    key={e.id}
-                    data-event-card="true"
-                    className="min-w-[260px] sm:min-w-[280px] lg:min-w-[300px] rounded-2xl p-6 text-center transition-all duration-300 hover:-translate-y-1 cursor-default snap-start"
-                    style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)' }}
-                  >
-                    <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
-                      style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.3)' }}>
-                      <div className="w-3 h-3 rounded-full" style={{ background: '#0ea5e9' }} />
+                {eventTypes.map((e) => {
+                  const EventTypeIcon = getEventTypeIcon(e.event_type);
+
+                  return (
+                    <div
+                      key={e.id}
+                      data-event-card="true"
+                      className="min-w-[260px] sm:min-w-[280px] lg:min-w-[300px] rounded-2xl p-6 text-center transition-all duration-300 hover:-translate-y-1 cursor-default snap-start"
+                      style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)' }}
+                    >
+                      <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
+                        style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.3)' }}>
+                        <EventTypeIcon className="w-5 h-5 text-sky-400" strokeWidth={2.2} />
+                      </div>
+                      <p className="font-bold text-white text-sm mb-1">{e.event_type}</p>
+                      <p className="text-xs text-slate-400">{e.description || 'Custom event planning tailored to your celebration.'}</p>
                     </div>
-                    <p className="font-bold text-white text-sm mb-1">{e.event_type}</p>
-                    <p className="text-xs text-slate-400">{e.description || 'Custom event planning tailored to your celebration.'}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <button
@@ -250,45 +335,50 @@ export default function Home() {
             <p className="text-slate-400 max-w-md mx-auto">All the tools and features to make your event a success.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-5">
-            {FEATURES.map((f, index) => (
-              <div
-                key={f.title}
-                className={`rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 sm:col-span-1 lg:col-span-2 ${
-                  FEATURES.length % 3 === 2 && index >= FEATURES.length - 2 ? 'lg:col-span-3' : ''
-                }`}
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div className="w-10 h-10 rounded-xl mb-4 flex items-center justify-center"
-                  style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#0ea5e9' }} />
+            {FEATURES.map((f, index) => {
+              const FeatureIcon = getFeatureIcon(f.title);
+
+              return (
+                <div
+                  key={f.title}
+                  className={`rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 sm:col-span-1 lg:col-span-2 ${
+                    FEATURES.length % 3 === 2 && index >= FEATURES.length - 2 ? 'lg:col-span-3' : ''
+                  }`}
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div className="w-10 h-10 rounded-xl mb-4 flex items-center justify-center"
+                    style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>
+                    <FeatureIcon className="w-[18px] h-[18px] text-sky-400" strokeWidth={2.2} />
+                  </div>
+                  <h3 className="font-black text-white text-base mb-2">{f.title}</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed">{f.desc}</p>
                 </div>
-                <h3 className="font-black text-white text-base mb-2">{f.title}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c2d4a, #0a1628)' }}>
-        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, #0ea5e9 1px, transparent 1px)', backgroundSize: '25px 25px' }} />
-        <div className="max-w-3xl mx-auto px-6 sm:px-8 text-center relative z-10">
-          <h2 className="text-3xl sm:text-5xl font-black text-white mb-5 leading-tight">Ready to Create Your Dream Event?</h2>
-          <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">Join hundreds of happy clients who&apos;ve hosted unforgettable events at Ralphy&apos;s Venue.</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href={isLoggedIn ? '/client/dashboard' : '/register'}
-              className="px-10 py-4 font-black text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95 text-white"
-              style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.35)' }}>
-              {isLoggedIn ? 'Book Now' : 'Create Free Account'}
-            </Link>
-            <Link href="/ratings"
-              className="px-10 py-4 font-bold text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
-              style={{ borderColor: 'rgba(14,165,233,0.4)', color: '#7dd3fc', background: 'rgba(14,165,233,0.08)' }}>
-              Read Reviews
-            </Link>
+      {!isLoggedIn && (
+        <section className="py-20 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c2d4a, #0a1628)' }}>
+          <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, #0ea5e9 1px, transparent 1px)', backgroundSize: '25px 25px' }} />
+          <div className="max-w-3xl mx-auto px-6 sm:px-8 text-center relative z-10">
+            <h2 className="text-3xl sm:text-5xl font-black text-white mb-5 leading-tight">Ready to Create Your Dream Event?</h2>
+            <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">Join hundreds of happy clients who&apos;ve hosted unforgettable events at Ralphy&apos;s Venue.</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href={ctaHref}
+                className="px-10 py-4 font-black text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95 text-white"
+                style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.35)' }}>
+                {finalCtaLabel}
+              </Link>
+              <Link href="/ratings"
+                className="px-10 py-4 font-bold text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
+                style={{ borderColor: 'rgba(14,165,233,0.4)', color: '#7dd3fc', background: 'rgba(14,165,233,0.08)' }}>
+                Read Reviews
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* FOOTER */}
       <footer style={{ background: '#060e1a', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
@@ -311,10 +401,19 @@ export default function Home() {
           </div>
           <div>
             <h3 className="text-white font-bold text-sm mb-4 uppercase tracking-widest">Contact</h3>
-            <ul className="space-y-2 text-sm text-slate-500">
-              <li>Basak San Nicolas Villa Kalubihan, Cebu City 6000</li>
-              <li>0993 926 1681</li>
-              <li>ralph.villarojo@gmail.com</li>
+            <ul className="space-y-3 text-sm text-slate-500">
+              <li className="flex items-start gap-2.5">
+                <MapPin className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" strokeWidth={2.2} />
+                <span>Basak San Nicolas Villa Kalubihan, Cebu City 6000</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <Phone className="w-4 h-4 text-sky-400 shrink-0" strokeWidth={2.2} />
+                <span>0993 926 1681</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <Mail className="w-4 h-4 text-sky-400 shrink-0" strokeWidth={2.2} />
+                <span>ralph.villarojo@gmail.com</span>
+              </li>
             </ul>
           </div>
         </div>

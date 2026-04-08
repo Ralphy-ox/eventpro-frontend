@@ -10,11 +10,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "lucide-react": "^1.7.0",
     "next": "15.3.9",
     "nodemailer": "^6.9.16",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "recharts": "^3.8.1",
     "whitenoise": "^0.0.1"
   },
   "devDependencies": {

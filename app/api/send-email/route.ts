@@ -10,6 +10,18 @@ type EmailPayload = {
   htmlBody?: string;
 };
 
+const looksLikePlaceholder = (value: string): boolean => {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized.startsWith("replace-with-") ||
+    normalized.includes("your-gmail-app-password") ||
+    normalized.includes("mailer-account@example.com") ||
+    normalized.includes("your-mailer-email") ||
+    normalized.includes("your-backend.onrender.com") ||
+    normalized.includes("same-shared-secret-as")
+  );
+};
+
 const buildHtmlDocument = (subject: string, htmlBody: string): string => {
   if (/<html[\s>]/i.test(htmlBody)) {
     return htmlBody;
@@ -40,38 +52,46 @@ const getRequiredEnv = (key: string, fallbackKeys: string[] = []): string => {
   const keys = [key, ...fallbackKeys];
   for (const candidate of keys) {
     const value = process.env[candidate]?.trim();
-    if (value) {
+    if (value && !looksLikePlaceholder(value)) {
       return value;
     }
   }
   throw new Error(`Missing required environment variable: ${keys.join(" or ")}`);
-}
+};
+
+const getOptionalEnv = (key: string): string => {
+  const value = process.env[key]?.trim() || "";
+  return looksLikePlaceholder(value) ? "" : value;
+};
 
 const buildTransport = () => {
   const user = getRequiredEnv("MAILER_GMAIL_USER", ["EMAIL_HOST_USER"]);
   const password = getRequiredEnv("MAILER_GMAIL_APP_PASSWORD", ["EMAIL_HOST_PASSWORD"]).replace(/\s+/g, "");
 
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user,
-      pass: password,
-    },
-  });
+  return {
+    transporter: nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user,
+        pass: password,
+      },
+    }),
+    authenticatedUser: user,
+  };
 };
 
-const buildFromAddress = (): string => {
-  const fromEmail =
-    process.env.MAILER_FROM_EMAIL?.trim() ||
-    process.env.EMAIL_HOST_USER?.trim() ||
-    getRequiredEnv("MAILER_GMAIL_USER", ["EMAIL_HOST_USER"]);
-  const fromName = process.env.MAILER_FROM_NAME?.trim();
+const buildFromAddress = (authenticatedUser: string): string => {
+  const fromName = getOptionalEnv("MAILER_FROM_NAME");
 
   if (!fromName) {
-    return fromEmail;
+    return authenticatedUser;
   }
 
-  return `${fromName} <${fromEmail}>`;
+  return `${fromName} <${authenticatedUser}>`;
+};
+
+const buildReplyTo = (authenticatedUser: string): string => {
+  return getOptionalEnv("MAILER_FROM_EMAIL") || authenticatedUser;
 };
 
 const formatBridgeError = (error: unknown): string => {
@@ -129,8 +149,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const transporter = buildTransport();
-    const from = buildFromAddress();
+    const { transporter, authenticatedUser } = buildTransport();
+    const from = buildFromAddress(authenticatedUser);
+    const replyTo = buildReplyTo(authenticatedUser);
 
     const result = await transporter.sendMail({
       from,
@@ -138,7 +159,11 @@ export async function POST(request: Request) {
       subject,
       text: textBody,
       html: buildHtmlDocument(subject, htmlBody),
-      replyTo: from,
+      replyTo,
+      envelope: {
+        from: authenticatedUser,
+        to: recipient,
+      },
       headers: {
         "X-Priority": "1",
         "X-Mailer": "EventPro Mailer",
