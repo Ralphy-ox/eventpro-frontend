@@ -823,7 +823,7 @@ export default function OrganizerDashboard() {
                               <XAxis dataKey="month" stroke={chartAxis} tick={{ fill: chartAxis, fontSize: 12 }} />
                               <YAxis stroke={chartAxis} tick={{ fill: chartAxis, fontSize: 12 }} />
                               <Tooltip
-                                formatter={(value: number) => [`PHP ${Number(value).toLocaleString()}`, 'Revenue']}
+                                formatter={(value) => [`PHP ${Number(value ?? 0).toLocaleString()}`, 'Revenue']}
                                 contentStyle={{ background: '#0f172a', border: '1px solid rgba(14,165,233,0.25)', borderRadius: 12, color: chartText }}
                                 labelStyle={{ color: '#f8fafc', fontWeight: 700 }}
                               />
