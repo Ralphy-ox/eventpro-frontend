@@ -33,6 +33,7 @@ interface ContactMsg {
 }
 interface Reply { id: number; user_id: number; user: string; is_organizer: boolean; comment: string; created_at: string; }
 interface ReviewItem { id: number; user: string; rating: number; comment: string; event_type: string | null; created_at: string; replies: Reply[]; }
+interface EventTypeOption { event_type: string; }
 
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
 const iCls = 'w-full px-4 py-3 rounded-xl text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500 transition-all text-sm';
@@ -57,6 +58,7 @@ export default function OrganizerDashboard() {
   const [expandedMsg, setExpandedMsg] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [availableEventTypes, setAvailableEventTypes] = useState<string[]>([]);
   const [organizerUserId, setOrganizerUserId] = useState<number | null>(null);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -101,17 +103,30 @@ export default function OrganizerDashboard() {
       .then(r => r.json()).then(setContactMessages).catch(() => {});
   }, []);
 
+  const loadEventTypes = useCallback(() => {
+    fetch(`${API_BASE}/event-types/`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data: EventTypeOption[]) => {
+        const eventTypes = Array.isArray(data)
+          ? data.map((item) => item.event_type).filter(Boolean)
+          : [];
+        setAvailableEventTypes(eventTypes);
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     fetchBookings();
     loadReviews();
     loadContactMessages();
+    loadEventTypes();
     loadCalendar(calendarDate);
     const token = localStorage.getItem('organizerToken');
     if (token) {
       fetch(`${API_BASE}/profile/`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setOrganizerUserId(d.id ?? null)).catch(() => {});
     }
-  }, [fetchBookings, loadReviews, loadContactMessages, loadCalendar, calendarDate]);
+  }, [fetchBookings, loadReviews, loadContactMessages, loadEventTypes, loadCalendar, calendarDate]);
 
   // Real-time: auto-refresh when a WS notification arrives
   useRealtimeRefresh('organizerToken', (type) => {
@@ -226,7 +241,10 @@ export default function OrganizerDashboard() {
   });
   const topEventTypes = Object.entries(eventTypeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const maxEventCount = Math.max(...topEventTypes.map(([, count]) => count), 1);
-  const analyticsEventTypes = ['all', ...Object.keys(eventTypeCounts).sort((a, b) => a.localeCompare(b))];
+  const analyticsEventTypes = [
+    'all',
+    ...Array.from(new Set([...availableEventTypes, ...Object.keys(eventTypeCounts)])).sort((a, b) => a.localeCompare(b)),
+  ];
   const analyticsBookings = bookings.filter((booking) =>
     analyticsEventType === 'all' || booking.event_type === analyticsEventType
   );
