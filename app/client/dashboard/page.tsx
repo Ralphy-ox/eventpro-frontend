@@ -243,7 +243,7 @@ export default function ClientDashboard() {
                     <select value={eventType} onChange={e => {
                       const sel = eventTypes.find(et => et.event_type === e.target.value);
                       setEventType(e.target.value); setSelectedEventType(sel || null);
-                      setNumPeopleInvited(0); setEventDetails({});
+                      setNumPeopleInvited(sel?.max_capacity || 0); setEventDetails({});
                     }} className={iCls} style={iStyle}>
                       <option value="" style={{ background: '#0c2d4a' }}>Select event type</option>
                       {eventTypes.map(et => <option key={et.id} value={et.event_type} style={{ background: '#0c2d4a' }}>{et.event_type}</option>)}
@@ -298,13 +298,20 @@ export default function ClientDashboard() {
 
                 <div>
                   <label className={lCls}>Number of Guests</label>
-                  <input type="number" min={1} max={selectedEventType?.max_capacity || 500} value={numPeopleInvited || ''}
-                    onChange={e => {
-                      const val = Number(e.target.value), max = selectedEventType?.max_capacity || 500;
-                      if (val > max) { alert(`Max guests: ${max}`); setNumPeopleInvited(max); }
-                      else if (val >= 0) setNumPeopleInvited(val);
-                    }}
-                    placeholder="Enter number of guests" className={iCls} style={iStyle} />
+                  <input
+                    type="number"
+                    min={1}
+                    value={selectedEventType ? selectedEventType.max_capacity : ''}
+                    readOnly
+                    placeholder="Select event type first"
+                    className={`${iCls} cursor-not-allowed`}
+                    style={{ ...iStyle, opacity: selectedEventType ? 1 : 0.7 }}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    {selectedEventType
+                      ? `${selectedEventType.event_type} has a fixed maximum of ${selectedEventType.max_capacity} guests.`
+                      : 'Guest limit will be filled in automatically after you select an event type.'}
+                  </p>
                 </div>
               </div>
             </div>

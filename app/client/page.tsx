@@ -159,8 +159,15 @@ export default function ClientDashboard() {
         <select
           value={eventType}
           onChange={e => {
-            setEventType(e.target.value);
-            setCapacity(0);
+            const selectedType = e.target.value;
+            const selectedCapacity =
+              selectedType === 'Birthday' || selectedType === 'Wedding'
+                ? 50
+                : selectedType
+                ? 100
+                : 0;
+            setEventType(selectedType);
+            setCapacity(selectedCapacity);
             setQrCode(null);
           }}
           className="w-full border rounded-md px-3 py-2"
@@ -200,17 +207,16 @@ export default function ClientDashboard() {
         </label>
         <input
           type="number"
-          min={1}
-          max={guestLimit}
           value={capacity}
-          onChange={e =>
-            setCapacity(
-              Math.min(Number(e.target.value), guestLimit)
-            )
-          }
-          placeholder={`Guests (max ${guestLimit})`}
-          className="w-full border rounded-md px-3 py-2"
+          readOnly
+          placeholder={eventType ? `Guests (max ${guestLimit})` : 'Select event type first'}
+          className="w-full border rounded-md px-3 py-2 bg-gray-100 cursor-not-allowed"
         />
+        <p className="text-sm text-gray-600 mt-1">
+          {eventType
+            ? `${eventType} has a fixed maximum of ${guestLimit} guests.`
+            : 'Maximum people will be set automatically based on your event type.'}
+        </p>
       </div>
 
       {/* Emails */}
