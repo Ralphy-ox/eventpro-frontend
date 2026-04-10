@@ -9,6 +9,7 @@ type ForgotStep = 'email' | 'code' | 'newpass' | null;
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
@@ -21,6 +22,8 @@ export default function SignIn() {
   const [forgotCode, setForgotCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [forgotMsg, setForgotMsg] = useState('');
   const [forgotError, setForgotError] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -273,11 +276,20 @@ export default function SignIn() {
                   Forgot Password?
                 </button>
               </div>
-              <input
-                type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-                className="w-full px-4 py-3 rounded-xl border text-white placeholder-slate-500 outline-none transition-all focus:ring-2 focus:ring-sky-500"
-                style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required
+                  className="w-full px-4 py-3 pr-16 rounded-xl border text-white placeholder-slate-500 outline-none transition-all focus:ring-2 focus:ring-sky-500"
+                  style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -369,15 +381,33 @@ export default function SignIn() {
                 <h3 className="text-xl font-black text-white mb-1">New Password</h3>
                 <p className="text-sm text-slate-400 mb-5">Choose a strong new password.</p>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">New Password</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500 mb-3"
-                  style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
-                  />
+                <div className="relative mb-3">
+                  <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-3 pr-16 rounded-xl border text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500"
+                    style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
+                    />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+                  >
+                    {showNewPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">Confirm Password</label>
-                <input type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500 mb-4"
-                  style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
-                  />
+                <div className="relative mb-4">
+                  <input type={showConfirmNewPassword ? 'text' : 'password'} value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    className="w-full px-4 py-3 pr-16 rounded-xl border text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500"
+                    style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
+                    />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmNewPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+                  >
+                    {showConfirmNewPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
                 {forgotError && <p className="text-red-400 text-sm mb-3">⚠️ {forgotError}</p>}
                 {forgotMsg && <p className="text-emerald-400 text-sm mb-3">✅ {forgotMsg}</p>}
                 <button onClick={handleForgotReset} disabled={forgotLoading}

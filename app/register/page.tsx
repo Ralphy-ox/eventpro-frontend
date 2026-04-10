@@ -32,6 +32,8 @@ export default function ClientRegister() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('Creating Account...');
@@ -279,14 +281,32 @@ export default function ClientRegister() {
 
             <div>
               <label className={lCls}>Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
-                placeholder="Min 6 characters" className={iCls} style={iStyle} />
+              <div className="relative">
+                <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required
+                  placeholder="Min 6 characters" className={iCls + ' pr-16'} style={iStyle} />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className={lCls}>Confirm Password</label>
-              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
-                placeholder="Repeat password" className={iCls} style={iStyle} />
+              <div className="relative">
+                <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
+                  placeholder="Repeat password" className={iCls + ' pr-16'} style={iStyle} />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(prev => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+                >
+                  {showConfirmPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
 
             {error && (
