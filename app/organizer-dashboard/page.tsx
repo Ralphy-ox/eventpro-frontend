@@ -291,6 +291,13 @@ export default function OrganizerDashboard() {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .slice(-6)
     .map(([, value]) => value);
+  const latestRevenueMonth = monthlyAnalytics.length > 0 ? monthlyAnalytics[monthlyAnalytics.length - 1] : null;
+  const previousRevenueMonth = monthlyAnalytics.length > 1 ? monthlyAnalytics[monthlyAnalytics.length - 2] : null;
+  const revenueDifference = latestRevenueMonth ? latestRevenueMonth.revenue - (previousRevenueMonth?.revenue ?? 0) : 0;
+  const revenuePercentChange = previousRevenueMonth?.revenue
+    ? (revenueDifference / previousRevenueMonth.revenue) * 100
+    : null;
+  const revenueTrendLabel = revenueDifference > 0 ? 'up' : revenueDifference < 0 ? 'down' : 'flat';
 
   const monthlyEventSeriesMap = new Map<string, { month: string; [eventType: string]: string | number }>();
   bookings.forEach((booking) => {
@@ -892,6 +899,33 @@ export default function OrganizerDashboard() {
                             ? `Current paid revenue: PHP ${analyticsRevenue.toLocaleString()}`
                             : `${analyticsEventType} paid revenue: PHP ${analyticsRevenue.toLocaleString()}`}
                         </p>
+                        {latestRevenueMonth && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                            <div className="rounded-xl p-3" style={{ background: 'rgba(15,23,42,0.45)', border: '1px solid rgba(148,163,184,0.14)' }}>
+                              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-1">Latest Month</p>
+                              <p className="text-sm font-black text-white">{latestRevenueMonth.month}</p>
+                              <p className="text-lg font-black text-sky-400 mt-1">PHP {latestRevenueMonth.revenue.toLocaleString()}</p>
+                            </div>
+                            <div className="rounded-xl p-3" style={{ background: 'rgba(15,23,42,0.45)', border: '1px solid rgba(148,163,184,0.14)' }}>
+                              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-1">Compared To</p>
+                              <p className="text-sm font-black text-white">{previousRevenueMonth?.month ?? 'No previous month yet'}</p>
+                              <p className="text-sm font-bold mt-1" style={{ color: revenueDifference > 0 ? '#22c55e' : revenueDifference < 0 ? '#f87171' : '#cbd5e1' }}>
+                                {previousRevenueMonth
+                                  ? `${revenueDifference >= 0 ? '+' : '-'}PHP ${Math.abs(revenueDifference).toLocaleString()} ${revenueTrendLabel}`
+                                  : 'Need one more month to compare'}
+                              </p>
+                              <p className="text-xs text-slate-400 mt-1">
+                                {previousRevenueMonth
+                                  ? revenuePercentChange !== null
+                                    ? `${revenueDifference >= 0 ? '+' : ''}${revenuePercentChange.toFixed(1)}% versus ${previousRevenueMonth.month}`
+                                    : previousRevenueMonth.revenue === 0
+                                      ? 'Previous month revenue was PHP 0'
+                                      : 'Comparison unavailable'
+                                  : 'Month-to-month comparison will appear automatically once there are at least two months of paid revenue.'}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         <div className="h-72">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={monthlyAnalytics}>
