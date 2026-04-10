@@ -815,7 +815,7 @@ export default function OrganizerDashboard() {
                   {[
                     { label: 'Total Revenue', value: `₱${totalRevenue.toLocaleString()}` },
                     { label: 'Confirmed Bookings', value: analyticsConfirmedCount },
-                    { label: 'Focus Event', value: analyticsMostPopular },
+                    { label: 'Popular Event', value: analyticsMostPopular },
                   ].map(s => (
                     <div key={s.label} className="rounded-2xl p-5 text-center"
                       style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)' }}>

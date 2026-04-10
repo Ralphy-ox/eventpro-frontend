@@ -71,6 +71,8 @@ export default function ClientDashboard() {
   const wholeDay = sessionType === 'whole';
   const timeSlot = wholeDay ? 'whole_day' : (time && Number(time.split(':')[0]) < 12 ? 'morning' : 'afternoon');
   const slotAvail = timeSlot === 'whole_day' ? Math.min(morningAvail ?? MAX_ROOMS, afternoonAvail ?? MAX_ROOMS) : timeSlot === 'morning' ? (morningAvail ?? availableRooms ?? MAX_ROOMS) : (afternoonAvail ?? availableRooms ?? MAX_ROOMS);
+  const isFullyBooked = (morningAvail ?? 0) === 0 && (afternoonAvail ?? 0) === 0;
+  const availabilityStatusLabel = isFullyBooked ? 'Fully Booked' : slotAvail === 0 ? 'Full' : slotAvail <= 1 ? 'Almost Full' : 'Available';
   const displayPrice = selectedEventType
     ? wholeDay ? selectedEventType.price * 2 * 0.8 : selectedEventType.price : 0;
 
@@ -419,18 +421,26 @@ export default function ClientDashboard() {
                   <h2 className="text-sm font-black text-white">Availability</h2>
                 </div>
                 <div className="p-5">
-                  <div className="grid grid-cols-3 gap-2 mb-5">
-                    {[
-                      { label: 'Morning', value: `${morningAvail ?? '—'}/${MAX_ROOMS}`, ok: (morningAvail ?? 1) > 0 },
-                      { label: 'Afternoon', value: `${afternoonAvail ?? '—'}/${MAX_ROOMS}`, ok: (afternoonAvail ?? 1) > 0 },
-                      { label: 'Status', value: slotAvail === 0 ? 'Full' : slotAvail <= 1 ? 'Almost Full' : 'Available', ok: slotAvail > 0 },
-                    ].map(s => (
-                      <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                        <p className="text-xs text-slate-500 mb-1">{s.label}</p>
-                        <p className={`text-sm font-black ${s.ok ? 'text-sky-400' : 'text-red-400'}`}>{s.value}</p>
-                      </div>
-                    ))}
-                  </div>
+                  {isFullyBooked ? (
+                    <div className="rounded-2xl p-5 mb-5 text-center" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                      <p className="text-xs text-red-300 uppercase tracking-[0.25em] mb-2">Status</p>
+                      <p className="text-2xl font-black text-red-400">Fully Booked</p>
+                      <p className="text-xs text-red-200 mt-2">Morning and afternoon slots are no longer available for this date.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2 mb-5">
+                      {[
+                        { label: 'Morning', value: `${morningAvail ?? '—'}/${MAX_ROOMS}`, ok: (morningAvail ?? 1) > 0 },
+                        { label: 'Afternoon', value: `${afternoonAvail ?? '—'}/${MAX_ROOMS}`, ok: (afternoonAvail ?? 1) > 0 },
+                        { label: 'Status', value: availabilityStatusLabel, ok: slotAvail > 0 },
+                      ].map(s => (
+                        <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <p className="text-xs text-slate-500 mb-1">{s.label}</p>
+                          <p className={`text-sm font-black ${s.ok ? 'text-sky-400' : 'text-red-400'}`}>{s.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {slotAvail > 0 ? (
                     <>
