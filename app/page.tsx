@@ -34,6 +34,13 @@ interface Review {
   rating: number;
 }
 
+interface PublicStats {
+  events_hosted: number;
+  average_rating: number;
+  event_types: number;
+  satisfaction_rate: number;
+}
+
 const FEATURES = [
   { title: 'Easy Booking', desc: 'Book your event in minutes with our streamlined process.' },
   { title: 'Real-Time Availability', desc: 'Instant room availability so you always know what\'s open.' },
@@ -77,6 +84,12 @@ export default function Home() {
   const [authChecked, setAuthChecked] = useState(false);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [publicStats, setPublicStats] = useState<PublicStats>({
+    events_hosted: 0,
+    average_rating: 0,
+    event_types: 0,
+    satisfaction_rate: 0,
+  });
   const { loggingOut, logout } = useLogout();
   const eventTypesScrollerRef = useRef<HTMLDivElement | null>(null);
 
@@ -119,17 +132,31 @@ export default function Home() {
       .then(r => r.ok ? r.json() : [])
       .then(data => setReviews(Array.isArray(data) ? data : []))
       .catch(() => {});
+    fetch(`${API_BASE}/stats/public/`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        setPublicStats({
+          events_hosted: Number(data.events_hosted ?? 0),
+          average_rating: Number(data.average_rating ?? 0),
+          event_types: Number(data.event_types ?? 0),
+          satisfaction_rate: Number(data.satisfaction_rate ?? 0),
+        });
+      })
+      .catch(() => {});
   }, []);
 
-  const averageRating = reviews.length > 0
-    ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
-    : '0.0';
+  const averageRating = publicStats.average_rating > 0
+    ? publicStats.average_rating.toFixed(1)
+    : (reviews.length > 0
+      ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
+      : '0.0');
 
   const stats = [
-    { value: '500+', label: 'Events Hosted' },
+    { value: String(publicStats.events_hosted), label: 'Events Hosted' },
     { value: averageRating, label: 'Avg. Rating' },
-    { value: String(eventTypes.length), label: 'Event Types' },
-    { value: '100%', label: 'Satisfaction' },
+    { value: String(publicStats.event_types || eventTypes.length), label: 'Event Types' },
+    { value: `${publicStats.satisfaction_rate}%`, label: 'Satisfaction' },
   ];
 
   const scrollEventTypes = (direction: 'left' | 'right') => {

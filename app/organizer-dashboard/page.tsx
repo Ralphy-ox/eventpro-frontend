@@ -246,6 +246,9 @@ export default function OrganizerDashboard() {
     'all',
     ...Array.from(new Set([...availableEventTypes, ...Object.keys(eventTypeCounts)])).sort((a, b) => a.localeCompare(b)),
   ];
+  const filterEventTypes = Array.from(
+    new Set([...availableEventTypes, ...bookings.map((booking) => booking.event_type).filter(Boolean)])
+  ).sort((a, b) => a.localeCompare(b));
   const analyticsBookings = bookings.filter((booking) =>
     analyticsEventType === 'all' || booking.event_type === analyticsEventType
   );
@@ -527,7 +530,7 @@ export default function OrganizerDashboard() {
             className="px-4 py-3 rounded-xl text-white text-sm outline-none focus:ring-2 focus:ring-sky-500"
             style={iStyle}>
             <option value="" style={{ background: '#0c2d4a' }}>All Event Types</option>
-            {['Birthday', 'Wedding', 'Conference', 'Corporate Event', 'Others'].map(t => (
+            {filterEventTypes.map(t => (
               <option key={t} value={t} style={{ background: '#0c2d4a' }}>{t}</option>
             ))}
           </select>

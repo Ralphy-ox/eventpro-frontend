@@ -24,8 +24,15 @@ const capitalizeWords = (value: string) =>
 const shouldCapitalizeEventField = (key: string) =>
   key.includes('first_name') || key.includes('last_name');
 
+const getTodayDate = () => {
+  const now = new Date();
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - timezoneOffsetMs).toISOString().split('T')[0];
+};
+
 export default function ClientDashboard() {
   const router = useRouter();
+  const today = getTodayDate();
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [selectedEventType, setSelectedEventType] = useState<EventType | null>(null);
   const [eventType, setEventType] = useState('');
@@ -96,6 +103,10 @@ export default function ClientDashboard() {
   const handleBookingRequest = async () => {
     if (!eventType || !description || !numPeopleInvited || !date || (!wholeDay && !time) || !paymentMethod) {
       alert('Please fill in all required fields'); return;
+    }
+    if (date < today) {
+      alert('You cannot create a booking for a past date');
+      return;
     }
     if (description.length < 10) { setDescriptionError('Description must be at least 10 characters'); return; }
     // Validate invited emails count
@@ -354,6 +365,7 @@ export default function ClientDashboard() {
                   <div>
                     <label className={lCls}>Event Date</label>
                     <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                      min={today}
                       className={iCls} style={{ ...iStyle, colorScheme: 'dark' }} />
                   </div>
                   <div>
@@ -478,6 +490,11 @@ export default function ClientDashboard() {
                             </label>
                           ))}
                         </div>
+                      </div>
+
+                      <div className="mb-4 rounded-xl p-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                        <p className="text-xs font-bold uppercase tracking-widest text-red-300 mb-1">Important Note</p>
+                        <p className="text-sm text-red-200">Once the organizer accepts your booking, there is no refund.</p>
                       </div>
 
                       <button onClick={handleBookingRequest} disabled={submitting || !paymentMethod}

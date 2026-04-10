@@ -8,7 +8,14 @@ const MAX_ROOMS = 5;
 const VENUE_LOCATION =
   "Ralphy's Venue, Basak San Nicolas Villa Kalubihan Cebu City 6000.";
 
+const getTodayDate = () => {
+  const now = new Date();
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - timezoneOffsetMs).toISOString().split('T')[0];
+};
+
 export default function ClientDashboard() {
+  const today = getTodayDate();
   const [eventType, setEventType] = useState('');
   const [description, setDescription] = useState('');
   const [capacity, setCapacity] = useState<number>(0);
@@ -81,6 +88,11 @@ export default function ClientDashboard() {
 
     if (!description.trim()) {
       setDescriptionError('Please provide a description of the event.');
+      return;
+    }
+
+    if (date < today) {
+      alert('You cannot create a booking for a past date.');
       return;
     }
 
@@ -245,6 +257,7 @@ export default function ClientDashboard() {
         </label>
         <input
           type="date"
+          min={today}
           value={date}
           onChange={e => setDate(e.target.value)}
           className="w-full border rounded-md px-3 py-2"
