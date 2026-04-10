@@ -41,6 +41,7 @@ const btnPrimary = { background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', bo
 const chartGrid = 'rgba(148,163,184,0.15)';
 const chartAxis = '#64748b';
 const chartText = '#cbd5e1';
+const eventLineColors = ['#38bdf8', '#22c55e', '#f59e0b', '#f97316', '#a855f7', '#ef4444', '#14b8a6', '#eab308'];
 
 export default function OrganizerDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -290,6 +291,37 @@ export default function OrganizerDashboard() {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .slice(-6)
     .map(([, value]) => value);
+
+  const monthlyEventSeriesMap = new Map<string, { month: string; [eventType: string]: string | number }>();
+  bookings.forEach((booking) => {
+    const bookingDate = new Date(booking.date);
+    if (Number.isNaN(bookingDate.getTime())) {
+      return;
+    }
+
+    const monthKey = `${bookingDate.getFullYear()}-${String(bookingDate.getMonth() + 1).padStart(2, '0')}`;
+    if (!monthlyEventSeriesMap.has(monthKey)) {
+      monthlyEventSeriesMap.set(monthKey, {
+        month: bookingDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+      });
+    }
+
+    const currentMonth = monthlyEventSeriesMap.get(monthKey)!;
+    currentMonth[booking.event_type] = Number(currentMonth[booking.event_type] || 0) + 1;
+  });
+
+  const monthlyEventSeries = Array.from(monthlyEventSeriesMap.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-6)
+    .map(([, value]) => value);
+
+  const allEventsGraphTypes = Array.from(
+    new Set(
+      monthlyEventSeries.flatMap((entry) =>
+        Object.keys(entry).filter((key) => key !== 'month' && Number(entry[key]) > 0)
+      )
+    )
+  ).sort((a, b) => a.localeCompare(b));
 
   const eventTypeBreakdown = Object.entries(
     analyticsBookings.reduce<Record<string, { bookings: number; revenue: number }>>((acc, booking) => {
@@ -810,10 +842,17 @@ export default function OrganizerDashboard() {
                   ) : (
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                       <div className="rounded-2xl p-4" style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.12)' }}>
-                        <p className="text-sm font-black text-white mb-4">Bookings Trend by Month</p>
+                        <p className="text-sm font-black text-white mb-1">
+                          {analyticsEventType === 'all' ? 'Monthly Bookings by Event Type' : `Bookings Trend for ${analyticsEventType}`}
+                        </p>
+                        <p className="text-xs text-slate-400 mb-4">
+                          {analyticsEventType === 'all'
+                            ? 'Each line represents one event type so you can compare monthly demand in one graph.'
+                            : 'This view focuses on the selected event and shows its monthly booking and confirmed trend.'}
+                        </p>
                         <div className="h-72">
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={monthlyAnalytics}>
+                            <LineChart data={analyticsEventType === 'all' ? monthlyEventSeries : monthlyAnalytics}>
                               <CartesianGrid stroke={chartGrid} strokeDasharray="3 3" />
                               <XAxis dataKey="month" stroke={chartAxis} tick={{ fill: chartAxis, fontSize: 12 }} />
                               <YAxis allowDecimals={false} stroke={chartAxis} tick={{ fill: chartAxis, fontSize: 12 }} />
@@ -822,8 +861,26 @@ export default function OrganizerDashboard() {
                                 labelStyle={{ color: '#f8fafc', fontWeight: 700 }}
                               />
                               <Legend wrapperStyle={{ fontSize: '12px' }} />
-                              <Line type="monotone" dataKey="bookings" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Bookings" />
-                              <Line type="monotone" dataKey="confirmed" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} name="Confirmed" />
+                              {analyticsEventType === 'all' ? (
+                                allEventsGraphTypes.map((eventType, index) => (
+                                  <Line
+                                    key={eventType}
+                                    type="monotone"
+                                    dataKey={eventType}
+                                    stroke={eventLineColors[index % eventLineColors.length]}
+                                    strokeWidth={2.5}
+                                    dot={{ r: 3 }}
+                                    activeDot={{ r: 5 }}
+                                    name={eventType}
+                                    connectNulls
+                                  />
+                                ))
+                              ) : (
+                                <>
+                                  <Line type="monotone" dataKey="bookings" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Bookings" />
+                                  <Line type="monotone" dataKey="confirmed" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} name="Confirmed" />
+                                </>
+                              )}
                             </LineChart>
                           </ResponsiveContainer>
                         </div>
