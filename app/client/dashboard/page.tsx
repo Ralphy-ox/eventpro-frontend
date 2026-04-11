@@ -10,8 +10,8 @@ const VENUE_LOCATION = "Ralphy's Venue, Basak San Nicolas Villa Kalubihan Cebu C
 
 interface EventType {
   id: number; event_type: string; price: number;
-  max_capacity: number; people_per_table: number; description: string;
-  max_invited_emails: number; image: string | null;
+  included_capacity: number; max_capacity: number; people_per_table: number; description: string;
+  max_invited_emails: number; excess_person_fee: number; image: string | null;
 }
 
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
@@ -43,6 +43,17 @@ export default function ClientDashboard() {
   const [availableRooms, setAvailableRooms] = useState<number | null>(null);
   const [morningAvail, setMorningAvail] = useState<number | null>(null);
   const [afternoonAvail, setAfternoonAvail] = useState<number | null>(null);
+  const [comboSuggestions, setComboSuggestions] = useState<Array<{ label: string; combined_capacity: number; base_price: number }>>([]);
+  const [pricingInfo, setPricingInfo] = useState<null | {
+    base_price: number;
+    included_capacity: number;
+    max_capacity: number;
+    excess_person_fee: number;
+    excess_guests: number;
+    excess_total: number;
+    total_amount: number;
+    single_hall_supported?: boolean;
+  }>(null);
   const [descriptionError, setDescriptionError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingEventTypes, setLoadingEventTypes] = useState(true);
@@ -77,33 +88,44 @@ export default function ClientDashboard() {
     ? Math.ceil(numPeopleInvited / selectedEventType.people_per_table) : 0;
   const wholeDay = sessionType === 'whole';
   const timeSlot = wholeDay ? 'whole_day' : (time && Number(time.split(':')[0]) < 12 ? 'morning' : 'afternoon');
+  const includedCapacity = selectedEventType?.included_capacity ?? 0;
+  const excessPersonFee = selectedEventType?.excess_person_fee ?? 0;
+  const sessionBasePrice = selectedEventType
+    ? wholeDay ? selectedEventType.price * 2 * 0.8 : selectedEventType.price
+    : 0;
+  const localExcessGuests = selectedEventType ? Math.max(0, numPeopleInvited - includedCapacity) : 0;
+  const localExcessTotal = localExcessGuests * excessPersonFee;
+  const singleHallTooSmall = !!selectedEventType && numPeopleInvited > selectedEventType.max_capacity;
   const slotAvail = timeSlot === 'whole_day' ? Math.min(morningAvail ?? MAX_ROOMS, afternoonAvail ?? MAX_ROOMS) : timeSlot === 'morning' ? (morningAvail ?? availableRooms ?? MAX_ROOMS) : (afternoonAvail ?? availableRooms ?? MAX_ROOMS);
   const isFullyBooked = (morningAvail ?? 0) === 0 && (afternoonAvail ?? 0) === 0;
   const availabilityStatusLabel = isFullyBooked ? 'Fully Booked' : slotAvail === 0 ? 'Full' : slotAvail <= 1 ? 'Almost Full' : 'Available';
-  const displayPrice = selectedEventType
-    ? wholeDay ? selectedEventType.price * 2 * 0.8 : selectedEventType.price : 0;
+  const displayPrice = pricingInfo?.total_amount ?? (sessionBasePrice + localExcessTotal);
 
   useEffect(() => {
     if (!date || !eventType) {
       setAvailableRooms(null);
       setMorningAvail(null);
       setAfternoonAvail(null);
+      setComboSuggestions([]);
+      setPricingInfo(null);
       return;
     }
     setLoading(true);
     const token = localStorage.getItem('clientToken');
     if (!token) { router.push('/signin'); return; }
-    fetch(`${API_BASE}/client/check-availability/?date=${date}&event_type=${encodeURIComponent(eventType)}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_BASE}/client/check-availability/?date=${date}&event_type=${encodeURIComponent(eventType)}&time_slot=${timeSlot}&guest_count=${numPeopleInvited || 0}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => { if (res.status === 401) { localStorage.removeItem('clientToken'); router.push('/signin'); return; } return res.json(); })
       .then(data => {
         if (data) {
           setAvailableRooms(data.available_rooms);
           setMorningAvail(data.morning?.available ?? null);
           setAfternoonAvail(data.afternoon?.available ?? null);
+          setPricingInfo(data.pricing ?? null);
+          setComboSuggestions(Array.isArray(data.combo_suggestions) ? data.combo_suggestions : []);
         }
       })
       .catch(() => {}).finally(() => setLoading(false));
-  }, [eventType, numPeopleInvited, date, router]);
+  }, [eventType, numPeopleInvited, date, router, timeSlot]);
 
   const handleBookingRequest = async () => {
     if (!eventType || !description || !numPeopleInvited || !date || (!wholeDay && !time) || !paymentMethod) {
@@ -114,6 +136,10 @@ export default function ClientDashboard() {
       return;
     }
     if (description.length < 10) { setDescriptionError('Description must be at least 10 characters'); return; }
+    if (singleHallTooSmall) {
+      alert(`This hall supports up to ${selectedEventType?.max_capacity ?? 0} guests only. Please choose one of the suggested hall combinations.`);
+      return;
+    }
     // Validate invited emails count
     if (invitedEmails.trim() && selectedEventType) {
       const emailList = invitedEmails.split(',').map(e => e.trim()).filter(e => e);
@@ -227,7 +253,7 @@ export default function ClientDashboard() {
                     <select value={eventType} onChange={e => {
                       const sel = eventTypes.find(et => et.event_type === e.target.value);
                       setEventType(e.target.value); setSelectedEventType(sel || null);
-                      setNumPeopleInvited(sel?.max_capacity || 0); setEventDetails({});
+                      setNumPeopleInvited(sel?.included_capacity || 0); setEventDetails({});
                     }} className={iCls} style={iStyle}>
                       <option value="" style={{ background: '#0c2d4a' }}>Select hall type</option>
                       {eventTypes.map(et => <option key={et.id} value={et.event_type} style={{ background: '#0c2d4a' }}>{et.event_type}</option>)}
@@ -285,17 +311,27 @@ export default function ClientDashboard() {
                   <input
                     type="number"
                     min={1}
-                    value={selectedEventType ? selectedEventType.max_capacity : ''}
-                    readOnly
+                    value={numPeopleInvited || ''}
+                    onChange={e => setNumPeopleInvited(Math.max(0, Number(e.target.value) || 0))}
                     placeholder="Select hall type first"
-                    className={`${iCls} cursor-not-allowed`}
+                    className={iCls}
                     style={{ ...iStyle, opacity: selectedEventType ? 1 : 0.7 }}
                   />
                   <p className="text-xs text-slate-500 mt-1">
                     {selectedEventType
-                      ? `${selectedEventType.event_type} can accommodate up to ${selectedEventType.max_capacity} guests.`
+                      ? `${selectedEventType.event_type} includes ${includedCapacity} guests in the base rate and can accommodate up to ${selectedEventType.max_capacity} guests.`
                       : 'Guest limit will be filled in automatically after you select a hall type.'}
                   </p>
+                  {selectedEventType && localExcessGuests > 0 && !singleHallTooSmall && (
+                    <p className="mt-1 text-xs text-amber-300">
+                      Excess fee applies: {localExcessGuests} guest{localExcessGuests !== 1 ? 's' : ''} x P{excessPersonFee.toLocaleString()} = P{localExcessTotal.toLocaleString()}.
+                    </p>
+                  )}
+                  {selectedEventType && singleHallTooSmall && (
+                    <p className="mt-1 text-xs text-red-400">
+                      This hall only supports up to {selectedEventType.max_capacity} guests. Check the hall combo suggestions below.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -445,6 +481,30 @@ export default function ClientDashboard() {
                         </div>
                       )}
 
+                      <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-2">Price Breakdown</p>
+                        <div className="text-xs text-slate-300 space-y-1">
+                          <p>Base session: P{(pricingInfo?.base_price ?? sessionBasePrice).toLocaleString()}</p>
+                          <p>Included guests: {pricingInfo?.included_capacity ?? includedCapacity}</p>
+                          <p>Excess guests: {pricingInfo?.excess_guests ?? localExcessGuests}</p>
+                          <p>Excess total: P{(pricingInfo?.excess_total ?? localExcessTotal).toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      {comboSuggestions.length > 0 && singleHallTooSmall && (
+                        <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)' }}>
+                          <p className="text-xs text-amber-300 font-bold uppercase tracking-widest mb-2">Suggested Hall Combinations</p>
+                          {comboSuggestions.map((combo) => (
+                            <div key={combo.label} className="rounded-lg px-3 py-2 mb-2 last:mb-0" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                              <p className="text-sm font-bold text-white">{combo.label}</p>
+                              <p className="text-xs text-slate-300">Combined capacity: {combo.combined_capacity} guests</p>
+                              <p className="text-xs text-slate-300">Estimated base total: P{Number(combo.base_price).toLocaleString()}</p>
+                            </div>
+                          ))}
+                          <p className="text-xs text-amber-200 mt-2">Single-hall booking is disabled when guest count exceeds the selected hall capacity.</p>
+                        </div>
+                      )}
+
                       <div className="mb-4">
                         <label className={lCls}>Payment Method</label>
                         <div className="space-y-2">
@@ -470,7 +530,7 @@ export default function ClientDashboard() {
                         <p className="text-sm text-red-200">NO CANCELLATION AND NOT REFUNDABLE ONCE YOUR BOOKING IS ACCEPTED.</p>
                       </div>
 
-                      <button onClick={handleBookingRequest} disabled={submitting || !paymentMethod}
+                      <button onClick={handleBookingRequest} disabled={submitting || !paymentMethod || singleHallTooSmall}
                         className="w-full py-3.5 rounded-xl text-white font-black text-sm transition-all hover:-translate-y-0.5 active:scale-95 disabled:opacity-40"
                         style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 4px 20px rgba(14,165,233,0.3)' }}>
                         {submitting ? (
