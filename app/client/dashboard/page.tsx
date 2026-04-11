@@ -66,8 +66,8 @@ export default function ClientDashboard() {
       setLoadingEventTypes(true);
       const res = await fetch(`${API_BASE}/event-types/`);
       if (res.ok) setEventTypes(await res.json());
-      else alert('Failed to load event types. Please refresh.');
-    } catch { alert('Failed to load event types. Please refresh.'); }
+      else alert('Failed to load hall types. Please refresh.');
+    } catch { alert('Failed to load hall types. Please refresh.'); }
     finally { setLoadingEventTypes(false); }
   };
 
@@ -166,42 +166,10 @@ export default function ClientDashboard() {
     } catch { alert('Connection error.'); setSubmitting(false); }
   };
 
-  const getEventFields = () => {
-    const et = selectedEventType?.event_type.toLowerCase() || '';
-
-    // Base fields every event gets
-    const base = [
-      { key: 'first_name', label: 'First Name', placeholder: 'e.g. Ralph', type: 'text' },
-      { key: 'last_name', label: 'Last Name', placeholder: 'e.g. Villarojo', type: 'text' },
-    ];
-
-    // Extra fields for specific event types
-    if (et.includes('birthday')) return [
-      { key: 'celebrant_first_name', label: "Celebrant's First Name", placeholder: 'e.g. Ralph', type: 'text' },
-      { key: 'celebrant_last_name', label: "Celebrant's Last Name", placeholder: 'e.g. Villarojo', type: 'text' },
-      { key: 'celebrant_age', label: 'Age', placeholder: 'e.g. 18', type: 'number' },
-    ];
-    if (et.includes('wedding')) return [
-      { key: 'bride_first_name', label: "Bride's First Name", placeholder: 'e.g. Sandra', type: 'text' },
-      { key: 'bride_last_name', label: "Bride's Last Name", placeholder: 'e.g. Villarojo', type: 'text' },
-      { key: 'groom_first_name', label: "Groom's First Name", placeholder: 'e.g. Ralph', type: 'text' },
-      { key: 'groom_last_name', label: "Groom's Last Name", placeholder: 'e.g. Villarojo', type: 'text' },
-    ];
-    if (et.includes('christening')) return [
-      { key: 'child_first_name', label: "Child's First Name", placeholder: 'e.g. Ralph', type: 'text' },
-      { key: 'child_last_name', label: "Child's Last Name", placeholder: 'e.g. Villarojo', type: 'text' },
-      { key: 'parent_first_name', label: "Parent's First Name", placeholder: 'e.g. Sandra', type: 'text' },
-      { key: 'parent_last_name', label: "Parent's Last Name", placeholder: 'e.g. Villarojo', type: 'text' },
-    ];
-    if (et.includes('corporate')) return [
-      { key: 'company_name', label: 'Company Name', placeholder: 'e.g. Villarojo Corp', type: 'text' },
-      { key: 'contact_first_name', label: 'Contact First Name', placeholder: 'e.g. Ralph', type: 'text' },
-      { key: 'contact_last_name', label: 'Contact Last Name', placeholder: 'e.g. Villarojo', type: 'text' },
-    ];
-
-    // Any other new event type automatically gets First Name + Last Name
-    return base;
-  };
+  const getEventFields = () => [
+    { key: 'contact_first_name', label: 'Contact First Name', placeholder: 'e.g. Ralph', type: 'text' },
+    { key: 'contact_last_name', label: 'Contact Last Name', placeholder: 'e.g. Villarojo', type: 'text' },
+  ];
 
   return (
     <div className="min-h-screen" style={{ background: '#0a1628' }}>
@@ -221,7 +189,7 @@ export default function ClientDashboard() {
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, #0ea5e9 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
         <div className="absolute right-0 top-0 w-80 h-full opacity-10" style={{ background: 'radial-gradient(ellipse at right, #0ea5e9, transparent 70%)' }} />
         <div className="max-w-5xl mx-auto px-6 sm:px-8 py-8 relative z-10">
-          <h1 className="text-3xl font-black text-white tracking-tight">Create Event Booking</h1>
+          <h1 className="text-3xl font-black text-white tracking-tight">Reserve A Venue Hall</h1>
           <p className="text-sky-400 text-sm mt-1">{VENUE_LOCATION}</p>
         </div>
       </div>
@@ -240,14 +208,14 @@ export default function ClientDashboard() {
           {/* Form — left 3 cols */}
           <div className="lg:col-span-3 space-y-5">
 
-            {/* Event Type */}
+            {/* Hall Type */}
             <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(14,165,233,0.05)' }}>
-                <h2 className="text-sm font-black text-white">Event Details</h2>
+                <h2 className="text-sm font-black text-white">Hall Details</h2>
               </div>
               <div className="p-5 space-y-4">
                 <div>
-                  <label className={lCls}>Event Type</label>
+                  <label className={lCls}>Hall Type</label>
                   {loadingEventTypes ? (
                     <div className="h-12 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
                   ) : (
@@ -256,7 +224,7 @@ export default function ClientDashboard() {
                       setEventType(e.target.value); setSelectedEventType(sel || null);
                       setNumPeopleInvited(sel?.max_capacity || 0); setEventDetails({});
                     }} className={iCls} style={iStyle}>
-                      <option value="" style={{ background: '#0c2d4a' }}>Select event type</option>
+                      <option value="" style={{ background: '#0c2d4a' }}>Select hall type</option>
                       {eventTypes.map(et => <option key={et.id} value={et.event_type} style={{ background: '#0c2d4a' }}>{et.event_type}</option>)}
                     </select>
                   )}
@@ -275,7 +243,7 @@ export default function ClientDashboard() {
                 ))}
 
                 <div>
-                  <label className={lCls}>Event Description</label>
+                  <label className={lCls}>Reservation Details</label>
                   <textarea value={description} onChange={e => setDescription(capitalizeWords(e.target.value))}
                     placeholder="Describe your event — theme, purpose, special requests..."
                     rows={3} className="w-full px-4 py-3 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all resize-none text-sm"
@@ -294,7 +262,7 @@ export default function ClientDashboard() {
                     style={iStyle}
                   />
                   <p className="text-xs text-slate-500 mt-1">
-                    {selectedEventType ? `Max ${selectedEventType.max_invited_emails} guest emails for ${selectedEventType.event_type}.` : 'Each guest will receive an invitation email when you book.'}
+                    {selectedEventType ? `Max ${selectedEventType.max_invited_emails} guest emails for ${selectedEventType.event_type}.` : 'Each guest will receive an invitation email when you reserve a hall.'}
                   </p>
                   {emailsError && <p className="mt-1 text-xs text-red-400">{emailsError}</p>}
                 </div>
@@ -314,14 +282,14 @@ export default function ClientDashboard() {
                     min={1}
                     value={selectedEventType ? selectedEventType.max_capacity : ''}
                     readOnly
-                    placeholder="Select event type first"
+                    placeholder="Select hall type first"
                     className={`${iCls} cursor-not-allowed`}
                     style={{ ...iStyle, opacity: selectedEventType ? 1 : 0.7 }}
                   />
                   <p className="text-xs text-slate-500 mt-1">
                     {selectedEventType
-                      ? `${selectedEventType.event_type} has a fixed maximum of ${selectedEventType.max_capacity} guests.`
-                      : 'Guest limit will be filled in automatically after you select an event type.'}
+                      ? `${selectedEventType.event_type} can accommodate up to ${selectedEventType.max_capacity} guests.`
+                      : 'Guest limit will be filled in automatically after you select a hall type.'}
                   </p>
                 </div>
               </div>
@@ -407,14 +375,14 @@ export default function ClientDashboard() {
                     className="w-full object-cover" style={{ height: '180px' }} />
                 )}
                 <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(14,165,233,0.15)' }}>
-                  <h2 className="text-sm font-black text-sky-300">Package Info</h2>
+                  <h2 className="text-sm font-black text-sky-300">Hall Info</h2>
                   {selectedEventType.description && (
                     <p className="text-xs text-slate-400 mt-1">{selectedEventType.description}</p>
                   )}
                 </div>
                 <div className="p-5 grid grid-cols-2 gap-3">
                   {[
-                    { label: 'Base Price', value: `₱${selectedEventType.price.toLocaleString()}` },
+                    { label: 'Base Rate', value: `₱${selectedEventType.price.toLocaleString()}` },
                     { label: 'Max Guests', value: selectedEventType.max_capacity },
                     { label: 'Per Table', value: `${selectedEventType.people_per_table} pax` },
                     { label: 'Tables Needed', value: numPeopleInvited > 0 ? tablesNeeded : '—' },
@@ -494,7 +462,7 @@ export default function ClientDashboard() {
 
                       <div className="mb-4 rounded-xl p-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
                         <p className="text-xs font-bold uppercase tracking-widest text-red-300 mb-1">Important Note</p>
-                        <p className="text-sm text-red-200">Once the organizer accepts your booking, there is no refund.</p>
+                        <p className="text-sm text-red-200">NO CANCELLATION AND NOT REFUNDABLE ONCE YOUR BOOKING IS ACCEPTED.</p>
                       </div>
 
                       <button onClick={handleBookingRequest} disabled={submitting || !paymentMethod}

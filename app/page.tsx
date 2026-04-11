@@ -32,6 +32,7 @@ interface EventType {
 interface Review {
   id: number;
   rating: number;
+  booking_id?: number | null;
 }
 
 interface PublicStats {
@@ -152,11 +153,38 @@ export default function Home() {
       ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
       : '0.0');
 
+  const derivedAverageRating = reviews.length > 0
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+    : 0;
+
+  const derivedSatisfactionRate = derivedAverageRating > 0
+    ? Math.round((derivedAverageRating / 5) * 100)
+    : 0;
+
+  const derivedEventsHosted = reviews.length > 0
+    ? Math.max(
+        1,
+        new Set(
+          reviews
+            .map(review => review.booking_id)
+            .filter((bookingId): bookingId is number => typeof bookingId === 'number')
+        ).size || reviews.length
+      )
+    : 0;
+
+  const displayEventsHosted = publicStats.events_hosted > 0
+    ? publicStats.events_hosted
+    : derivedEventsHosted;
+
+  const displaySatisfactionRate = publicStats.satisfaction_rate > 0
+    ? publicStats.satisfaction_rate
+    : derivedSatisfactionRate;
+
   const stats = [
-    { value: String(publicStats.events_hosted), label: 'Events Hosted' },
+    { value: String(displayEventsHosted), label: 'Events Hosted' },
     { value: averageRating, label: 'Avg. Rating' },
-    { value: String(publicStats.event_types || eventTypes.length), label: 'Event Types' },
-    { value: `${publicStats.satisfaction_rate}%`, label: 'Satisfaction' },
+    { value: String(publicStats.event_types || eventTypes.length), label: 'Hall Options' },
+    { value: `${displaySatisfactionRate}%`, label: 'Satisfaction' },
   ];
 
   const scrollEventTypes = (direction: 'left' | 'right') => {
@@ -194,7 +222,7 @@ export default function Home() {
       ];
 
   const ctaHref = authChecked && isLoggedIn ? '/client/dashboard' : '/register';
-  const ctaLabel = authChecked && isLoggedIn ? 'Book Your Event' : 'Get Started Free';
+  const ctaLabel = authChecked && isLoggedIn ? 'Reserve A Hall' : 'Get Started Free';
   const finalCtaLabel = authChecked && isLoggedIn ? 'Book Now' : 'Create Free Account';
 
   return (
@@ -225,8 +253,8 @@ export default function Home() {
           </h1>
 
           <p className="text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Premium event management for weddings, birthdays, corporate events and more.
-            <span className="text-sky-400"> Book your dream venue in minutes.</span>
+            Flexible venue hall reservations for intimate gatherings, parties, and large functions.
+            <span className="text-sky-400"> Reserve your preferred hall in minutes.</span>
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -261,12 +289,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* EVENT TYPES */}
+      {/* HALL TYPES */}
       <section className="py-20" style={{ background: '#0d1f35', borderTop: '1px solid rgba(14,165,233,0.1)' }}>
         <div className="max-w-6xl mx-auto px-6 sm:px-8">
           <div className="text-center mb-12">
             <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-3">What We Offer</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Events We Specialize In</h2>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Available Venue Halls</h2>
             <p className="text-slate-400 max-w-md mx-auto">From intimate gatherings to grand celebrations — we handle it all.</p>
           </div>
           {eventTypes.length > 0 && (
@@ -302,7 +330,7 @@ export default function Home() {
                         <EventTypeIcon className="w-5 h-5 text-sky-400" strokeWidth={2.2} />
                       </div>
                       <p className="font-bold text-white text-sm mb-1">{e.event_type}</p>
-                      <p className="text-xs text-slate-400">{e.description || 'Custom event planning tailored to your celebration.'}</p>
+                      <p className="text-xs text-slate-400">{e.description || 'Well-prepared hall option for your venue reservation.'}</p>
                     </div>
                   );
                 })}
@@ -322,7 +350,7 @@ export default function Home() {
             </div>
           )}
           {eventTypes.length === 0 && (
-            <p className="text-center text-sm text-slate-500 mt-6">No event types available yet.</p>
+            <p className="text-center text-sm text-slate-500 mt-6">No hall types available yet.</p>
           )}
           {eventTypes.length > 0 && (
             <div className="sm:hidden flex justify-center gap-3 mt-4">

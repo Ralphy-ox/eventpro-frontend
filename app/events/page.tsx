@@ -95,9 +95,9 @@ export default function EventsPage() {
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, #0ea5e9 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
         <div className="absolute right-0 top-0 w-80 h-full opacity-10" style={{ background: 'radial-gradient(ellipse at right, #0ea5e9, transparent 70%)' }} />
         <div className="max-w-7xl mx-auto px-6 sm:px-8 py-10 relative z-10">
-          <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-2">Public Events</p>
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Confirmed Events</h1>
-          <p className="text-sky-400 text-sm mt-2">Discover amazing confirmed events happening at Ralphy&apos;s Venue</p>
+          <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-2">Public Venue Bookings</p>
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Confirmed Hall Reservations</h1>
+          <p className="text-sky-400 text-sm mt-2">See confirmed hall reservations happening at Ralphy&apos;s Venue</p>
         </div>
       </div>
 
@@ -107,7 +107,7 @@ export default function EventsPage() {
         <div className="rounded-2xl p-5 mb-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <input
             type="text"
-            placeholder="Search events by type, host, description or date..."
+            placeholder="Search reservations by hall, host, description or date..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 mb-4"
@@ -122,7 +122,7 @@ export default function EventsPage() {
                 style={filter === type
                   ? { background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', color: '#fff', boxShadow: '0 4px 12px rgba(14,165,233,0.3)' }
                   : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>
-                {type === '' ? 'All Events' : type}
+                {type === '' ? 'All Halls' : type}
               </button>
             ))}
           </div>
@@ -131,14 +131,14 @@ export default function EventsPage() {
         {/* Results count */}
         {!loading && (
           <p className="text-xs text-slate-500 mb-5">
-            {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} found
+            {filteredEvents.length} reservation{filteredEvents.length !== 1 ? 's' : ''} found
           </p>
         )}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="w-10 h-10 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sky-400 text-sm">Loading events...</p>
+            <p className="text-sky-400 text-sm">Loading reservations...</p>
           </div>
         ) : filteredEvents.length === 0 ? (
           <div className="rounded-2xl p-16 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -148,7 +148,7 @@ export default function EventsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-xl font-black text-white mb-2">No events found</h3>
+            <h3 className="text-xl font-black text-white mb-2">No reservations found</h3>
             <p className="text-slate-400 text-sm">Try adjusting your search or filter.</p>
           </div>
         ) : (

@@ -278,6 +278,12 @@ export default function ClientDashboard() {
         </div>
       )}
 
+      <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3">
+        <p className="text-sm font-semibold text-red-700">
+          NO CANCELLATION AND NOT REFUNDABLE ONCE YOUR BOOKING IS ACCEPTED.
+        </p>
+      </div>
+
       {/* Create Booking Button */}
       <button
         onClick={handleBookingRequest}
