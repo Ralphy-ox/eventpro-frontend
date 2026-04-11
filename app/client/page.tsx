@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { API_BASE, APP_BASE } from '@/lib/api';
 
-const MAX_ROOMS = 5;
+const MAX_ROOMS = 1;
 const VENUE_LOCATION =
   "Ralphy's Venue, Basak San Nicolas Villa Kalubihan Cebu City 6000.";
 
@@ -53,7 +53,7 @@ export default function ClientDashboard() {
     const token = localStorage.getItem('clientToken');
 
     fetch(
-      `${API_BASE}/client/check-availability/?date=${date}`,
+      `${API_BASE}/client/check-availability/?date=${date}&event_type=${encodeURIComponent(eventType)}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

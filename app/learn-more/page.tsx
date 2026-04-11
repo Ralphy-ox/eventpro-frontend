@@ -62,7 +62,7 @@ export default function LearnMore() {
             <strong>Capacity:</strong> Up to 100 guests per event
           </p>
           <p className="text-lg text-gray-700 mb-4">
-            <strong>Available Rooms:</strong> 5 rooms (shared across all event types)
+            <strong>Available Rooms:</strong> 1 hall per hall type
           </p>
           <p className="text-lg text-gray-700">
             All event types share the same venue space, ensuring exclusive use for your special occasion.

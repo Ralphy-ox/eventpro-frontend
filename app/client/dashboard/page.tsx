@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { API_BASE } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
 
-const MAX_ROOMS = 5;
+const MAX_ROOMS = 1;
 const VENUE_LOCATION = "Ralphy's Venue, Basak San Nicolas Villa Kalubihan Cebu City 6000.";
 
 interface EventType {
@@ -84,11 +84,16 @@ export default function ClientDashboard() {
     ? wholeDay ? selectedEventType.price * 2 * 0.8 : selectedEventType.price : 0;
 
   useEffect(() => {
-    if (!date) return;
+    if (!date || !eventType) {
+      setAvailableRooms(null);
+      setMorningAvail(null);
+      setAfternoonAvail(null);
+      return;
+    }
     setLoading(true);
     const token = localStorage.getItem('clientToken');
     if (!token) { router.push('/signin'); return; }
-    fetch(`${API_BASE}/client/check-availability/?date=${date}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_BASE}/client/check-availability/?date=${date}&event_type=${encodeURIComponent(eventType)}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => { if (res.status === 401) { localStorage.removeItem('clientToken'); router.push('/signin'); return; } return res.json(); })
       .then(data => {
         if (data) {
@@ -412,7 +417,7 @@ export default function ClientDashboard() {
                     <div className="rounded-2xl p-5 mb-5 text-center" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
                       <p className="text-xs text-red-300 uppercase tracking-[0.25em] mb-2">Status</p>
                       <p className="text-2xl font-black text-red-400">Fully Booked</p>
-                      <p className="text-xs text-red-200 mt-2">Morning and afternoon slots are no longer available for this date.</p>
+                      <p className="text-xs text-red-200 mt-2">This hall type is no longer available on that date.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-2 mb-5">
