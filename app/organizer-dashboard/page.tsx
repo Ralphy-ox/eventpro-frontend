@@ -22,16 +22,20 @@ import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 
 interface Booking {
   id: number; user: string; event_type: string; capacity: number;
-  date: string; time: string; status: string; payment_status: string;
+  description?: string;
+  date: string; time: string | null; status: string; payment_status: string;
   payment_method: string; total_amount: number; gcash_reference: string;
   payment_proof: string | null; decline_reason?: string;
   damage_count?: number; damage_total_cost?: number;
   client_email?: string; client_address?: string;
+  location?: string;
   event_details?: Record<string, string>;
   invited_emails?: string;
   special_requests?: string;
   whole_day?: boolean;
   time_slot?: string;
+  created_at?: string;
+  cancel_reason?: string;
 }
 interface DamageReport {
   id: number; booking_id: number; booking_event_type: string; booking_date: string;
@@ -239,7 +243,7 @@ export default function OrganizerDashboard() {
     } catch { alert('Connection error.'); }
   };
 
-  const formatTime = (time: string) => {
+  const formatTime = (time: string | null | undefined) => {
     if (!time) return 'N/A';
     const [h, m] = time.split(':');
     const hr = parseInt(h); return `${hr % 12 || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
