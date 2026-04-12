@@ -26,6 +26,12 @@ interface Booking {
   payment_method: string; total_amount: number; gcash_reference: string;
   payment_proof: string | null; decline_reason?: string;
   damage_count?: number; damage_total_cost?: number;
+  client_email?: string; client_address?: string;
+  event_details?: Record<string, string>;
+  invited_emails?: string;
+  special_requests?: string;
+  whole_day?: boolean;
+  time_slot?: string;
 }
 interface DamageReport {
   id: number; booking_id: number; booking_event_type: string; booking_date: string;
@@ -350,7 +356,7 @@ export default function OrganizerDashboard() {
   const revenueTrendLabel = revenueDifference > 0 ? 'up' : revenueDifference < 0 ? 'down' : 'flat';
 
   const monthlyEventSeriesMap = new Map<string, { month: string; [eventType: string]: string | number }>();
-  bookings.forEach((booking) => {
+  venueBookings.forEach((booking) => {
     const bookingDate = new Date(booking.date);
     if (Number.isNaN(bookingDate.getTime())) {
       return;
@@ -460,6 +466,31 @@ export default function OrganizerDashboard() {
             </span>
           )}
         </div>
+
+        {(booking.client_email || booking.client_address || booking.special_requests || booking.invited_emails || Object.keys(booking.event_details || {}).length > 0) && (
+          <div className="mb-3 rounded-xl p-3" style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.14)' }}>
+            <p className="text-xs font-bold text-sky-400 uppercase tracking-widest mb-2">Booking Details</p>
+            <div className="space-y-2 text-xs">
+              {booking.client_email && (
+                <p className="text-slate-300"><span className="text-slate-500">Client email:</span> {booking.client_email}</p>
+              )}
+              {booking.client_address && (
+                <p className="text-slate-300"><span className="text-slate-500">Client address:</span> {booking.client_address}</p>
+              )}
+              {booking.special_requests && (
+                <p className="text-slate-300"><span className="text-slate-500">Special requests:</span> {booking.special_requests}</p>
+              )}
+              {booking.invited_emails && (
+                <p className="text-slate-300 break-words"><span className="text-slate-500">Invited guests:</span> {booking.invited_emails}</p>
+              )}
+              {Object.entries(booking.event_details || {}).map(([key, value]) => (
+                <p key={key} className="text-slate-300 break-words">
+                  <span className="text-slate-500">{key.replace(/_/g, ' ')}:</span> {String(value)}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
 
         {booking.payment_status === 'pending_verification' && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
@@ -1145,7 +1176,10 @@ export default function OrganizerDashboard() {
                           </div>
                         </div>
                         <p className="text-xs text-slate-300 mb-2">{report.notes || 'No notes added.'}</p>
-                        <p className="text-xs text-slate-500 mb-3">Booking #{report.booking_id} • {formatDate(report.booking_date)} • {report.charge_to_client ? 'Charged to client' : 'Not charged to client'}</p>
+                        <p className="text-xs text-slate-500 mb-3">
+                          Booking #{report.booking_id} • {formatDate(report.booking_date)} • {report.charge_to_client ? 'Charged to client' : 'Not charged to client'}
+                          {report.reported_by ? ` • Reported by: ${report.reported_by}` : ''}
+                        </p>
                         {report.photo && (
                           <a href={report.photo} target="_blank" rel="noreferrer">
                             <img src={report.photo} alt="Damage proof" className="w-full rounded-xl object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(239,68,68,0.2)' }} />

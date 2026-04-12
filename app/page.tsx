@@ -42,6 +42,8 @@ interface PublicStats {
   satisfaction_rate: number;
 }
 
+const LEGACY_EVENT_TYPES = new Set(['Birthday', 'Wedding', 'Conference', 'Corporate Event', 'Concert', 'Debu']);
+
 const FEATURES = [
   { title: 'Easy Booking', desc: 'Book your event in minutes with our streamlined process.' },
   { title: 'Real-Time Availability', desc: 'Instant room availability so you always know what\'s open.' },
@@ -127,7 +129,11 @@ export default function Home() {
     checkClientSession();
     fetch(`${API_BASE}/event-types/`)
       .then(r => r.ok ? r.json() : [])
-      .then(data => setEventTypes(Array.isArray(data) ? data : []))
+      .then(data => setEventTypes(
+        Array.isArray(data)
+          ? data.filter((item) => item?.event_type && !LEGACY_EVENT_TYPES.has(item.event_type))
+          : []
+      ))
       .catch(() => {});
     fetch(`${API_BASE}/reviews/`)
       .then(r => r.ok ? r.json() : [])
