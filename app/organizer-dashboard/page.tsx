@@ -25,6 +25,18 @@ interface Booking {
   date: string; time: string; status: string; payment_status: string;
   payment_method: string; total_amount: number; gcash_reference: string;
   payment_proof: string | null; decline_reason?: string;
+  damage_count?: number; damage_total_cost?: number;
+}
+interface DamageReport {
+  id: number; booking_id: number; booking_event_type: string; booking_date: string;
+  client_name: string; item_type: string; item_name: string; quantity: number;
+  estimated_cost: number; recovered_amount: number; net_loss: number;
+  charge_to_client: boolean; status: string; notes: string; photo: string | null;
+  reported_by: string | null; created_at: string; updated_at: string;
+}
+interface DamageSummary {
+  gross_revenue: number; total_damage_cost: number; total_recovered: number;
+  total_net_loss: number; net_profit: number; damage_reports_count: number;
 }
 interface ContactMsg {
   id: number; name: string; email: string; subject: string;
@@ -42,13 +54,14 @@ const chartGrid = 'rgba(148,163,184,0.15)';
 const chartAxis = '#64748b';
 const chartText = '#cbd5e1';
 const eventLineColors = ['#38bdf8', '#22c55e', '#f59e0b', '#f97316', '#a855f7', '#ef4444', '#14b8a6', '#eab308'];
+const LEGACY_EVENT_TYPES = new Set(['Birthday', 'Wedding', 'Conference', 'Corporate Event', 'Concert', 'Debu']);
 
 export default function OrganizerDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [eventTypeFilter, setEventTypeFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
-  const [activeTab, setActiveTab] = useState<'pending' | 'confirmed' | 'declined' | 'reviews' | 'analytics' | 'messages' | 'calendar'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'confirmed' | 'declined' | 'reviews' | 'analytics' | 'messages' | 'calendar' | 'damages'>('pending');
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarBookings, setCalendarBookings] = useState<{id:number;event_type:string;date:string;time:string|null;user:string;capacity:number;whole_day:boolean}[]>([]);
   const [declineModal, setDeclineModal] = useState<{ bookingId: number; reason: string } | null>(null);
@@ -68,6 +81,15 @@ export default function OrganizerDashboard() {
   const [editReplyText, setEditReplyText] = useState('');
   const [editReplySubmitting, setEditReplySubmitting] = useState(false);
   const [analyticsEventType, setAnalyticsEventType] = useState('all');
+  const [damageReports, setDamageReports] = useState<DamageReport[]>([]);
+  const [damageSummary, setDamageSummary] = useState<DamageSummary>({
+    gross_revenue: 0,
+    total_damage_cost: 0,
+    total_recovered: 0,
+    total_net_loss: 0,
+    net_profit: 0,
+    damage_reports_count: 0,
+  });
 
   const router = useRouter();
   const { loggingOut, logout } = useLogout();
@@ -116,22 +138,46 @@ export default function OrganizerDashboard() {
       .catch(() => {});
   }, []);
 
+  const loadDamages = useCallback(() => {
+    const token = localStorage.getItem('organizerToken');
+    if (!token) return;
+    fetch(`${API_BASE}/damages/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (r) => {
+        if (!r.ok) return { reports: [], summary: null };
+        return r.json();
+      })
+      .then((data) => {
+        setDamageReports(Array.isArray(data?.reports) ? data.reports : []);
+        setDamageSummary(data?.summary ?? {
+          gross_revenue: 0,
+          total_damage_cost: 0,
+          total_recovered: 0,
+          total_net_loss: 0,
+          net_profit: 0,
+          damage_reports_count: 0,
+        });
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     fetchBookings();
     loadReviews();
     loadContactMessages();
     loadEventTypes();
+    loadDamages();
     loadCalendar(calendarDate);
     const token = localStorage.getItem('organizerToken');
     if (token) {
       fetch(`${API_BASE}/profile/`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setOrganizerUserId(d.id ?? null)).catch(() => {});
     }
-  }, [fetchBookings, loadReviews, loadContactMessages, loadEventTypes, loadCalendar, calendarDate]);
+  }, [fetchBookings, loadReviews, loadContactMessages, loadEventTypes, loadDamages, loadCalendar, calendarDate]);
 
   // Real-time: auto-refresh when a WS notification arrives
   useRealtimeRefresh('organizerToken', (type) => {
     fetchBookings();
+    loadDamages();
     if (type === 'new_review') loadReviews();
     if (type === 'new_message') loadContactMessages();
   });
@@ -208,10 +254,11 @@ export default function OrganizerDashboard() {
   const totalBookings = bookings.length;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const upcomingCount = bookings.filter(b => b.status === 'confirmed' && new Date(b.date) >= today).length;
+  const venueBookings = bookings.filter((booking) => !LEGACY_EVENT_TYPES.has(booking.event_type));
   const eventTypeCounts: Record<string, number> = {};
-  bookings.forEach(b => { eventTypeCounts[b.event_type] = (eventTypeCounts[b.event_type] || 0) + 1; });
+  venueBookings.forEach(b => { eventTypeCounts[b.event_type] = (eventTypeCounts[b.event_type] || 0) + 1; });
   const mostPopular = Object.keys(eventTypeCounts).length > 0
-    ? Object.entries(eventTypeCounts).reduce((a, b) => a[1] > b[1] ? a : b)[0] : '—';
+    ? Object.entries(eventTypeCounts).reduce((a, b) => a[1] > b[1] ? a : b)[0] : 'No venue data';
   const avgRating = reviews.length > 0
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '—';
 
@@ -235,21 +282,21 @@ export default function OrganizerDashboard() {
   };
 
   // Analytics data
-  const totalRevenue = bookings.filter(b => b.payment_status === 'paid').reduce((s, b) => s + b.total_amount, 0);
+  const totalRevenue = damageSummary.gross_revenue || venueBookings.filter(b => b.payment_status === 'paid').reduce((s, b) => s + b.total_amount, 0);
   const eventTypeRevenue: Record<string, number> = {};
-  bookings.filter(b => b.payment_status === 'paid').forEach(b => {
+  venueBookings.filter(b => b.payment_status === 'paid').forEach(b => {
     eventTypeRevenue[b.event_type] = (eventTypeRevenue[b.event_type] || 0) + b.total_amount;
   });
   const topEventTypes = Object.entries(eventTypeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const maxEventCount = Math.max(...topEventTypes.map(([, count]) => count), 1);
   const analyticsEventTypes = [
     'all',
-    ...Array.from(new Set([...availableEventTypes, ...Object.keys(eventTypeCounts)])).sort((a, b) => a.localeCompare(b)),
+    ...Array.from(new Set([...availableEventTypes, ...Object.keys(eventTypeCounts)])).filter((type) => !LEGACY_EVENT_TYPES.has(type)).sort((a, b) => a.localeCompare(b)),
   ];
   const filterEventTypes = Array.from(
     new Set([...availableEventTypes, ...bookings.map((booking) => booking.event_type).filter(Boolean)])
-  ).sort((a, b) => a.localeCompare(b));
-  const analyticsBookings = bookings.filter((booking) =>
+  ).filter((type) => !LEGACY_EVENT_TYPES.has(type)).sort((a, b) => a.localeCompare(b));
+  const analyticsBookings = venueBookings.filter((booking) =>
     analyticsEventType === 'all' || booking.event_type === analyticsEventType
   );
   const analyticsPaidBookings = analyticsBookings.filter((booking) => booking.payment_status === 'paid');
@@ -361,6 +408,7 @@ export default function OrganizerDashboard() {
     { key: 'declined', label: `Declined (${declined.length})` },
     { key: 'reviews', label: `Reviews (${reviews.length})` },
     { key: 'analytics', label: 'Analytics' },
+    { key: 'damages', label: `Damages (${damageSummary.damage_reports_count})` },
     { key: 'calendar', label: 'Calendar' },
     { key: 'messages', label: `Messages${unreadMsgs > 0 ? ` (${unreadMsgs} new)` : ''}` },
   ] as const;
@@ -406,6 +454,11 @@ export default function OrganizerDashboard() {
             <span className="px-2.5 py-1 text-xs font-bold rounded-full text-green-300 bg-green-900/30">Pending</span>
           )}
           {booking.payment_method && <span className="text-xs text-slate-500">{booking.payment_method}</span>}
+          {!!booking.damage_count && booking.damage_count > 0 && (
+            <span className="px-2.5 py-1 text-xs font-bold rounded-full text-red-300 bg-red-900/30">
+              {booking.damage_count} damage report{booking.damage_count > 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
         {booking.payment_status === 'pending_verification' && (
@@ -482,7 +535,7 @@ export default function OrganizerDashboard() {
   return (
     <div className="min-h-screen" style={{ background: '#0a1628' }}>
       <LogoutOverlay visible={loggingOut} />
-      <MobileNav brand="Organizer" links={[{ label: 'Logout', onClick: () => logout('organizerToken', '/signin') }]} showNotification notificationTokenKey="organizerToken" />
+      <MobileNav brand="Owner" links={[{ label: 'Logout', onClick: () => logout('organizerToken', '/signin') }]} showNotification notificationTokenKey="organizerToken" />
 
       {/* Header */}
       <div className="w-full relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #0c2d4a 60%, #0f172a 100%)', borderBottom: '1px solid rgba(14,165,233,0.2)' }}>
@@ -491,8 +544,8 @@ export default function OrganizerDashboard() {
         <div className="max-w-7xl mx-auto px-6 sm:px-8 py-8 relative z-10">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-black text-white tracking-tight">Organizer Dashboard</h1>
-              <p className="text-sky-400 text-sm mt-1">Manage bookings, reviews & payments</p>
+              <h1 className="text-3xl font-black text-white tracking-tight">Owner Dashboard</h1>
+              <p className="text-sky-400 text-sm mt-1">Manage bookings, reviews, damages, and profit</p>
             </div>
           </div>
         </div>
@@ -529,7 +582,7 @@ export default function OrganizerDashboard() {
           <select value={eventTypeFilter} onChange={e => setEventTypeFilter(e.target.value)}
             className="px-4 py-3 rounded-xl text-white text-sm outline-none focus:ring-2 focus:ring-sky-500"
             style={iStyle}>
-            <option value="" style={{ background: '#0c2d4a' }}>All Event Types</option>
+            <option value="" style={{ background: '#0c2d4a' }}>All Venues</option>
             {filterEventTypes.map(t => (
               <option key={t} value={t} style={{ background: '#0c2d4a' }}>{t}</option>
             ))}
@@ -814,11 +867,13 @@ export default function OrganizerDashboard() {
             })() : activeTab === 'analytics' ? (
               <div className="space-y-6">
                 {/* Revenue summary */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
                   {[
                     { label: 'Total Revenue', value: `₱${totalRevenue.toLocaleString()}` },
                     { label: 'Confirmed Bookings', value: analyticsConfirmedCount },
-                    { label: 'Popular Event', value: analyticsMostPopular },
+                    { label: 'Popular Venue', value: analyticsMostPopular },
+                    { label: 'Damage Cost', value: `₱${damageSummary.total_damage_cost.toLocaleString()}` },
+                    { label: 'Net Profit', value: `₱${damageSummary.net_profit.toLocaleString()}` },
                   ].map(s => (
                     <div key={s.label} className="rounded-2xl p-5 text-center"
                       style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)' }}>
@@ -831,8 +886,8 @@ export default function OrganizerDashboard() {
                 <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
                     <div>
-                      <p className="text-sm font-black text-white">Event Analytics Graphs</p>
-                      <p className="text-xs text-slate-400 mt-1">Filter by event type and review monthly booking trends.</p>
+                      <p className="text-sm font-black text-white">Venue Analytics Graphs</p>
+                      <p className="text-xs text-slate-400 mt-1">Filter by venue and review monthly booking trends.</p>
                     </div>
                     <select
                       value={analyticsEventType}
@@ -842,23 +897,23 @@ export default function OrganizerDashboard() {
                     >
                       {analyticsEventTypes.map((eventType) => (
                         <option key={eventType} value={eventType} style={{ background: '#0f172a', color: '#e2e8f0' }}>
-                          {eventType === 'all' ? 'All Events' : eventType}
+                          {eventType === 'all' ? 'All Venues' : eventType}
                         </option>
                       ))}
                     </select>
                   </div>
                   {monthlyAnalytics.length === 0 ? (
-                    <p className="text-slate-500 text-sm text-center py-8">No analytics data yet for this selection.</p>
+                    <p className="text-slate-500 text-sm text-center py-8">No venue analytics data yet for this selection.</p>
                   ) : (
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                       <div className="rounded-2xl p-4" style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.12)' }}>
                         <p className="text-sm font-black text-white mb-1">
-                          {analyticsEventType === 'all' ? 'Monthly Bookings by Event Type' : `Bookings Trend for ${analyticsEventType}`}
+                          {analyticsEventType === 'all' ? 'Monthly Bookings by Venue' : `Bookings Trend for ${analyticsEventType}`}
                         </p>
                         <p className="text-xs text-slate-400 mb-4">
                           {analyticsEventType === 'all'
-                            ? 'Each line represents one event type so you can compare monthly demand in one graph.'
-                            : 'This view focuses on the selected event and shows its monthly booking and confirmed trend.'}
+                            ? 'Each line represents one venue so you can compare monthly demand in one graph.'
+                            : 'This view focuses on the selected venue and shows its monthly booking and confirmed trend.'}
                         </p>
                         <div className="h-72">
                           <ResponsiveContainer width="100%" height="100%">
@@ -899,8 +954,8 @@ export default function OrganizerDashboard() {
                         <p className="text-sm font-black text-white mb-1">Monthly Revenue</p>
                         <p className="text-xs text-slate-400 mb-3">
                           {analyticsEventType === 'all'
-                            ? `Current paid revenue: PHP ${analyticsRevenue.toLocaleString()}`
-                            : `${analyticsEventType} paid revenue: PHP ${analyticsRevenue.toLocaleString()}`}
+                            ? `Current paid venue revenue: PHP ${analyticsRevenue.toLocaleString()}`
+                            : `${analyticsEventType} venue revenue: PHP ${analyticsRevenue.toLocaleString()}`}
                         </p>
                         {latestRevenueMonth && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
@@ -955,10 +1010,10 @@ export default function OrganizerDashboard() {
 
                 <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <p className="text-sm font-black text-white mb-5">
-                    {analyticsEventType === 'all' ? 'Popular Event Types' : `Breakdown While Viewing ${analyticsEventType}`}
+                    {analyticsEventType === 'all' ? 'Popular Venues' : `Breakdown While Viewing ${analyticsEventType}`}
                   </p>
                   {eventTypeBreakdown.length === 0 ? (
-                    <p className="text-slate-500 text-sm text-center py-8">No event breakdown available.</p>
+                    <p className="text-slate-500 text-sm text-center py-8">No venue breakdown available.</p>
                   ) : (
                     <div className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
@@ -977,11 +1032,11 @@ export default function OrganizerDashboard() {
                   )}
                 </div>
 
-                {/* Popular event types */}
+                {/* Popular venues */}
                 <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <p className="text-sm font-black text-white mb-5">Popular Event Types (All Time)</p>
+                  <p className="text-sm font-black text-white mb-5">Popular Venues (All Time)</p>
                   {topEventTypes.length === 0 ? (
-                    <p className="text-slate-500 text-sm text-center py-8">No data yet</p>
+                    <p className="text-slate-500 text-sm text-center py-8">No venue data yet</p>
                   ) : (
                     <div className="space-y-3">
                       {topEventTypes.map(([type, count]) => (
@@ -1000,11 +1055,11 @@ export default function OrganizerDashboard() {
                   )}
                 </div>
 
-                {/* Revenue by event type */}
+                {/* Revenue by venue */}
                 <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <p className="text-sm font-black text-white mb-5">Revenue by Event Type</p>
+                  <p className="text-sm font-black text-white mb-5">Revenue by Venue</p>
                   {Object.keys(eventTypeRevenue).length === 0 ? (
-                    <p className="text-slate-500 text-sm text-center py-8">No paid bookings yet</p>
+                    <p className="text-slate-500 text-sm text-center py-8">No paid venue bookings yet</p>
                   ) : (
                     <div className="space-y-3">
                       {Object.entries(eventTypeRevenue).sort((a, b) => b[1] - a[1]).map(([type, rev]) => (
@@ -1017,6 +1072,89 @@ export default function OrganizerDashboard() {
                     </div>
                   )}
                 </div>
+
+                <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <p className="text-sm font-black text-white mb-5">Damage and Profit Snapshot</p>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {[
+                      { label: 'Total Damage Cost', value: `₱${damageSummary.total_damage_cost.toLocaleString()}`, tone: '#f87171' },
+                      { label: 'Recovered', value: `₱${damageSummary.total_recovered.toLocaleString()}`, tone: '#38bdf8' },
+                      { label: 'Net Loss', value: `₱${damageSummary.total_net_loss.toLocaleString()}`, tone: '#f59e0b' },
+                      { label: 'Damage Reports', value: damageSummary.damage_reports_count, tone: '#f8fafc' },
+                    ].map(item => (
+                      <div key={item.label} className="rounded-xl p-4" style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.12)' }}>
+                        <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">{item.label}</p>
+                        <p className="text-xl font-black" style={{ color: item.tone }}>{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : activeTab === 'damages' ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Damage Reports', value: damageSummary.damage_reports_count },
+                    { label: 'Total Damage Cost', value: `₱${damageSummary.total_damage_cost.toLocaleString()}` },
+                    { label: 'Recovered', value: `₱${damageSummary.total_recovered.toLocaleString()}` },
+                    { label: 'Net Loss', value: `₱${damageSummary.total_net_loss.toLocaleString()}` },
+                  ].map(card => (
+                    <div key={card.label} className="rounded-2xl p-5 text-center"
+                      style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.16)' }}>
+                      <p className="text-xs text-red-300 font-bold uppercase tracking-widest mb-2">{card.label}</p>
+                      <p className="text-2xl font-black text-white truncate">{card.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {damageReports.length === 0 ? (
+                  <div className="text-center py-16">
+                    <p className="text-white font-black">No damage reports yet</p>
+                    <p className="text-slate-500 text-sm mt-1">Damage reports will appear here once the owner records them.</p>
+                  </div>
+                ) : (
+                  <div className="grid lg:grid-cols-2 gap-4">
+                    {damageReports.map((report) => (
+                      <div key={report.id} className="rounded-2xl p-5"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div className="flex justify-between items-start gap-3 mb-3">
+                          <div>
+                            <p className="font-black text-white text-sm">{report.item_name || report.item_type}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{report.booking_event_type} • {report.client_name}</p>
+                          </div>
+                          <span className="px-2.5 py-1 text-xs font-bold rounded-full text-red-300 bg-red-900/30">
+                            {report.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                            <p className="text-xs text-slate-500">Quantity</p>
+                            <p className="text-sm font-bold text-white">{report.quantity}</p>
+                          </div>
+                          <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                            <p className="text-xs text-slate-500">Damage Cost</p>
+                            <p className="text-sm font-bold text-white">₱{report.estimated_cost.toLocaleString()}</p>
+                          </div>
+                          <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                            <p className="text-xs text-slate-500">Recovered</p>
+                            <p className="text-sm font-bold text-sky-400">₱{report.recovered_amount.toLocaleString()}</p>
+                          </div>
+                          <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                            <p className="text-xs text-slate-500">Net Loss</p>
+                            <p className="text-sm font-bold text-red-300">₱{report.net_loss.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-300 mb-2">{report.notes || 'No notes added.'}</p>
+                        <p className="text-xs text-slate-500 mb-3">Booking #{report.booking_id} • {formatDate(report.booking_date)} • {report.charge_to_client ? 'Charged to client' : 'Not charged to client'}</p>
+                        {report.photo && (
+                          <a href={report.photo} target="_blank" rel="noreferrer">
+                            <img src={report.photo} alt="Damage proof" className="w-full rounded-xl object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(239,68,68,0.2)' }} />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : currentList.length === 0 ? (
               <div className="text-center py-16">
