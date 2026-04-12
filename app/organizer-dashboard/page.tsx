@@ -71,6 +71,7 @@ export default function OrganizerDashboard() {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarBookings, setCalendarBookings] = useState<{id:number;event_type:string;date:string;time:string|null;user:string;capacity:number;whole_day:boolean}[]>([]);
   const [declineModal, setDeclineModal] = useState<{ bookingId: number; reason: string } | null>(null);
+  const [expandedBookingId, setExpandedBookingId] = useState<number | null>(null);
   const [contactMessages, setContactMessages] = useState<ContactMsg[]>([]);
   const [replyingMsg, setReplyingMsg] = useState<number | null>(null);
   const [replyMsgText, setReplyMsgText] = useState('');
@@ -467,7 +468,7 @@ export default function OrganizerDashboard() {
           )}
         </div>
 
-        {(booking.client_email || booking.client_address || booking.special_requests || booking.invited_emails || Object.keys(booking.event_details || {}).length > 0) && (
+        {expandedBookingId === booking.id && (booking.client_email || booking.client_address || booking.special_requests || booking.invited_emails || Object.keys(booking.event_details || {}).length > 0) && (
           <div className="mb-3 rounded-xl p-3" style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.14)' }}>
             <p className="text-xs font-bold text-sky-400 uppercase tracking-widest mb-2">Booking Details</p>
             <div className="space-y-2 text-xs">
@@ -547,6 +548,11 @@ export default function OrganizerDashboard() {
 
         {activeTab === 'pending' && (
           <div className="flex gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <button onClick={() => setExpandedBookingId(expandedBookingId === booking.id ? null : booking.id)}
+              className="px-4 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5"
+              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              {expandedBookingId === booking.id ? 'Hide Details' : 'View Details'}
+            </button>
             <button onClick={() => handleStatusUpdate(booking.id, 'confirmed')} disabled={loading}
               className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
               style={btnPrimary}>

@@ -65,6 +65,26 @@ export default function ClientDashboard() {
   const [specialRequests, setSpecialRequests] = useState('');
   const [emailsError, setEmailsError] = useState('');
 
+  const getEffectiveIncludedCapacity = (venue: EventType | null) => {
+    if (!venue) return 0;
+    return venue.included_capacity > 0
+      ? venue.included_capacity
+      : venue.max_capacity > 0
+        ? venue.max_capacity
+        : 50;
+  };
+
+  const getEffectiveExcessPersonFee = (venue: EventType | null) => {
+    if (!venue) return 0;
+    return venue.excess_person_fee > 0 ? venue.excess_person_fee : 200;
+  };
+
+  const getEffectiveSingleHallLimit = (venue: EventType | null) => {
+    if (!venue) return 0;
+    const included = getEffectiveIncludedCapacity(venue);
+    return venue.max_capacity > included ? venue.max_capacity : included;
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('clientToken');
     if (!token) { alert('Please login to access this page'); router.push('/signin'); return; }
@@ -76,7 +96,19 @@ export default function ClientDashboard() {
     try {
       setLoadingEventTypes(true);
       const res = await fetch(`${API_BASE}/event-types/`);
-      if (res.ok) setEventTypes(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setEventTypes(
+          Array.isArray(data)
+            ? data.map((venue) => ({
+                ...venue,
+                included_capacity: venue?.included_capacity > 0 ? venue.included_capacity : (venue?.max_capacity > 0 ? venue.max_capacity : 50),
+                excess_person_fee: venue?.excess_person_fee > 0 ? venue.excess_person_fee : 200,
+                max_capacity: venue?.max_capacity > 0 ? venue.max_capacity : (venue?.included_capacity > 0 ? venue.included_capacity : 50),
+              }))
+            : []
+        );
+      }
       else alert('Failed to load hall types. Please refresh.');
     } catch { alert('Failed to load hall types. Please refresh.'); }
     finally { setLoadingEventTypes(false); }
@@ -88,14 +120,16 @@ export default function ClientDashboard() {
     ? Math.ceil(numPeopleInvited / selectedEventType.people_per_table) : 0;
   const wholeDay = sessionType === 'whole';
   const timeSlot = wholeDay ? 'whole_day' : (time && Number(time.split(':')[0]) < 12 ? 'morning' : 'afternoon');
-  const includedCapacity = selectedEventType?.included_capacity ?? 0;
-  const excessPersonFee = selectedEventType?.excess_person_fee ?? 0;
+  const includedCapacity = getEffectiveIncludedCapacity(selectedEventType);
+  const excessPersonFee = getEffectiveExcessPersonFee(selectedEventType);
+  const singleHallLimit = getEffectiveSingleHallLimit(selectedEventType);
   const sessionBasePrice = selectedEventType
     ? wholeDay ? selectedEventType.price * 2 * 0.8 : selectedEventType.price
     : 0;
   const localExcessGuests = selectedEventType ? Math.max(0, numPeopleInvited - includedCapacity) : 0;
   const localExcessTotal = localExcessGuests * excessPersonFee;
-  const singleHallTooSmall = !!selectedEventType && numPeopleInvited > selectedEventType.max_capacity;
+  const hasExplicitSingleHallLimit = !!selectedEventType && singleHallLimit > includedCapacity;
+  const singleHallTooSmall = pricingInfo ? pricingInfo.single_hall_supported === false : (!!selectedEventType && numPeopleInvited > singleHallLimit);
   const slotAvail = timeSlot === 'whole_day' ? Math.min(morningAvail ?? MAX_ROOMS, afternoonAvail ?? MAX_ROOMS) : timeSlot === 'morning' ? (morningAvail ?? availableRooms ?? MAX_ROOMS) : (afternoonAvail ?? availableRooms ?? MAX_ROOMS);
   const isFullyBooked = (morningAvail ?? 0) === 0 && (afternoonAvail ?? 0) === 0;
   const availabilityStatusLabel = isFullyBooked ? 'Fully Booked' : slotAvail === 0 ? 'Full' : slotAvail <= 1 ? 'Almost Full' : 'Available';
@@ -137,7 +171,7 @@ export default function ClientDashboard() {
     }
     if (description.length < 10) { setDescriptionError('Description must be at least 10 characters'); return; }
     if (singleHallTooSmall) {
-      alert(`This hall supports up to ${selectedEventType?.max_capacity ?? 0} guests only. Please choose one of the suggested hall combinations.`);
+      alert(`This hall supports up to ${singleHallLimit} guests only. Please choose one of the suggested hall combinations.`);
       return;
     }
     // Validate invited emails count
@@ -253,7 +287,7 @@ export default function ClientDashboard() {
                     <select value={eventType} onChange={e => {
                       const sel = eventTypes.find(et => et.event_type === e.target.value);
                       setEventType(e.target.value); setSelectedEventType(sel || null);
-                      setNumPeopleInvited(sel?.included_capacity || 0); setEventDetails({});
+                      setNumPeopleInvited(getEffectiveIncludedCapacity(sel || null) || 0); setEventDetails({});
                     }} className={iCls} style={iStyle}>
                       <option value="" style={{ background: '#0c2d4a' }}>Select hall type</option>
                       {eventTypes.map(et => <option key={et.id} value={et.event_type} style={{ background: '#0c2d4a' }}>{et.event_type}</option>)}
@@ -319,7 +353,9 @@ export default function ClientDashboard() {
                   />
                   <p className="text-xs text-slate-500 mt-1">
                     {selectedEventType
-                      ? `${selectedEventType.event_type} includes ${includedCapacity} guests in the base rate and can accommodate up to ${selectedEventType.max_capacity} guests.`
+                      ? hasExplicitSingleHallLimit
+                        ? `${selectedEventType.event_type} includes ${includedCapacity} guests in the base rate and can accommodate up to ${singleHallLimit} guests.`
+                        : `${selectedEventType.event_type} includes ${includedCapacity} guests in the base rate. Extra guests are billed per person automatically.`
                       : 'Guest limit will be filled in automatically after you select a hall type.'}
                   </p>
                   {selectedEventType && localExcessGuests > 0 && !singleHallTooSmall && (
@@ -329,7 +365,7 @@ export default function ClientDashboard() {
                   )}
                   {selectedEventType && singleHallTooSmall && (
                     <p className="mt-1 text-xs text-red-400">
-                      This hall only supports up to {selectedEventType.max_capacity} guests. Check the hall combo suggestions below.
+                      This hall only supports up to {singleHallLimit} guests. Check the hall combo suggestions below.
                     </p>
                   )}
                 </div>
@@ -424,7 +460,7 @@ export default function ClientDashboard() {
                 <div className="p-5 grid grid-cols-2 gap-3">
                   {[
                     { label: 'Base Rate', value: `₱${selectedEventType.price.toLocaleString()}` },
-                    { label: 'Max Guests', value: selectedEventType.max_capacity },
+                    { label: 'Max Guests', value: singleHallLimit },
                     { label: 'Per Table', value: `${selectedEventType.people_per_table} pax` },
                     { label: 'Tables Needed', value: numPeopleInvited > 0 ? tablesNeeded : '—' },
                   ].map(item => (
@@ -491,7 +527,7 @@ export default function ClientDashboard() {
                         </div>
                       </div>
 
-                      {comboSuggestions.length > 0 && singleHallTooSmall && (
+                      {comboSuggestions.length > 0 && (
                         <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)' }}>
                           <p className="text-xs text-amber-300 font-bold uppercase tracking-widest mb-2">Suggested Hall Combinations</p>
                           {comboSuggestions.map((combo) => (
@@ -501,7 +537,7 @@ export default function ClientDashboard() {
                               <p className="text-xs text-slate-300">Estimated base total: P{Number(combo.base_price).toLocaleString()}</p>
                             </div>
                           ))}
-                          <p className="text-xs text-amber-200 mt-2">Single-hall booking is disabled when guest count exceeds the selected hall capacity.</p>
+                          <p className="text-xs text-amber-200 mt-2">Use these venue combinations when one hall is no longer enough for your guest count.</p>
                         </div>
                       )}
 
