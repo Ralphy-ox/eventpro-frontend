@@ -468,10 +468,16 @@ export default function OrganizerDashboard() {
           )}
         </div>
 
-        {expandedBookingId === booking.id && (booking.client_email || booking.client_address || booking.special_requests || booking.invited_emails || Object.keys(booking.event_details || {}).length > 0) && (
+        {expandedBookingId === booking.id && (
           <div className="mb-3 rounded-xl p-3" style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.14)' }}>
             <p className="text-xs font-bold text-sky-400 uppercase tracking-widest mb-2">Booking Details</p>
             <div className="space-y-2 text-xs">
+              <p className="text-slate-300"><span className="text-slate-500">Venue:</span> {booking.event_type}</p>
+              <p className="text-slate-300"><span className="text-slate-500">Client:</span> {booking.user}</p>
+              <p className="text-slate-300"><span className="text-slate-500">Description:</span> {booking.description || 'No description submitted.'}</p>
+              <p className="text-slate-300"><span className="text-slate-500">Guests:</span> {booking.capacity}</p>
+              <p className="text-slate-300"><span className="text-slate-500">Schedule:</span> {formatDate(booking.date)} | {formatTime(booking.time)}</p>
+              <p className="text-slate-300"><span className="text-slate-500">Payment method:</span> {booking.payment_method || 'N/A'}</p>
               {booking.client_email && (
                 <p className="text-slate-300"><span className="text-slate-500">Client email:</span> {booking.client_email}</p>
               )}
@@ -489,6 +495,9 @@ export default function OrganizerDashboard() {
                   <span className="text-slate-500">{key.replace(/_/g, ' ')}:</span> {String(value)}
                 </p>
               ))}
+              {!booking.client_email && !booking.client_address && !booking.special_requests && !booking.invited_emails && Object.keys(booking.event_details || {}).length === 0 && (
+                <p className="text-slate-500">No extra client-submitted fields for this booking.</p>
+              )}
             </div>
           </div>
         )}
