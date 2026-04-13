@@ -42,6 +42,14 @@ interface PublicStats {
   satisfaction_rate: number;
 }
 
+interface LandingCarouselImage {
+  id: number;
+  title: string;
+  subtitle: string;
+  image: string;
+  display_order: number;
+}
+
 const LEGACY_EVENT_TYPES = new Set(['Birthday', 'Wedding', 'Conference', 'Corporate Event', 'Concert', 'Debu']);
 
 const FEATURES = [
@@ -87,6 +95,8 @@ export default function Home() {
   const [authChecked, setAuthChecked] = useState(false);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [landingImages, setLandingImages] = useState<LandingCarouselImage[]>([]);
+  const [activeLandingImage, setActiveLandingImage] = useState(0);
   const [publicStats, setPublicStats] = useState<PublicStats>({
     events_hosted: 0,
     average_rating: 0,
@@ -139,6 +149,14 @@ export default function Home() {
       .then(r => r.ok ? r.json() : [])
       .then(data => setReviews(Array.isArray(data) ? data : []))
       .catch(() => {});
+    fetch(`${API_BASE}/landing-carousel/`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (!Array.isArray(data)) return;
+        setLandingImages(data);
+        setActiveLandingImage(0);
+      })
+      .catch(() => {});
     fetch(`${API_BASE}/stats/public/`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -152,6 +170,14 @@ export default function Home() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (landingImages.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveLandingImage(prev => (prev + 1) % landingImages.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [landingImages]);
 
   const averageRating = publicStats.average_rating > 0
     ? publicStats.average_rating.toFixed(1)
@@ -206,6 +232,20 @@ export default function Home() {
       behavior: 'smooth',
     });
   };
+
+  const showLandingImage = (index: number) => {
+    if (!landingImages.length) return;
+    const normalized = (index + landingImages.length) % landingImages.length;
+    setActiveLandingImage(normalized);
+  };
+
+  const activeLandingItem = landingImages[activeLandingImage] ?? null;
+  const leftLandingItem = landingImages.length > 1
+    ? landingImages[(activeLandingImage - 1 + landingImages.length) % landingImages.length]
+    : null;
+  const rightLandingItem = landingImages.length > 2
+    ? landingImages[(activeLandingImage + 1) % landingImages.length]
+    : null;
 
   const navLinks = isLoggedIn
     ? [
@@ -292,6 +332,143 @@ export default function Home() {
           <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
+        </div>
+      </section>
+
+      {/* VENUE SHOWCASE */}
+      <section className="py-20" style={{ background: '#081220', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="max-w-6xl mx-auto px-6 sm:px-8">
+          <div className="text-center mb-12">
+            <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-3">Venue Showcase</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">See How Spacious The Venue Feels</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              Browse actual uploaded venue photos so guests can get a better sense of the size, setup, and atmosphere before booking.
+            </p>
+          </div>
+
+          {landingImages.length > 0 ? (
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="Show previous venue image"
+                onClick={() => showLandingImage(activeLandingImage - 1)}
+                className="hidden md:flex absolute left-0 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 w-14 h-14 items-center justify-center rounded-full text-white transition-all hover:scale-105"
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <div className="flex items-center justify-center gap-4 lg:gap-6">
+                {leftLandingItem && (
+                  <button
+                    type="button"
+                    onClick={() => showLandingImage(activeLandingImage - 1)}
+                    className="hidden md:block shrink-0 w-[22%] aspect-[4/5] overflow-hidden rounded-[28px] border transition-all hover:-translate-y-1"
+                    style={{ borderColor: 'rgba(255,255,255,0.12)', opacity: 0.72 }}
+                  >
+                    <img
+                      src={leftLandingItem.image}
+                      alt={leftLandingItem.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                )}
+
+                {activeLandingItem && (
+                  <div
+                    className="relative w-full md:w-[56%] aspect-[5/3] overflow-hidden rounded-[32px] border shadow-2xl"
+                    style={{ borderColor: 'rgba(125,211,252,0.35)', background: 'rgba(255,255,255,0.03)', boxShadow: '0 24px 60px rgba(2, 12, 27, 0.45)' }}
+                  >
+                    <img
+                      src={activeLandingItem.image}
+                      alt={activeLandingItem.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div
+                      className="absolute inset-x-0 bottom-0 p-6 sm:p-8"
+                      style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.88) 100%)' }}
+                    >
+                      <div className="max-w-lg">
+                        <p className="text-xs font-bold uppercase tracking-[0.32em] text-sky-300 mb-2">Uploaded Venue Photo</p>
+                        <h3 className="text-2xl sm:text-3xl font-black text-white mb-2">{activeLandingItem.title}</h3>
+                        {activeLandingItem.subtitle && (
+                          <p className="text-sm sm:text-base text-slate-300 leading-relaxed">{activeLandingItem.subtitle}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {rightLandingItem && (
+                  <button
+                    type="button"
+                    onClick={() => showLandingImage(activeLandingImage + 1)}
+                    className="hidden md:block shrink-0 w-[22%] aspect-[4/5] overflow-hidden rounded-[28px] border transition-all hover:-translate-y-1"
+                    style={{ borderColor: 'rgba(255,255,255,0.12)', opacity: 0.72 }}
+                  >
+                    <img
+                      src={rightLandingItem.image}
+                      alt={rightLandingItem.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center justify-center gap-3 mt-6">
+                <button
+                  type="button"
+                  aria-label="Show previous venue image"
+                  onClick={() => showLandingImage(activeLandingImage - 1)}
+                  className="md:hidden w-11 h-11 rounded-full flex items-center justify-center text-white"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {landingImages.map((image, index) => (
+                    <button
+                      key={image.id}
+                      type="button"
+                      aria-label={`Show venue image ${index + 1}`}
+                      onClick={() => showLandingImage(index)}
+                      className="rounded-full transition-all"
+                      style={{
+                        width: index === activeLandingImage ? 26 : 12,
+                        height: 12,
+                        background: index === activeLandingImage ? '#e2e8f0' : 'rgba(226,232,240,0.35)',
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  aria-label="Show next venue image"
+                  onClick={() => showLandingImage(activeLandingImage + 1)}
+                  className="md:hidden w-11 h-11 rounded-full flex items-center justify-center text-white"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="rounded-[28px] p-10 text-center"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <p className="text-white font-bold mb-2">No venue showcase images uploaded yet.</p>
+              <p className="text-slate-400 text-sm">Once you upload carousel photos in Django admin, they will appear here for all visitors.</p>
+            </div>
+          )}
         </div>
       </section>
 

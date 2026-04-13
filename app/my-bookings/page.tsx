@@ -46,6 +46,10 @@ export default function MyBookings() {
   const [reviewedBookings, setReviewedBookings] = useState<number[]>([]);
   const [cancelModal, setCancelModal] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [gcashUploadId, setGcashUploadId] = useState<number | null>(null);
+  const [gcashRef, setGcashRef] = useState('');
+  const [gcashProof, setGcashProof] = useState<File | null>(null);
+  const [gcashUploading, setGcashUploading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'declined'>('all');
   const router = useRouter();
   const { loggingOut, logout } = useLogout();
@@ -77,6 +81,23 @@ export default function MyBookings() {
     });
     if (res.ok) { setCancelModal(null); setCancelReason(''); fetchBookings(); }
     else { const d = await res.json(); alert(d.message || 'Failed'); }
+  };
+
+  const handleGcashUpload = async (id: number) => {
+    if (!gcashRef.trim()) { alert('Reference number is required.'); return; }
+    if (!gcashProof) { alert('Please select a proof of payment image.'); return; }
+    const token = localStorage.getItem('clientToken');
+    setGcashUploading(true);
+    const fd = new FormData();
+    fd.append('gcash_reference', gcashRef);
+    fd.append('payment_proof', gcashProof);
+    const res = await fetch(`${API_BASE}/bookings/${id}/upload-proof/`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
+    });
+    const data = await res.json();
+    if (res.ok) { setGcashUploadId(null); setGcashRef(''); setGcashProof(null); fetchBookings(); alert('Proof uploaded! Waiting for owner to accept your booking.'); }
+    else { alert(data.message || 'Upload failed.'); }
+    setGcashUploading(false);
   };
 
   const handleReschedule = async (id: number) => {
@@ -266,11 +287,43 @@ export default function MyBookings() {
                       </div>
                     )}
 
-                    {/* GCash PayMongo pending */}
+                    {/* GCash upload proof */}
                     {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && (
-                      <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-sky-300"
-                        style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
-                        GCash payment pending — complete payment in the GCash app
+                      <div className="mb-4">
+                        {gcashUploadId === booking.id ? (
+                          <div className="p-4 rounded-xl space-y-3" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
+                            <p className="text-xs font-bold text-sky-300">Upload GCash Proof of Payment</p>
+                            <input value={gcashRef} onChange={e => setGcashRef(e.target.value)}
+                              placeholder="GCash Reference Number *"
+                              className="w-full px-3 py-2 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500"
+                              style={iStyle} />
+                            <input type="file" accept="image/*" onChange={e => setGcashProof(e.target.files?.[0] || null)}
+                              className="text-xs text-slate-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:text-white w-full"
+                              style={{ ...iStyle, padding: '8px 10px', borderRadius: 12 }} />
+                            <div className="flex gap-2">
+                              <button onClick={() => handleGcashUpload(booking.id)} disabled={gcashUploading}
+                                className="flex-1 py-2 text-white text-xs font-bold rounded-xl disabled:opacity-40"
+                                style={{ background: 'linear-gradient(135deg,#0ea5e9,#0369a1)' }}>
+                                {gcashUploading ? 'Uploading...' : 'Submit Proof'}
+                              </button>
+                              <button onClick={() => { setGcashUploadId(null); setGcashRef(''); setGcashProof(null); }}
+                                className="px-3 py-2 text-xs font-bold rounded-xl text-slate-400"
+                                style={{ background: 'rgba(255,255,255,0.07)' }}>Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => setGcashUploadId(booking.id)}
+                            className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
+                            style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
+                            Upload GCash Proof of Payment
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {booking.payment_method === 'GCash' && booking.payment_status === 'pending_verification' && (
+                      <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-yellow-300"
+                        style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                        ⏳ Proof submitted — waiting for owner to accept your booking
                       </div>
                     )}
 

@@ -92,6 +92,10 @@ export default function OrganizerDashboard() {
   const [editReplyText, setEditReplyText] = useState('');
   const [editReplySubmitting, setEditReplySubmitting] = useState(false);
   const [analyticsEventType, setAnalyticsEventType] = useState('all');
+  const [damageModal, setDamageModal] = useState<{ bookingId: number; eventType: string } | null>(null);
+  const [damageForm, setDamageForm] = useState({ item_type: 'other', item_name: '', quantity: '1', estimated_cost: '', recovered_amount: '0', charge_to_client: false, status: 'reported', notes: '' });
+  const [damagePhoto, setDamagePhoto] = useState<File | null>(null);
+  const [damageSubmitting, setDamageSubmitting] = useState(false);
   const [damageReports, setDamageReports] = useState<DamageReport[]>([]);
   const [damageSummary, setDamageSummary] = useState<DamageSummary>({
     gross_revenue: 0,
@@ -284,6 +288,30 @@ export default function OrganizerDashboard() {
       });
       if (res.ok) { setReplyingMsg(null); setReplyMsgText(''); loadContactMessages(); }
     } finally { setReplyMsgSubmitting(false); }
+  };
+
+  const handleReportDamage = async () => {
+    if (!damageModal) return;
+    if (!damageForm.item_name.trim()) { alert('Item name is required.'); return; }
+    if (!damageForm.estimated_cost || parseFloat(damageForm.estimated_cost) < 0) { alert('Please enter a valid estimated cost.'); return; }
+    const token = localStorage.getItem('organizerToken');
+    setDamageSubmitting(true);
+    try {
+      const fd = new FormData();
+      Object.entries(damageForm).forEach(([k, v]) => fd.append(k, String(v)));
+      if (damagePhoto) fd.append('photo', damagePhoto);
+      const res = await fetch(`${API_BASE}/bookings/${damageModal.bookingId}/damages/report/`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Damage report saved!');
+        setDamageModal(null);
+        setDamageForm({ item_type: 'other', item_name: '', quantity: '1', estimated_cost: '', recovered_amount: '0', charge_to_client: false, status: 'reported', notes: '' });
+        setDamagePhoto(null);
+        loadDamages();
+      } else { alert(data.message || 'Failed to save damage report.'); }
+    } finally { setDamageSubmitting(false); }
   };
 
   const handleMarkRead = async (msgId: number) => {
@@ -552,6 +580,18 @@ export default function OrganizerDashboard() {
           </div>
         )}
 
+        {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && (
+          <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
+            <p className="text-xs font-bold text-sky-300 mb-1">GCash — Awaiting proof from client</p>
+            {booking.gcash_reference && <p className="text-xs text-slate-400">Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
+            {booking.payment_proof && (
+              <a href={booking.payment_proof} target="_blank" rel="noreferrer">
+                <img src={booking.payment_proof} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
+              </a>
+            )}
+          </div>
+        )}
+
         {booking.status === 'declined' && booking.decline_reason && (
           <div className="mb-3 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
             <p className="text-xs font-bold text-red-400 mb-1">Decline Reason</p>
@@ -559,6 +599,20 @@ export default function OrganizerDashboard() {
           </div>
         )}
 
+        {activeTab === 'confirmed' && (
+          <div className="flex gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <button onClick={() => setExpandedBookingId(expandedBookingId === booking.id ? null : booking.id)}
+              className="px-4 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5"
+              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              {expandedBookingId === booking.id ? 'Hide Details' : 'View Details'}
+            </button>
+            <button onClick={() => setDamageModal({ bookingId: booking.id, eventType: booking.event_type })}
+              className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5"
+              style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}>
+              Report Damage
+            </button>
+          </div>
+        )}
         {activeTab === 'pending' && (
           <div className="flex gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <button onClick={() => setExpandedBookingId(expandedBookingId === booking.id ? null : booking.id)}
@@ -1228,6 +1282,47 @@ export default function OrganizerDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Damage Report Modal */}
+      {damageModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, overflowY: 'auto' }}>
+          <div style={{ background: '#0c2d4a', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: 32, width: '100%', maxWidth: 520 }}>
+            <h3 style={{ color: '#f1f5f9', fontWeight: 900, fontSize: 18, marginBottom: 4 }}>Report Damage</h3>
+            <p style={{ color: '#64748b', fontSize: 13, marginBottom: 20 }}>Booking #{damageModal.bookingId} - {damageModal.eventType}</p>
+            <div className="space-y-3>
+ <div className=grid grid-cols-2 gap-3>
+ <div><p className=text-xs text-slate-400 mb-1>Item Type</p>
+ <select value={damageForm.item_type} onChange={e => setDamageForm(f => ({ ...f, item_type: e.target.value }))} className={iCls} style={iStyle}>
+ {[['chair','Chair'],['table','Table'],['decor','Decor'],['equipment','Equipment'],['other','Other']].map(([v,l]) => (<option key={v} value={v} style={{ background: '#0c2d4a' }}>{l}</option>))}
+ </select></div>
+ <div><p className=text-xs text-slate-400 mb-1>Status</p>
+ <select value={damageForm.status} onChange={e => setDamageForm(f => ({ ...f, status: e.target.value }))} className={iCls} style={iStyle}>
+ {[['reported','Reported'],['billed','Billed to Client'],['resolved','Resolved'],['waived','Waived']].map(([v,l]) => (<option key={v} value={v} style={{ background: '#0c2d4a' }}>{l}</option>))}
+ </select></div>
+ </div>
+ <div><p className=text-xs text-slate-400 mb-1>Item Name *</p>
+ <input value={damageForm.item_name} onChange={e => setDamageForm(f => ({ ...f, item_name: e.target.value }))} placeholder=e.g. Plastic Chair... className={iCls} style={iStyle} /></div>
+ <div className=grid grid-cols-3 gap-3>
+ <div><p className=text-xs text-slate-400 mb-1>Quantity</p><input type=number min=1 value={damageForm.quantity} onChange={e => setDamageForm(f => ({ ...f, quantity: e.target.value }))} className={iCls} style={iStyle} /></div>
+ <div><p className=text-xs text-slate-400 mb-1>Estimated Cost *</p><input type=number min=0 value={damageForm.estimated_cost} onChange={e => setDamageForm(f => ({ ...f, estimated_cost: e.target.value }))} placeholder=0.00 className={iCls} style={iStyle} /></div>
+ <div><p className=text-xs text-slate-400 mb-1>Recovered</p><input type=number min=0 value={damageForm.recovered_amount} onChange={e => setDamageForm(f => ({ ...f, recovered_amount: e.target.value }))} placeholder=0.00 className={iCls} style={iStyle} /></div>
+ </div>
+ <div><p className=text-xs text-slate-400 mb-1>Notes</p>
+ <textarea rows={3} value={damageForm.notes} onChange={e => setDamageForm(f => ({ ...f, notes: e.target.value }))} placeholder=Describe the damage... className={iCls + ' resize-none'} style={iStyle} /></div>
+ <label className=flex items-center gap-2 cursor-pointer>
+ <input type=checkbox checked={damageForm.charge_to_client} onChange={e => setDamageForm(f => ({ ...f, charge_to_client: e.target.checked }))} className=w-4 h-4 rounded />
+ <span className=text-sm text-slate-300>Charge to client</span>
+ </label>
+ <div><p className=text-xs text-slate-400 mb-1>Photo (optional)</p>
+ <input type=file accept=image/* onChange={e => setDamagePhoto(e.target.files?.[0] || null)} className=text-sm text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:text-white w-full style={{ ...iStyle, padding: '8px 12px', borderRadius: 12 }} /></div>
+ </div>
+ <div className=flex gap-3 mt-6>
+ <button onClick={handleReportDamage} disabled={damageSubmitting} className=flex-1 py-3 text-white font-black rounded-xl disabled:opacity-40 style={{ background: 'rgba(239,68,68,0.8)', border: '1px solid rgba(239,68,68,0.5)' }}>{damageSubmitting ? 'Saving...' : 'Save Report'}</button>
+ <button onClick={() => { setDamageModal(null); setDamagePhoto(null); setDamageForm({ item_type: 'other', item_name: '', quantity: '1', estimated_cost: '', recovered_amount: '0', charge_to_client: false, status: 'reported', notes: '' }); }} className=px-6 py-3 font-black rounded-xl text-slate-400 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>Cancel</button>
+ </div>
+ </div>
+ </div>
+ )}
 
       {/* Decline reason modal */}
       {declineModal && (
