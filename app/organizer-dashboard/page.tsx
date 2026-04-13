@@ -1288,43 +1288,76 @@ export default function OrganizerDashboard() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, overflowY: 'auto' }}>
           <div style={{ background: '#0c2d4a', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: 32, width: '100%', maxWidth: 520 }}>
             <h3 style={{ color: '#f1f5f9', fontWeight: 900, fontSize: 18, marginBottom: 4 }}>Report Damage</h3>
-            <p style={{ color: '#64748b', fontSize: 13, marginBottom: 20 }}>Booking #{damageModal.bookingId} - {damageModal.eventType}</p>
-            <div className="space-y-3>
- <div className=grid grid-cols-2 gap-3>
- <div><p className=text-xs text-slate-400 mb-1>Item Type</p>
- <select value={damageForm.item_type} onChange={e => setDamageForm(f => ({ ...f, item_type: e.target.value }))} className={iCls} style={iStyle}>
- {[['chair','Chair'],['table','Table'],['decor','Decor'],['equipment','Equipment'],['other','Other']].map(([v,l]) => (<option key={v} value={v} style={{ background: '#0c2d4a' }}>{l}</option>))}
- </select></div>
- <div><p className=text-xs text-slate-400 mb-1>Status</p>
- <select value={damageForm.status} onChange={e => setDamageForm(f => ({ ...f, status: e.target.value }))} className={iCls} style={iStyle}>
- {[['reported','Reported'],['billed','Billed to Client'],['resolved','Resolved'],['waived','Waived']].map(([v,l]) => (<option key={v} value={v} style={{ background: '#0c2d4a' }}>{l}</option>))}
- </select></div>
- </div>
- <div><p className=text-xs text-slate-400 mb-1>Item Name *</p>
- <input value={damageForm.item_name} onChange={e => setDamageForm(f => ({ ...f, item_name: e.target.value }))} placeholder=e.g. Plastic Chair... className={iCls} style={iStyle} /></div>
- <div className=grid grid-cols-3 gap-3>
- <div><p className=text-xs text-slate-400 mb-1>Quantity</p><input type=number min=1 value={damageForm.quantity} onChange={e => setDamageForm(f => ({ ...f, quantity: e.target.value }))} className={iCls} style={iStyle} /></div>
- <div><p className=text-xs text-slate-400 mb-1>Estimated Cost *</p><input type=number min=0 value={damageForm.estimated_cost} onChange={e => setDamageForm(f => ({ ...f, estimated_cost: e.target.value }))} placeholder=0.00 className={iCls} style={iStyle} /></div>
- <div><p className=text-xs text-slate-400 mb-1>Recovered</p><input type=number min=0 value={damageForm.recovered_amount} onChange={e => setDamageForm(f => ({ ...f, recovered_amount: e.target.value }))} placeholder=0.00 className={iCls} style={iStyle} /></div>
- </div>
- <div><p className=text-xs text-slate-400 mb-1>Notes</p>
- <textarea rows={3} value={damageForm.notes} onChange={e => setDamageForm(f => ({ ...f, notes: e.target.value }))} placeholder=Describe the damage... className={iCls + ' resize-none'} style={iStyle} /></div>
- <label className=flex items-center gap-2 cursor-pointer>
- <input type=checkbox checked={damageForm.charge_to_client} onChange={e => setDamageForm(f => ({ ...f, charge_to_client: e.target.checked }))} className=w-4 h-4 rounded />
- <span className=text-sm text-slate-300>Charge to client</span>
- </label>
- <div><p className=text-xs text-slate-400 mb-1>Photo (optional)</p>
- <input type=file accept=image/* onChange={e => setDamagePhoto(e.target.files?.[0] || null)} className=text-sm text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:text-white w-full style={{ ...iStyle, padding: '8px 12px', borderRadius: 12 }} /></div>
- </div>
- <div className=flex gap-3 mt-6>
- <button onClick={handleReportDamage} disabled={damageSubmitting} className=flex-1 py-3 text-white font-black rounded-xl disabled:opacity-40 style={{ background: 'rgba(239,68,68,0.8)', border: '1px solid rgba(239,68,68,0.5)' }}>{damageSubmitting ? 'Saving...' : 'Save Report'}</button>
- <button onClick={() => { setDamageModal(null); setDamagePhoto(null); setDamageForm({ item_type: 'other', item_name: '', quantity: '1', estimated_cost: '', recovered_amount: '0', charge_to_client: false, status: 'reported', notes: '' }); }} className=px-6 py-3 font-black rounded-xl text-slate-400 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>Cancel</button>
- </div>
- </div>
- </div>
- )}
+            <p style={{ color: '#64748b', fontSize: 13, marginBottom: 20 }}>Booking #{damageModal.bookingId} &mdash; {damageModal.eventType}</p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Item Type</p>
+                  <select value={damageForm.item_type} onChange={e => setDamageForm(f => ({ ...f, item_type: e.target.value }))} className={iCls} style={iStyle}>
+                    {[['chair','Chair'],['table','Table'],['decor','Decor'],['equipment','Equipment'],['other','Other']].map(([v,l]) => (
+                      <option key={v} value={v} style={{ background: '#0c2d4a' }}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Status</p>
+                  <select value={damageForm.status} onChange={e => setDamageForm(f => ({ ...f, status: e.target.value }))} className={iCls} style={iStyle}>
+                    {[['reported','Reported'],['billed','Billed to Client'],['resolved','Resolved'],['waived','Waived']].map(([v,l]) => (
+                      <option key={v} value={v} style={{ background: '#0c2d4a' }}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Item Name *</p>
+                <input value={damageForm.item_name} onChange={e => setDamageForm(f => ({ ...f, item_name: e.target.value }))} placeholder="e.g. Plastic Chair, Round Table..." className={iCls} style={iStyle} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Quantity</p>
+                  <input type="number" min="1" value={damageForm.quantity} onChange={e => setDamageForm(f => ({ ...f, quantity: e.target.value }))} className={iCls} style={iStyle} />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Estimated Cost (&#8369;) *</p>
+                  <input type="number" min="0" value={damageForm.estimated_cost} onChange={e => setDamageForm(f => ({ ...f, estimated_cost: e.target.value }))} placeholder="0.00" className={iCls} style={iStyle} />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Recovered (&#8369;)</p>
+                  <input type="number" min="0" value={damageForm.recovered_amount} onChange={e => setDamageForm(f => ({ ...f, recovered_amount: e.target.value }))} placeholder="0.00" className={iCls} style={iStyle} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Notes</p>
+                <textarea rows={3} value={damageForm.notes} onChange={e => setDamageForm(f => ({ ...f, notes: e.target.value }))} placeholder="Describe the damage..." className={iCls + ' resize-none'} style={iStyle} />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={damageForm.charge_to_client} onChange={e => setDamageForm(f => ({ ...f, charge_to_client: e.target.checked }))} className="w-4 h-4 rounded" />
+                <span className="text-sm text-slate-300">Charge to client</span>
+              </label>
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Photo (optional)</p>
+                <input type="file" accept="image/*" onChange={e => setDamagePhoto(e.target.files?.[0] || null)}
+                  className="text-sm text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:text-white w-full"
+                  style={{ ...iStyle, padding: '8px 12px', borderRadius: 12 }} />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={handleReportDamage} disabled={damageSubmitting}
+                className="flex-1 py-3 text-white font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
+                style={{ background: 'rgba(239,68,68,0.8)', border: '1px solid rgba(239,68,68,0.5)' }}>
+                {damageSubmitting ? 'Saving...' : 'Save Report'}
+              </button>
+              <button onClick={() => { setDamageModal(null); setDamagePhoto(null); setDamageForm({ item_type: 'other', item_name: '', quantity: '1', estimated_cost: '', recovered_amount: '0', charge_to_client: false, status: 'reported', notes: '' }); }}
+                className="px-6 py-3 font-black rounded-xl text-slate-400"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Decline reason modal */}
+            {/* Decline reason modal */}
       {declineModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div style={{ background: '#0c2d4a', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: 32, width: '100%', maxWidth: 480 }}>
