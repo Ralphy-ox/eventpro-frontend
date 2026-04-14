@@ -50,6 +50,8 @@ interface LandingCarouselImage {
   display_order: number;
 }
 
+const DEFAULT_LANDING_IMAGE = 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1400&q=80';
+
 const LEGACY_EVENT_TYPES = new Set(['Birthday', 'Wedding', 'Conference', 'Corporate Event', 'Concert', 'Debu']);
 
 const FEATURES = [
@@ -240,12 +242,9 @@ export default function Home() {
   };
 
   const activeLandingItem = landingImages[activeLandingImage] ?? null;
-  const leftLandingItem = landingImages.length > 1
-    ? landingImages[(activeLandingImage - 1 + landingImages.length) % landingImages.length]
-    : null;
-  const rightLandingItem = landingImages.length > 2
-    ? landingImages[(activeLandingImage + 1) % landingImages.length]
-    : null;
+  const landingHeroImage = activeLandingItem?.image || DEFAULT_LANDING_IMAGE;
+  const landingHeroTitle = activeLandingItem?.title || 'Elegant spaces for life&apos;s biggest moments';
+  const landingHeroSubtitle = activeLandingItem?.subtitle || 'Preview the venue ambiance, explore the setup, and book the hall that matches your celebration.';
 
   const navLinks = isLoggedIn
     ? [
@@ -283,47 +282,140 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, #0ea5e9, transparent 60%)' }} />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] opacity-8 pointer-events-none" style={{ background: 'radial-gradient(ellipse at bottom left, #0ea5e9, transparent 60%)' }} />
 
-        <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold mb-8"
-            style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', color: '#7dd3fc' }}>
-            <span className="w-1.5 h-1.5 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
-            Ralphy&apos;s Venue — Cebu City, Philippines
-          </div>
+        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 py-24 w-full">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.2fr_0.9fr]">
+            <div className="order-2 lg:order-1">
+              <div className="relative overflow-hidden rounded-[34px] border p-3 sm:p-4"
+                style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 26px 60px rgba(2, 12, 27, 0.45)' }}>
+                <div className="relative aspect-[4/3] overflow-hidden rounded-[28px]">
+                  <img
+                    src={landingHeroImage}
+                    alt={activeLandingItem?.title || 'Venue setup preview'}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0.06) 0%, rgba(2,6,23,0.36) 100%)' }} />
+                </div>
 
-          <h1 className="text-5xl sm:text-7xl font-black text-white leading-[1.05] mb-6 tracking-tight">
-            Your Grand Space,{' '}
-            <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, #38bdf8, #0ea5e9)' }}>
-              Reserved
-            </span>
-            {' '}in Seconds.
-          </h1>
+                <div className="absolute left-6 right-6 bottom-6 flex items-center justify-between gap-4">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold"
+                    style={{ background: 'rgba(8,47,73,0.82)', border: '1px solid rgba(125,211,252,0.3)', color: '#dbeafe' }}>
+                    <span className="w-2 h-2 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
+                    {landingImages.length > 0 ? `Slide ${activeLandingImage + 1} of ${landingImages.length}` : 'Sample venue preview'}
+                  </div>
 
-          <p className="text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Flexible venue hall reservations for intimate gatherings, parties, and large functions.
-            <span className="text-sky-400"> Reserve your preferred hall in minutes.</span>
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link href={ctaHref}
-              className="px-10 py-4 text-white font-bold text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.35)' }}>
-              {ctaLabel}
-            </Link>
-            <Link href="/learn-more"
-              className="px-10 py-4 font-semibold text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
-              style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: '#cbd5e1' }}>
-              Learn More
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
-            {stats.map(s => (
-              <div key={s.label} className="rounded-xl p-4 text-center"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <p className="text-2xl font-black text-white">{s.value}</p>
-                <p className="text-xs text-slate-400 mt-1">{s.label}</p>
+                  <div className="hidden sm:flex items-center gap-2">
+                    <button
+                      type="button"
+                      aria-label="Show previous venue image"
+                      onClick={() => showLandingImage(activeLandingImage - 1)}
+                      className="w-11 h-11 rounded-full flex items-center justify-center text-white transition-all hover:scale-105"
+                      style={{ background: 'rgba(8,47,73,0.82)', border: '1px solid rgba(255,255,255,0.16)' }}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Show next venue image"
+                      onClick={() => showLandingImage(activeLandingImage + 1)}
+                      className="w-11 h-11 rounded-full flex items-center justify-center text-white transition-all hover:scale-105"
+                      style={{ background: 'rgba(8,47,73,0.82)', border: '1px solid rgba(255,255,255,0.16)' }}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
-            ))}
+            </div>
+
+            <div className="order-1 lg:order-2 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold mb-7"
+                style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', color: '#7dd3fc' }}>
+                <span className="w-1.5 h-1.5 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
+                Ralphy&apos;s Venue - Cebu City, Philippines
+              </div>
+
+              <h1 className="text-4xl sm:text-6xl font-black text-white leading-[1.02] tracking-tight mb-5">
+                Your Grand Space,
+                <span className="block text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, #67e8f9, #0ea5e9)' }}>
+                  Reserved in Seconds.
+                </span>
+              </h1>
+
+              <p className="text-sm font-bold uppercase tracking-[0.28em] text-sky-300 mb-4">
+                {landingHeroTitle}
+              </p>
+
+              <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-xl mx-auto lg:mx-0 mb-9">
+                {landingHeroSubtitle}
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
+                <Link href={ctaHref}
+                  className="px-10 py-4 text-white font-bold text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
+                  style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.35)' }}>
+                  {ctaLabel}
+                </Link>
+                <Link href="/learn-more"
+                  className="px-10 py-4 font-semibold text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
+                  style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: '#cbd5e1' }}>
+                  Learn More
+                </Link>
+              </div>
+
+              <div className="flex items-center justify-center lg:justify-start gap-2 mb-8">
+                {Array.from({ length: Math.max(landingImages.length, 1) }).map((_, index) => (
+                  <button
+                    key={`hero-dot-${index}`}
+                    type="button"
+                    aria-label={`Show venue image ${index + 1}`}
+                    onClick={() => showLandingImage(index)}
+                    className="rounded-full transition-all"
+                    style={{
+                      width: index === activeLandingImage ? 28 : 11,
+                      height: 11,
+                      background: index === activeLandingImage ? '#38bdf8' : 'rgba(226,232,240,0.32)',
+                    }}
+                  />
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto lg:mx-0">
+                {stats.map(s => (
+                  <div key={s.label} className="rounded-xl p-4 text-center"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <p className="text-2xl font-black text-white">{s.value}</p>
+                    <p className="text-xs text-slate-400 mt-1">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="sm:hidden flex items-center justify-center gap-3 mt-6">
+                <button
+                  type="button"
+                  aria-label="Show previous venue image"
+                  onClick={() => showLandingImage(activeLandingImage - 1)}
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-white"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Show next venue image"
+                  onClick={() => showLandingImage(activeLandingImage + 1)}
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-white"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -334,144 +426,51 @@ export default function Home() {
           </svg>
         </div>
       </section>
-
       {/* VENUE SHOWCASE */}
       <section className="py-20" style={{ background: '#081220', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="max-w-6xl mx-auto px-6 sm:px-8">
-          <div className="text-center mb-12">
-            <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-3">Venue Showcase</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">See How Spacious The Venue Feels</h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
-              Browse actual uploaded venue photos so guests can get a better sense of the size, setup, and atmosphere before booking.
-            </p>
-          </div>
+          <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+            <div>
+              <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-3">Venue Showcase</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">See The Space Before You Reserve</h2>
+              <p className="text-slate-400 leading-relaxed max-w-lg">
+                The hero carousel above gives a quick first impression. This section adds a clearer summary so visitors understand what kind of atmosphere and setup they can expect from the venue.
+              </p>
+            </div>
 
-          {landingImages.length > 0 ? (
-            <div className="relative">
-              <button
-                type="button"
-                aria-label="Show previous venue image"
-                onClick={() => showLandingImage(activeLandingImage - 1)}
-                className="hidden md:flex absolute left-0 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 w-14 h-14 items-center justify-center rounded-full text-white transition-all hover:scale-105"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-
-              <div className="flex items-center justify-center gap-4 lg:gap-6">
-                {leftLandingItem && (
-                  <button
-                    type="button"
-                    onClick={() => showLandingImage(activeLandingImage - 1)}
-                    className="hidden md:block shrink-0 w-[22%] aspect-[4/5] overflow-hidden rounded-[28px] border transition-all hover:-translate-y-1"
-                    style={{ borderColor: 'rgba(255,255,255,0.12)', opacity: 0.72 }}
-                  >
-                    <img
-                      src={leftLandingItem.image}
-                      alt={leftLandingItem.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                )}
-
-                {activeLandingItem && (
-                  <div
-                    className="relative w-full md:w-[56%] aspect-[5/3] overflow-hidden rounded-[32px] border shadow-2xl"
-                    style={{ borderColor: 'rgba(125,211,252,0.35)', background: 'rgba(255,255,255,0.03)', boxShadow: '0 24px 60px rgba(2, 12, 27, 0.45)' }}
-                  >
-                    <img
-                      src={activeLandingItem.image}
-                      alt={activeLandingItem.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div
-                      className="absolute inset-x-0 bottom-0 p-6 sm:p-8"
-                      style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.88) 100%)' }}
-                    >
-                      <div className="max-w-lg">
-                        <p className="text-xs font-bold uppercase tracking-[0.32em] text-sky-300 mb-2">Uploaded Venue Photo</p>
-                        <h3 className="text-2xl sm:text-3xl font-black text-white mb-2">{activeLandingItem.title}</h3>
-                        {activeLandingItem.subtitle && (
-                          <p className="text-sm sm:text-base text-slate-300 leading-relaxed">{activeLandingItem.subtitle}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {rightLandingItem && (
-                  <button
-                    type="button"
-                    onClick={() => showLandingImage(activeLandingImage + 1)}
-                    className="hidden md:block shrink-0 w-[22%] aspect-[4/5] overflow-hidden rounded-[28px] border transition-all hover:-translate-y-1"
-                    style={{ borderColor: 'rgba(255,255,255,0.12)', opacity: 0.72 }}
-                  >
-                    <img
-                      src={rightLandingItem.image}
-                      alt={rightLandingItem.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center justify-center gap-3 mt-6">
-                <button
-                  type="button"
-                  aria-label="Show previous venue image"
-                  onClick={() => showLandingImage(activeLandingImage - 1)}
-                  className="md:hidden w-11 h-11 rounded-full flex items-center justify-center text-white"
-                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-
-                <div className="flex items-center gap-2">
-                  {landingImages.map((image, index) => (
-                    <button
-                      key={image.id}
-                      type="button"
-                      aria-label={`Show venue image ${index + 1}`}
-                      onClick={() => showLandingImage(index)}
-                      className="rounded-full transition-all"
-                      style={{
-                        width: index === activeLandingImage ? 26 : 12,
-                        height: 12,
-                        background: index === activeLandingImage ? '#e2e8f0' : 'rgba(226,232,240,0.35)',
-                      }}
-                    />
-                  ))}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-[28px] p-6 sm:col-span-2"
+                style={{ background: 'linear-gradient(145deg, rgba(14,165,233,0.1), rgba(255,255,255,0.03))', border: '1px solid rgba(125,211,252,0.18)' }}>
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-sky-300 mb-3">Current Highlight</p>
+                <h3 className="text-2xl font-black text-white mb-3">{landingHeroTitle}</h3>
+                <p className="text-sm text-slate-300 leading-relaxed mb-5">
+                  {landingHeroSubtitle}
+                </p>
+                <div className="flex flex-wrap gap-3 text-xs text-slate-300">
+                  <span className="px-3 py-2 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    One image focus
+                  </span>
+                  <span className="px-3 py-2 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    Side-by-side hero layout
+                  </span>
+                  <span className="px-3 py-2 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    Mobile responsive
+                  </span>
                 </div>
+              </div>
 
-                <button
-                  type="button"
-                  aria-label="Show next venue image"
-                  onClick={() => showLandingImage(activeLandingImage + 1)}
-                  className="md:hidden w-11 h-11 rounded-full flex items-center justify-center text-white"
-                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+              <div className="rounded-[28px] p-6"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-sky-300 mb-3">Gallery Status</p>
+                <p className="text-4xl font-black text-white mb-2">{landingImages.length || 1}</p>
+                <p className="text-sm text-slate-400">
+                  {landingImages.length > 0 ? 'uploaded image slides ready for rotation.' : 'sample slide showing while uploads are empty.'}
+                </p>
               </div>
             </div>
-          ) : (
-            <div
-              className="rounded-[28px] p-10 text-center"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
-            >
-              <p className="text-white font-bold mb-2">No venue showcase images uploaded yet.</p>
-              <p className="text-slate-400 text-sm">Once you upload carousel photos in Django admin, they will appear here for all visitors.</p>
-            </div>
-          )}
+          </div>
         </div>
       </section>
-
       {/* HALL TYPES */}
       <section className="py-20" style={{ background: '#0d1f35', borderTop: '1px solid rgba(14,165,233,0.1)' }}>
         <div className="max-w-6xl mx-auto px-6 sm:px-8">
