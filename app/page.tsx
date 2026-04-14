@@ -174,7 +174,7 @@ export default function Home() {
   useEffect(() => {
     if (landingImages.length <= 1) return;
     const timer = setInterval(() => {
-      setActiveLandingImage(prev => (prev + 1) % landingImages.length);
+      setActiveLandingImage((prev: number) => (prev + 1) % landingImages.length);
     }, 4500);
     return () => clearInterval(timer);
   }, [landingImages]);
@@ -182,11 +182,11 @@ export default function Home() {
   const averageRating = publicStats.average_rating > 0
     ? publicStats.average_rating.toFixed(1)
     : (reviews.length > 0
-      ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
+      ? (reviews.reduce((sum: number, review: Review) => sum + review.rating, 0) / reviews.length).toFixed(1)
       : '0.0');
 
   const derivedAverageRating = reviews.length > 0
-    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+    ? reviews.reduce((sum: number, review: Review) => sum + review.rating, 0) / reviews.length
     : 0;
 
   const derivedSatisfactionRate = derivedAverageRating > 0
@@ -198,8 +198,8 @@ export default function Home() {
         1,
         new Set(
           reviews
-            .map(review => review.booking_id)
-            .filter((bookingId): bookingId is number => typeof bookingId === 'number')
+            .map((review: Review) => review.booking_id)
+            .filter((bookingId: number | null | undefined): bookingId is number => typeof bookingId === 'number')
         ).size || reviews.length
       )
     : 0;
@@ -291,11 +291,11 @@ export default function Home() {
           </div>
 
           <h1 className="text-5xl sm:text-7xl font-black text-white leading-[1.05] mb-6 tracking-tight">
-            Make Every{' '}
+            Your Grand Space,{' '}
             <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, #38bdf8, #0ea5e9)' }}>
-              Moment
+              Reserved
             </span>
-            {' '}Magical
+            {' '}in Seconds.
           </h1>
 
           <p className="text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
@@ -625,7 +625,7 @@ export default function Home() {
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black text-white"
                 style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>E</div>
-              <span className="text-white font-black text-lg">EventPro</span>
+              <span className="text-white font-black text-lg">Spacio Grande</span>
             </div>
             <p className="text-slate-500 text-sm leading-relaxed">Professional event management at Ralphy&apos;s Venue. Creating unforgettable memories.</p>
           </div>
@@ -656,7 +656,7 @@ export default function Home() {
           </div>
         </div>
         <div className="text-center py-4 text-xs text-slate-700" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-          © {new Date().getFullYear()} EventPro — Ralphy&apos;s Venue. All rights reserved.
+          © {new Date().getFullYear()} Spacio Grande — Ralphy&apos;s Venue. All rights reserved.
         </div>
       </footer>
     </div>

@@ -160,7 +160,7 @@ export default function ClientRegister() {
       <div className="inline-flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-lg"
           style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>E</div>
-        <span className="text-2xl font-black text-white">EventPro</span>
+        <span className="text-2xl font-black text-white">Spacio Grande</span>
       </div>
     </div>
   );

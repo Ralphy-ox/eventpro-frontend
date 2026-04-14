@@ -25,6 +25,7 @@ interface Booking {
   description?: string;
   date: string; time: string | null; status: string; payment_status: string;
   payment_method: string; total_amount: number; gcash_reference: string;
+  reference_number?: string;
   payment_proof: string | null; decline_reason?: string;
   damage_count?: number; damage_total_cost?: number;
   client_email?: string; client_address?: string;
@@ -506,6 +507,9 @@ export default function OrganizerDashboard() {
             <div className="space-y-2 text-xs">
               <p className="text-slate-300"><span className="text-slate-500">Venue:</span> {booking.event_type}</p>
               <p className="text-slate-300"><span className="text-slate-500">Client:</span> {booking.user}</p>
+              {booking.reference_number && (
+                <p className="text-slate-300"><span className="text-slate-500">Reference No.:</span> <span className="font-black text-sky-300">{booking.reference_number}</span></p>
+              )}
               <p className="text-slate-300"><span className="text-slate-500">Description:</span> {booking.description || 'No description submitted.'}</p>
               <p className="text-slate-300"><span className="text-slate-500">Guests:</span> {booking.capacity}</p>
               <p className="text-slate-300"><span className="text-slate-500">Schedule:</span> {formatDate(booking.date)} | {formatTime(booking.time)}</p>

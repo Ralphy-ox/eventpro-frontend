@@ -203,7 +203,7 @@ export default function RatingsPage() {
         <div className="max-w-4xl mx-auto px-6 sm:px-8 py-10 relative z-10">
           <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-2">Reviews</p>
           <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Customer Reviews</h1>
-          <p className="text-sky-400 text-sm mt-2">See what our clients say about EventPro</p>
+          <p className="text-sky-400 text-sm mt-2">See what our clients say about Spacio Grande</p>
         </div>
       </div>
 

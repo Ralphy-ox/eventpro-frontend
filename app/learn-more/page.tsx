@@ -19,12 +19,12 @@ export default function LearnMore() {
       ]} />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-        <h1 className="text-3xl sm:text-5xl font-bold text-center mb-8 text-gray-800">About EventPro</h1>
+        <h1 className="text-3xl sm:text-5xl font-bold text-center mb-8 text-gray-800">About Spacio Grande</h1>
         
         <div className="bg-white/60 backdrop-blur-sm rounded-xl shadow-lg p-8 mb-8 hover:bg-white/80 hover:shadow-xl transition-all">
           <h2 className="text-3xl font-bold mb-4 text-sky-600">Our Platform</h2>
           <p className="text-lg text-gray-700 mb-4">
-            EventPro is a professional event management platform designed to make booking and organizing events seamless and efficient. 
+            Spacio Grande is a professional event management platform designed to make booking and organizing events seamless and efficient. 
             Whether you&apos;re planning a wedding, birthday party, conference, or corporate event, we provide the tools you need.
           </p>
         </div>

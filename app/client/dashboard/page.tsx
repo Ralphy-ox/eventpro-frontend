@@ -30,6 +30,31 @@ const getTodayDate = () => {
   return new Date(now.getTime() - timezoneOffsetMs).toISOString().split('T')[0];
 };
 
+const getTomorrowDate = () => {
+  const now = new Date();
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - timezoneOffsetMs + 86400000).toISOString().split('T')[0];
+};
+
+const TIME_OPTIONS = [
+  '08:00','09:00','10:00','11:00','12:00',
+  '13:00','14:00','15:00','16:00','17:00',
+  '18:00','19:00','20:00',
+];
+
+const formatTime12h = (time24: string) => {
+  const [h] = time24.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return `${hour}:00 ${period}`;
+};
+
+const getEndTime = (startTime: string) => {
+  const [h] = startTime.split(':').map(Number);
+  const endH = Math.min(h + 12, 23);
+  return formatTime12h(`${endH}:00`);
+};
+
 export default function ClientDashboard() {
   const router = useRouter();
   const today = getTodayDate();
@@ -41,8 +66,7 @@ export default function ClientDashboard() {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [availableRooms, setAvailableRooms] = useState<number | null>(null);
-  const [morningAvail, setMorningAvail] = useState<number | null>(null);
-  const [afternoonAvail, setAfternoonAvail] = useState<number | null>(null);
+  const [isBooked, setIsBooked] = useState<boolean | null>(null);
   const [comboSuggestions, setComboSuggestions] = useState<Array<{ label: string; combined_capacity: number; base_price: number }>>([]);
   const [pricingInfo, setPricingInfo] = useState<null | {
     base_price: number;
@@ -60,7 +84,7 @@ export default function ClientDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [eventDetails, setEventDetails] = useState<Record<string, string>>({});
-  const [sessionType, setSessionType] = useState<'half' | 'whole'>('half');
+  const tomorrow = getTomorrowDate();
   const [invitedEmails, setInvitedEmails] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
   const [emailsError, setEmailsError] = useState('');
@@ -118,28 +142,24 @@ export default function ClientDashboard() {
 
   const tablesNeeded = selectedEventType && numPeopleInvited > 0
     ? Math.ceil(numPeopleInvited / selectedEventType.people_per_table) : 0;
-  const wholeDay = sessionType === 'whole';
-  const timeSlot = wholeDay ? 'whole_day' : (time && Number(time.split(':')[0]) < 12 ? 'morning' : 'afternoon');
+  const wholeDay = false;
+  const timeSlot = 'whole_day';
   const includedCapacity = getEffectiveIncludedCapacity(selectedEventType);
   const excessPersonFee = getEffectiveExcessPersonFee(selectedEventType);
   const singleHallLimit = getEffectiveSingleHallLimit(selectedEventType);
-  const sessionBasePrice = selectedEventType
-    ? wholeDay ? selectedEventType.price * 2 * 0.8 : selectedEventType.price
-    : 0;
+  const sessionBasePrice = selectedEventType ? selectedEventType.price : 0;
   const localExcessGuests = selectedEventType ? Math.max(0, numPeopleInvited - includedCapacity) : 0;
   const localExcessTotal = localExcessGuests * excessPersonFee;
   const hasExplicitSingleHallLimit = !!selectedEventType && singleHallLimit > includedCapacity;
   const singleHallTooSmall = pricingInfo ? pricingInfo.single_hall_supported === false : (!!selectedEventType && numPeopleInvited > singleHallLimit);
-  const slotAvail = timeSlot === 'whole_day' ? Math.min(morningAvail ?? MAX_ROOMS, afternoonAvail ?? MAX_ROOMS) : timeSlot === 'morning' ? (morningAvail ?? availableRooms ?? MAX_ROOMS) : (afternoonAvail ?? availableRooms ?? MAX_ROOMS);
-  const isFullyBooked = (morningAvail ?? 0) === 0 && (afternoonAvail ?? 0) === 0;
-  const availabilityStatusLabel = isFullyBooked ? 'Fully Booked' : slotAvail === 0 ? 'Full' : slotAvail <= 1 ? 'Almost Full' : 'Available';
+  const isFullyBooked = isBooked === true;
+  const slotAvail = isBooked === false ? 1 : 0;
   const displayPrice = pricingInfo?.total_amount ?? (sessionBasePrice + localExcessTotal);
 
   useEffect(() => {
     if (!date || !eventType) {
       setAvailableRooms(null);
-      setMorningAvail(null);
-      setAfternoonAvail(null);
+      setIsBooked(null);
       setComboSuggestions([]);
       setPricingInfo(null);
       return;
@@ -152,8 +172,7 @@ export default function ClientDashboard() {
       .then(data => {
         if (data) {
           setAvailableRooms(data.available_rooms);
-          setMorningAvail(data.morning?.available ?? null);
-          setAfternoonAvail(data.afternoon?.available ?? null);
+          setIsBooked(data.available_rooms === 0 || (data.morning?.available === 0 && data.afternoon?.available === 0));
           setPricingInfo(data.pricing ?? null);
           setComboSuggestions(Array.isArray(data.combo_suggestions) ? data.combo_suggestions : []);
         }
@@ -162,11 +181,11 @@ export default function ClientDashboard() {
   }, [eventType, numPeopleInvited, date, router, timeSlot]);
 
   const handleBookingRequest = async () => {
-    if (!eventType || !description || !numPeopleInvited || !date || (!wholeDay && !time) || !paymentMethod) {
+    if (!eventType || !description || !numPeopleInvited || !date || !time || !paymentMethod) {
       alert('Please fill in all required fields'); return;
     }
-    if (date < today) {
-      alert('You cannot create a booking for a past date');
+    if (date <= today) {
+      alert('Booking must be at least 1 day in advance.');
       return;
     }
     if (description.length < 10) { setDescriptionError('Description must be at least 10 characters'); return; }
@@ -191,8 +210,8 @@ export default function ClientDashboard() {
         description: capitalizeWords(description ?? ''),
         capacity: numPeopleInvited,
         date,
-        time: wholeDay ? '09:00' : time,
-        whole_day: wholeDay,
+        time,
+        whole_day: false,
         time_slot: timeSlot,
         invited_emails: invitedEmails ?? '',
         payment_method: paymentMethod,
@@ -264,8 +283,8 @@ export default function ClientDashboard() {
         <div className="rounded-xl p-4 mb-6 flex gap-3" style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
           <div className="w-1 rounded-full shrink-0" style={{ background: '#0ea5e9' }} />
           <div>
-            <p className="text-sky-300 text-sm font-bold mb-1">Session Times</p>
-            <p className="text-slate-400 text-xs">Morning: 9:00 AM – 2:00 PM (latest start 11:00 AM) &nbsp;|&nbsp; Evening: 5:00 PM – 10:00 PM (latest start 7:00 PM)</p>
+            <p className="text-sky-300 text-sm font-bold mb-1">Booking Info</p>
+            <p className="text-slate-400 text-xs">Pick your preferred start time (8:00 AM – 8:00 PM). Your event runs for 12 hours from the selected start time. Bookings must be made at least 1 day in advance.</p>
           </div>
         </div>
 
@@ -378,62 +397,30 @@ export default function ClientDashboard() {
                 <h2 className="text-sm font-black text-white">Schedule</h2>
               </div>
               <div className="p-5 space-y-4">
-                <div>
-                  <label className={lCls}>Session Type</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { value: 'half', label: 'Half Day', sub: 'Morning or Evening' },
-                      { value: 'whole', label: 'Whole Day', sub: '20% discount', badge: true },
-                    ].map(opt => (
-                      <label key={opt.value} className="flex items-start gap-3 p-4 rounded-xl cursor-pointer transition-all"
-                        style={{ border: `1px solid ${sessionType === opt.value ? 'rgba(14,165,233,0.5)' : 'rgba(255,255,255,0.08)'}`, background: sessionType === opt.value ? 'rgba(14,165,233,0.12)' : 'rgba(255,255,255,0.03)' }}>
-                        <input type="radio" name="session" value={opt.value} checked={sessionType === opt.value as 'half' | 'whole'}
-                          onChange={() => { setSessionType(opt.value as 'half' | 'whole'); setTime(''); }} className="mt-0.5 w-4 h-4 accent-sky-500" />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-white text-sm">{opt.label}</span>
-                            {opt.badge && <span className="px-1.5 py-0.5 text-xs font-bold rounded text-white" style={{ background: '#0ea5e9' }}>-20%</span>}
-                          </div>
-                          <p className="text-xs text-slate-400 mt-0.5">{opt.sub}</p>
-                          {selectedEventType && (
-                            <p className="text-sm font-black mt-1 text-sky-400">
-                              ₱{(opt.value === 'whole' ? selectedEventType.price * 2 * 0.8 : selectedEventType.price).toLocaleString()}
-                            </p>
-                          )}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={lCls}>Event Date</label>
                     <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                      min={today}
+                      min={tomorrow}
                       className={iCls} style={{ ...iStyle, colorScheme: 'dark' }} />
+                    {date && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        {new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className={lCls}>{wholeDay ? 'Duration' : 'Time Slot'}</label>
-                    {wholeDay ? (
-                      <div className="h-12 px-4 rounded-xl flex items-center text-sm font-semibold"
-                        style={{ background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.3)', color: '#7dd3fc' }}>
-                        9:00 AM – 10:00 PM
-                      </div>
-                    ) : (
-                      <select value={time} onChange={e => setTime(e.target.value)} className={iCls} style={iStyle}>
-                        <option value="" style={{ background: '#0c2d4a' }}>Select time</option>
-                        <optgroup label="Morning">
-                          <option value="09:00" style={{ background: '#0c2d4a' }}>09:00 AM – 2:00 PM</option>
-                          <option value="10:00" style={{ background: '#0c2d4a' }}>10:00 AM – 2:00 PM</option>
-                          <option value="11:00" style={{ background: '#0c2d4a' }}>11:00 AM – 2:00 PM</option>
-                        </optgroup>
-                        <optgroup label="Evening">
-                          <option value="17:00" style={{ background: '#0c2d4a' }}>05:00 PM – 10:00 PM</option>
-                          <option value="18:00" style={{ background: '#0c2d4a' }}>06:00 PM – 10:00 PM</option>
-                          <option value="19:00" style={{ background: '#0c2d4a' }}>07:00 PM – 10:00 PM</option>
-                        </optgroup>
-                      </select>
+                    <label className={lCls}>Start Time</label>
+                    <select value={time} onChange={e => setTime(e.target.value)} className={iCls} style={iStyle}>
+                      <option value="" style={{ background: '#0c2d4a' }}>Select start time</option>
+                      {TIME_OPTIONS.map(t => (
+                        <option key={t} value={t} style={{ background: '#0c2d4a' }}>{formatTime12h(t)}</option>
+                      ))}
+                    </select>
+                    {time && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        {formatTime12h(time)} – {getEndTime(time)} (12 hrs)
+                      </p>
                     )}
                   </div>
                 </div>
@@ -489,20 +476,13 @@ export default function ClientDashboard() {
                     <div className="rounded-2xl p-5 mb-5 text-center" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
                       <p className="text-xs text-red-300 uppercase tracking-[0.25em] mb-2">Status</p>
                       <p className="text-2xl font-black text-red-400">Fully Booked</p>
-                      <p className="text-xs text-red-200 mt-2">This hall type is no longer available on that date.</p>
+                      <p className="text-xs text-red-200 mt-2">This hall is already reserved for this date.</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-2 mb-5">
-                      {[
-                        { label: 'Morning', value: `${morningAvail ?? '—'}/${MAX_ROOMS}`, ok: (morningAvail ?? 1) > 0 },
-                        { label: 'Afternoon', value: `${afternoonAvail ?? '—'}/${MAX_ROOMS}`, ok: (afternoonAvail ?? 1) > 0 },
-                        { label: 'Status', value: availabilityStatusLabel, ok: slotAvail > 0 },
-                      ].map(s => (
-                        <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                          <p className="text-xs text-slate-500 mb-1">{s.label}</p>
-                          <p className={`text-sm font-black ${s.ok ? 'text-sky-400' : 'text-red-400'}`}>{s.value}</p>
-                        </div>
-                      ))}
+                    <div className="rounded-2xl p-4 mb-5 text-center" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>
+                      <p className="text-xs text-green-300 uppercase tracking-[0.25em] mb-1">Status</p>
+                      <p className="text-2xl font-black text-green-400">Available</p>
+                      <p className="text-xs text-green-200 mt-1">This hall is open for booking on this date.</p>
                     </div>
                   )}
 
@@ -512,8 +492,7 @@ export default function ClientDashboard() {
                         <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.25)' }}>
                           <p className="text-xs text-sky-500 font-bold uppercase tracking-widest mb-1">Total Price</p>
                           <p className="text-3xl font-black text-white">₱{displayPrice.toLocaleString()}</p>
-                          {wholeDay && <p className="text-xs text-slate-500 line-through mt-0.5">₱{(selectedEventType.price * 2).toLocaleString()}</p>}
-                          <p className="text-xs text-sky-400 mt-1">{selectedEventType.event_type} — {wholeDay ? 'Whole Day (20% off)' : 'Half Day'}</p>
+                          <p className="text-xs text-sky-400 mt-1">{selectedEventType.event_type}{time ? ` · ${formatTime12h(time)} – ${getEndTime(time)}` : ''}</p>
                         </div>
                       )}
 
@@ -579,8 +558,8 @@ export default function ClientDashboard() {
                     </>
                   ) : (
                     <div className="text-center py-6 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                      <p className="text-red-400 font-bold text-sm">No {timeSlot === 'whole_day' ? 'whole day' : timeSlot} slots available for this date.</p>
-                      <p className="text-red-300 text-xs mt-1">Please choose a different date or session.</p>
+                      <p className="text-red-400 font-bold text-sm">This hall is already booked for this date.</p>
+                      <p className="text-red-300 text-xs mt-1">Please choose a different date.</p>
                     </div>
                   )}
                 </div>

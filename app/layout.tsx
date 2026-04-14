@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EventPro",
+  title: "Spacio Grande",
   description: "Professional Event Management System",
 };
 
