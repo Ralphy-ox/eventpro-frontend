@@ -50,8 +50,6 @@ interface LandingCarouselImage {
   display_order: number;
 }
 
-const DEFAULT_LANDING_IMAGE = 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1400&q=80';
-
 const LEGACY_EVENT_TYPES = new Set(['Birthday', 'Wedding', 'Conference', 'Corporate Event', 'Concert', 'Debu']);
 
 const FEATURES = [
@@ -242,9 +240,9 @@ export default function Home() {
   };
 
   const activeLandingItem = landingImages[activeLandingImage] ?? null;
-  const landingHeroImage = activeLandingItem?.image || DEFAULT_LANDING_IMAGE;
-  const landingHeroTitle = activeLandingItem?.title || 'Elegant spaces for life&apos;s biggest moments';
-  const landingHeroSubtitle = activeLandingItem?.subtitle || 'Preview the venue ambiance, explore the setup, and book the hall that matches your celebration.';
+  const hasLandingImages = landingImages.length > 0;
+  const landingHeroTitle = activeLandingItem?.title || 'Upload your first hero image from Django super admin';
+  const landingHeroSubtitle = activeLandingItem?.subtitle || 'Carousel images will appear here after a super admin uploads them in the Landing Carousel Images section.';
 
   const navLinks = isLoggedIn
     ? [
@@ -282,25 +280,45 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, #0ea5e9, transparent 60%)' }} />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] opacity-8 pointer-events-none" style={{ background: 'radial-gradient(ellipse at bottom left, #0ea5e9, transparent 60%)' }} />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 py-24 w-full">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.2fr_0.9fr]">
+        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 py-20 sm:py-24 w-full">
+          <div className="grid items-center gap-10 lg:gap-14 lg:grid-cols-[1.14fr_0.86fr]">
             <div className="order-2 lg:order-1">
               <div className="relative overflow-hidden rounded-[34px] border p-3 sm:p-4"
                 style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 26px 60px rgba(2, 12, 27, 0.45)' }}>
-                <div className="relative aspect-[4/3] overflow-hidden rounded-[28px]">
-                  <img
-                    src={landingHeroImage}
-                    alt={activeLandingItem?.title || 'Venue setup preview'}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0.06) 0%, rgba(2,6,23,0.36) 100%)' }} />
-                </div>
+                {hasLandingImages ? (
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-[28px]">
+                    <img
+                      src={activeLandingItem?.image}
+                      alt={activeLandingItem?.title || 'Venue setup preview'}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0.06) 0%, rgba(2,6,23,0.36) 100%)' }} />
+                  </div>
+                ) : (
+                  <div
+                    className="aspect-[4/3] rounded-[28px] p-8 sm:p-10 flex flex-col justify-between"
+                    style={{ background: 'linear-gradient(145deg, rgba(14,165,233,0.12), rgba(255,255,255,0.04))' }}
+                  >
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold"
+                      style={{ background: 'rgba(8,47,73,0.72)', border: '1px solid rgba(125,211,252,0.25)', color: '#dbeafe' }}>
+                      <span className="w-2 h-2 rounded-full bg-sky-400" />
+                      Awaiting admin upload
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-[0.28em] text-sky-300 mb-3">Landing Carousel</p>
+                      <h3 className="text-3xl sm:text-4xl font-black text-white mb-4 leading-tight">The first uploaded image will appear here.</h3>
+                      <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-md">
+                        Super admins can add hero photos in Django admin using either direct upload or image URL, then control the order for each slide.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="absolute left-6 right-6 bottom-6 flex items-center justify-between gap-4">
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold"
                     style={{ background: 'rgba(8,47,73,0.82)', border: '1px solid rgba(125,211,252,0.3)', color: '#dbeafe' }}>
                     <span className="w-2 h-2 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
-                    {landingImages.length > 0 ? `Slide ${activeLandingImage + 1} of ${landingImages.length}` : 'Sample venue preview'}
+                    {hasLandingImages ? `Slide ${activeLandingImage + 1} of ${landingImages.length}` : 'No uploaded slides yet'}
                   </div>
 
                   <div className="hidden sm:flex items-center gap-2">
@@ -308,7 +326,8 @@ export default function Home() {
                       type="button"
                       aria-label="Show previous venue image"
                       onClick={() => showLandingImage(activeLandingImage - 1)}
-                      className="w-11 h-11 rounded-full flex items-center justify-center text-white transition-all hover:scale-105"
+                      disabled={!hasLandingImages}
+                      className="w-11 h-11 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40"
                       style={{ background: 'rgba(8,47,73,0.82)', border: '1px solid rgba(255,255,255,0.16)' }}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -319,7 +338,8 @@ export default function Home() {
                       type="button"
                       aria-label="Show next venue image"
                       onClick={() => showLandingImage(activeLandingImage + 1)}
-                      className="w-11 h-11 rounded-full flex items-center justify-center text-white transition-all hover:scale-105"
+                      disabled={!hasLandingImages}
+                      className="w-11 h-11 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40"
                       style={{ background: 'rgba(8,47,73,0.82)', border: '1px solid rgba(255,255,255,0.16)' }}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -331,29 +351,29 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="order-1 lg:order-2 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold mb-7"
+            <div className="order-1 lg:order-2 text-center lg:text-left lg:pl-2">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold mb-6"
                 style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', color: '#7dd3fc' }}>
                 <span className="w-1.5 h-1.5 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
                 Ralphy&apos;s Venue - Cebu City, Philippines
               </div>
 
-              <h1 className="text-4xl sm:text-6xl font-black text-white leading-[1.02] tracking-tight mb-5">
+              <h1 className="text-4xl sm:text-6xl font-black text-white leading-[0.98] tracking-tight mb-6">
                 Your Grand Space,
                 <span className="block text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, #67e8f9, #0ea5e9)' }}>
                   Reserved in Seconds.
                 </span>
               </h1>
 
-              <p className="text-sm font-bold uppercase tracking-[0.28em] text-sky-300 mb-4">
+              <p className="text-sm font-bold uppercase tracking-[0.24em] text-sky-300 mb-4">
                 {landingHeroTitle}
               </p>
 
-              <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-xl mx-auto lg:mx-0 mb-9">
+              <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-[34rem] mx-auto lg:mx-0 mb-8">
                 {landingHeroSubtitle}
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-7">
                 <Link href={ctaHref}
                   className="px-10 py-4 text-white font-bold text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
                   style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.35)' }}>
@@ -373,6 +393,7 @@ export default function Home() {
                     type="button"
                     aria-label={`Show venue image ${index + 1}`}
                     onClick={() => showLandingImage(index)}
+                    disabled={!hasLandingImages}
                     className="rounded-full transition-all"
                     style={{
                       width: index === activeLandingImage ? 28 : 11,
@@ -398,7 +419,8 @@ export default function Home() {
                   type="button"
                   aria-label="Show previous venue image"
                   onClick={() => showLandingImage(activeLandingImage - 1)}
-                  className="w-11 h-11 rounded-full flex items-center justify-center text-white"
+                  disabled={!hasLandingImages}
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-white disabled:cursor-not-allowed disabled:opacity-40"
                   style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -408,7 +430,8 @@ export default function Home() {
                   type="button"
                   aria-label="Show next venue image"
                   onClick={() => showLandingImage(activeLandingImage + 1)}
-                  className="w-11 h-11 rounded-full flex items-center justify-center text-white"
+                  disabled={!hasLandingImages}
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-white disabled:cursor-not-allowed disabled:opacity-40"
                   style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -429,7 +452,7 @@ export default function Home() {
       {/* VENUE SHOWCASE */}
       <section className="py-20" style={{ background: '#081220', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="max-w-6xl mx-auto px-6 sm:px-8">
-          <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <div className="grid gap-8 lg:gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>
               <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-3">Venue Showcase</p>
               <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">See The Space Before You Reserve</h2>
@@ -462,9 +485,9 @@ export default function Home() {
               <div className="rounded-[28px] p-6"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-sky-300 mb-3">Gallery Status</p>
-                <p className="text-4xl font-black text-white mb-2">{landingImages.length || 1}</p>
+                <p className="text-4xl font-black text-white mb-2">{landingImages.length}</p>
                 <p className="text-sm text-slate-400">
-                  {landingImages.length > 0 ? 'uploaded image slides ready for rotation.' : 'sample slide showing while uploads are empty.'}
+                  {landingImages.length > 0 ? 'uploaded image slides ready for rotation.' : 'super admin can upload hero images from Django admin.'}
                 </p>
               </div>
             </div>
