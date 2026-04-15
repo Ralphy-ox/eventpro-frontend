@@ -95,7 +95,7 @@ export default function MyBookings() {
       method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
     });
     const data = await res.json();
-    if (res.ok) { setGcashUploadId(null); setGcashRef(''); setGcashProof(null); fetchBookings(); alert('Proof uploaded! Waiting for owner to accept your booking.'); }
+    if (res.ok) { setGcashUploadId(null); setGcashRef(''); setGcashProof(null); fetchBookings(); alert('Proof uploaded! Waiting for organizer verification.'); }
     else { alert(data.message || 'Upload failed.'); }
     setGcashUploading(false);
   };
@@ -287,8 +287,23 @@ export default function MyBookings() {
                       </div>
                     )}
 
+                    {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && booking.status !== 'confirmed' && (
+                      <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-amber-300"
+                        style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                        Wait for the owner to accept your booking before uploading GCash proof.
+                      </div>
+                    )}
+                    {booking.payment_method === 'QRPh' && booking.payment_status === 'pending' && (
+                      <div className="mb-4">
+                        <button onClick={() => router.push(`/payment?id=${booking.id}&amount=${booking.total_amount}&method=qrph`)}
+                          className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
+                          style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
+                          Open PayMongo QR Payment
+                        </button>
+                      </div>
+                    )}
                     {/* GCash upload proof */}
-                    {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && (
+                    {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && booking.status === 'confirmed' && (
                       <div className="mb-4">
                         {gcashUploadId === booking.id ? (
                           <div className="p-4 rounded-xl space-y-3" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
@@ -323,7 +338,7 @@ export default function MyBookings() {
                     {booking.payment_method === 'GCash' && booking.payment_status === 'pending_verification' && (
                       <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-yellow-300"
                         style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                        ⏳ Proof submitted — waiting for owner to accept your booking
+                        Proof submitted. Waiting for organizer verification.
                       </div>
                     )}
 

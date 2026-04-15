@@ -232,20 +232,8 @@ export default function ClientDashboard() {
       if (res.status === 401) { localStorage.removeItem('clientToken'); router.push('/signin'); return; }
       if (!res.ok) { const e = await res.json(); alert(e.message || 'Failed to create booking'); setSubmitting(false); return; }
       const data = await res.json();
-      if (paymentMethod === 'GCash') {
-        // Use PayMongo for automatic GCash payment
-        const pmRes = await fetch(`${API_BASE}/paymongo/gcash/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ booking_id: data.booking_id }),
-        });
-        const pmData = await pmRes.json();
-        if (pmData.checkout_url) {
-          window.location.href = pmData.checkout_url;
-        } else {
-          alert('GCash payment error: ' + (pmData.message || 'Please try again from My Bookings.'));
-          router.push('/my-bookings');
-        }
+      if (paymentMethod === 'GCash' || paymentMethod === 'QRPh') {
+        router.push(`/payment?id=${data.booking_id}&amount=${data.total_amount}&method=${encodeURIComponent(paymentMethod.toLowerCase())}`);
       } else { alert('Booking created! Reference: ' + data.reference_number); router.push('/my-bookings'); }
     } catch { alert('Connection error.'); setSubmitting(false); }
   };
@@ -526,6 +514,7 @@ export default function ClientDashboard() {
                           {[
                             { value: 'Cash', label: 'Cash', desc: 'Pay at the venue' },
                             { value: 'GCash', label: 'GCash', desc: 'Mobile wallet' },
+                            { value: 'QRPh', label: 'QR Ph', desc: 'Scan with GCash, Maya, or banks' },
                           ].map(m => (
                             <label key={m.value} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all"
                               style={{ border: `1px solid ${paymentMethod === m.value ? 'rgba(14,165,233,0.5)' : 'rgba(255,255,255,0.08)'}`, background: paymentMethod === m.value ? 'rgba(14,165,233,0.12)' : 'rgba(255,255,255,0.03)' }}>

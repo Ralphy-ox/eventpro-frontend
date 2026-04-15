@@ -449,51 +449,6 @@ export default function Home() {
           </svg>
         </div>
       </section>
-      {/* VENUE SHOWCASE */}
-      <section className="py-20" style={{ background: '#081220', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="max-w-6xl mx-auto px-6 sm:px-8">
-          <div className="grid gap-8 lg:gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-            <div>
-              <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-3">Venue Showcase</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">See The Space Before You Reserve</h2>
-              <p className="text-slate-400 leading-relaxed max-w-lg">
-                The hero carousel above gives a quick first impression. This section adds a clearer summary so visitors understand what kind of atmosphere and setup they can expect from the venue.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-[28px] p-6 sm:col-span-2"
-                style={{ background: 'linear-gradient(145deg, rgba(14,165,233,0.1), rgba(255,255,255,0.03))', border: '1px solid rgba(125,211,252,0.18)' }}>
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-sky-300 mb-3">Current Highlight</p>
-                <h3 className="text-2xl font-black text-white mb-3">{landingHeroTitle}</h3>
-                <p className="text-sm text-slate-300 leading-relaxed mb-5">
-                  {landingHeroSubtitle}
-                </p>
-                <div className="flex flex-wrap gap-3 text-xs text-slate-300">
-                  <span className="px-3 py-2 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    One image focus
-                  </span>
-                  <span className="px-3 py-2 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    Side-by-side hero layout
-                  </span>
-                  <span className="px-3 py-2 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    Mobile responsive
-                  </span>
-                </div>
-              </div>
-
-              <div className="rounded-[28px] p-6"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-sky-300 mb-3">Gallery Status</p>
-                <p className="text-4xl font-black text-white mb-2">{landingImages.length}</p>
-                <p className="text-sm text-slate-400">
-                  {landingImages.length > 0 ? 'uploaded image slides ready for rotation.' : 'super admin can upload hero images from Django admin.'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
       {/* HALL TYPES */}
       <section className="py-20" style={{ background: '#0d1f35', borderTop: '1px solid rgba(14,165,233,0.1)' }}>
         <div className="max-w-6xl mx-auto px-6 sm:px-8">
