@@ -86,6 +86,7 @@ export default function OrganizerDashboard() {
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [availableEventTypes, setAvailableEventTypes] = useState<string[]>([]);
   const [organizerUserId, setOrganizerUserId] = useState<number | null>(null);
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [replySubmitting, setReplySubmitting] = useState(false);
@@ -109,6 +110,8 @@ export default function OrganizerDashboard() {
 
   const router = useRouter();
   const { loggingOut, logout } = useLogout();
+  const djangoAdminBase = API_BASE.replace(/\/api\/user$/, '/admin');
+  const landingCarouselAdminUrl = `${djangoAdminBase}/user/landingcarouselimage/`;
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -186,7 +189,12 @@ export default function OrganizerDashboard() {
     const token = localStorage.getItem('organizerToken');
     if (token) {
       fetch(`${API_BASE}/profile/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(d => setOrganizerUserId(d.id ?? null)).catch(() => {});
+        .then(r => r.json())
+        .then(d => {
+          setOrganizerUserId(d.id ?? null);
+          setIsSuperadmin(Boolean(d.is_superuser));
+        })
+        .catch(() => {});
     }
   }, [fetchBookings, loadReviews, loadContactMessages, loadEventTypes, loadDamages, loadCalendar, calendarDate]);
 
@@ -678,6 +686,37 @@ export default function OrganizerDashboard() {
             </div>
           ))}
         </div>
+
+        {isSuperadmin && (
+          <div className="rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+            style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.18)' }}>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-sky-300 mb-2">Superadmin Tools</p>
+              <h2 className="text-xl font-black text-white mb-1">Landing Carousel Manager</h2>
+              <p className="text-sm text-slate-300 max-w-2xl">
+                Diri ka maka-add, edit, ug arrange sa homepage hero images. Mo-open ni sa Django admin list for Landing Carousel Images.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => window.open(landingCarouselAdminUrl, '_blank', 'noopener,noreferrer')}
+                className="px-5 py-3 rounded-xl text-white font-black text-sm transition-all hover:-translate-y-0.5"
+                style={btnPrimary}
+              >
+                Open Carousel Manager
+              </button>
+              <button
+                type="button"
+                onClick={() => window.open(djangoAdminBase, '_blank', 'noopener,noreferrer')}
+                className="px-5 py-3 rounded-xl font-black text-sm transition-all hover:-translate-y-0.5"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#cbd5e1' }}
+              >
+                Open Django Admin
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Search + Filter */}
         <div className="rounded-2xl p-4 flex flex-col sm:flex-row gap-3"
