@@ -626,8 +626,8 @@ export default function OrganizerDashboard() {
         {booking.payment_status === 'pending_verification' && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
             <p className="text-xs font-bold text-yellow-300 mb-1">⚠ Manual GCash proof pending verification</p>
-            {booking.gcash_reference && <p className="text-xs text-slate-400 mb-2">Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
-            {booking.reference_number && <p className="text-xs text-slate-400 mb-2">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
+            {booking.reference_number && <p className="text-xs text-slate-400 mb-2">Reference No.: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
+            {booking.gcash_reference && <p className="text-xs text-slate-400 mb-1">GCash Ref (client): <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {booking.payment_proof && (
               <a href={booking.payment_proof} target="_blank" rel="noreferrer">
                 <img src={booking.payment_proof} alt="GCash proof"
@@ -666,8 +666,8 @@ export default function OrganizerDashboard() {
         {booking.payment_status === 'paid' && booking.payment_method === 'GCash' && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>
             <p className="text-xs font-bold text-green-400">✓ GCash payment confirmed</p>
-            {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">Reference Number: <strong className="text-white">{booking.gcash_reference}</strong></p>}
-            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
+            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">Reference No.: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
+            {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">GCash Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {booking.payment_proof && (
               <a href={booking.payment_proof} target="_blank" rel="noreferrer">
                 <img src={booking.payment_proof} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
@@ -679,8 +679,8 @@ export default function OrganizerDashboard() {
         {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && !booking.payment_proof && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
             <p className="text-xs font-bold text-sky-300 mb-1">GCash — Awaiting proof from client</p>
-            {booking.gcash_reference && <p className="text-xs text-slate-400">PayMongo Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
-            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
+            {booking.reference_number && <p className="text-xs text-slate-400">Reference No.: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
+            {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">PayMongo Source: <strong className="text-slate-400">{booking.gcash_reference}</strong></p>}
             {booking.payment_proof && (
               <a href={booking.payment_proof} target="_blank" rel="noreferrer">
                 <img src={booking.payment_proof} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
