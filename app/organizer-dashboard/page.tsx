@@ -386,9 +386,14 @@ export default function OrganizerDashboard() {
   };
 
   // Analytics data
-  const totalRevenue = damageSummary.gross_revenue || venueBookings.filter(b => b.payment_status === 'paid').reduce((s, b) => s + b.total_amount, 0);
+  const totalRevenue = damageSummary.gross_revenue || venueBookings
+    .filter(b => b.status === 'confirmed' && b.payment_status === 'paid')
+    .reduce((s, b) => s + b.total_amount, 0);
+  const totalDownpaymentRevenue = venueBookings
+    .filter(b => b.payment_status === 'paid' && (b.payment_method === 'GCash' || b.payment_method === 'QRPh'))
+    .reduce((sum, booking) => sum + (booking.total_amount * 0.5), 0);
   const eventTypeRevenue: Record<string, number> = {};
-  venueBookings.filter(b => b.payment_status === 'paid').forEach(b => {
+  venueBookings.filter(b => b.status === 'confirmed' && b.payment_status === 'paid').forEach(b => {
     eventTypeRevenue[b.event_type] = (eventTypeRevenue[b.event_type] || 0) + b.total_amount;
   });
   const topEventTypes = Object.entries(eventTypeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -404,7 +409,12 @@ export default function OrganizerDashboard() {
     analyticsEventType === 'all' || booking.event_type === analyticsEventType
   );
   const analyticsPaidBookings = analyticsBookings.filter((booking) => booking.payment_status === 'paid');
-  const analyticsRevenue = analyticsPaidBookings.reduce((sum, booking) => sum + booking.total_amount, 0);
+  const analyticsRevenue = analyticsBookings
+    .filter((booking) => booking.status === 'confirmed' && booking.payment_status === 'paid')
+    .reduce((sum, booking) => sum + booking.total_amount, 0);
+  const analyticsDownpaymentRevenue = analyticsPaidBookings
+    .filter((booking) => booking.payment_method === 'GCash' || booking.payment_method === 'QRPh')
+    .reduce((sum, booking) => sum + (booking.total_amount * 0.5), 0);
   const analyticsConfirmedCount = analyticsBookings.filter((booking) => booking.status === 'confirmed').length;
   const analyticsMostPopular = analyticsEventType === 'all'
     ? mostPopular
@@ -412,7 +422,7 @@ export default function OrganizerDashboard() {
       ? analyticsEventType
       : '—';
 
-  const monthlyMap = new Map<string, { month: string; bookings: number; confirmed: number; paid: number; revenue: number }>();
+  const monthlyMap = new Map<string, { month: string; bookings: number; confirmed: number; paid: number; revenue: number; downpayment: number }>();
   analyticsBookings.forEach((booking) => {
     const bookingDate = new Date(booking.date);
     if (Number.isNaN(bookingDate.getTime())) {
@@ -427,6 +437,7 @@ export default function OrganizerDashboard() {
         confirmed: 0,
         paid: 0,
         revenue: 0,
+        downpayment: 0,
       });
     }
 
@@ -437,7 +448,12 @@ export default function OrganizerDashboard() {
     }
     if (booking.payment_status === 'paid') {
       currentMonth.paid += 1;
-      currentMonth.revenue += booking.total_amount;
+      if (booking.payment_method === 'GCash' || booking.payment_method === 'QRPh') {
+        currentMonth.downpayment += booking.total_amount * 0.5;
+      }
+      if (booking.status === 'confirmed') {
+        currentMonth.revenue += booking.total_amount;
+      }
     }
   });
 
@@ -485,12 +501,15 @@ export default function OrganizerDashboard() {
   ).sort((a, b) => a.localeCompare(b));
 
   const eventTypeBreakdown = Object.entries(
-    analyticsBookings.reduce<Record<string, { bookings: number; revenue: number }>>((acc, booking) => {
+    analyticsBookings.reduce<Record<string, { bookings: number; revenue: number; downpayment: number }>>((acc, booking) => {
       if (!acc[booking.event_type]) {
-        acc[booking.event_type] = { bookings: 0, revenue: 0 };
+        acc[booking.event_type] = { bookings: 0, revenue: 0, downpayment: 0 };
       }
       acc[booking.event_type].bookings += 1;
-      if (booking.payment_status === 'paid') {
+      if (booking.payment_status === 'paid' && (booking.payment_method === 'GCash' || booking.payment_method === 'QRPh')) {
+        acc[booking.event_type].downpayment += booking.total_amount * 0.5;
+      }
+      if (booking.status === 'confirmed' && booking.payment_status === 'paid') {
         acc[booking.event_type].revenue += booking.total_amount;
       }
       return acc;
@@ -500,6 +519,7 @@ export default function OrganizerDashboard() {
       type,
       bookings: value.bookings,
       revenue: value.revenue,
+      downpayment: value.downpayment,
     }))
     .sort((a, b) => b.bookings - a.bookings)
     .slice(0, 5);
@@ -646,21 +666,37 @@ export default function OrganizerDashboard() {
         {booking.payment_status === 'paid' && booking.payment_method === 'GCash' && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>
             <p className="text-xs font-bold text-green-400">✓ GCash payment confirmed</p>
-            {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
-            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
-          </div>
-        )}
-
-        {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && (
-          <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
-            <p className="text-xs font-bold text-sky-300 mb-1">GCash — Awaiting proof from client</p>
-            {booking.gcash_reference && <p className="text-xs text-slate-400">Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
+            {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">Reference Number: <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
             {booking.payment_proof && (
               <a href={booking.payment_proof} target="_blank" rel="noreferrer">
                 <img src={booking.payment_proof} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
               </a>
             )}
+          </div>
+        )}
+
+        {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && !booking.payment_proof && (
+          <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
+            <p className="text-xs font-bold text-sky-300 mb-1">GCash — Awaiting proof from client</p>
+            {booking.gcash_reference && <p className="text-xs text-slate-400">PayMongo Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
+            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
+            {booking.payment_proof && (
+              <a href={booking.payment_proof} target="_blank" rel="noreferrer">
+                <img src={booking.payment_proof} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
+              </a>
+            )}
+          </div>
+        )}
+
+        {booking.payment_method === 'GCash' && booking.payment_proof && booking.payment_status !== 'pending_verification' && (
+          <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
+            <p className="text-xs font-bold text-sky-300 mb-1">Client uploaded proof and reference number</p>
+            {booking.gcash_reference && <p className="text-xs text-slate-400">Reference Number: <strong className="text-white">{booking.gcash_reference}</strong></p>}
+            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
+            <a href={booking.payment_proof} target="_blank" rel="noreferrer">
+              <img src={booking.payment_proof} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
+            </a>
           </div>
         )}
 
@@ -703,7 +739,7 @@ export default function OrganizerDashboard() {
             <button onClick={() => handleStatusUpdate(booking.id, 'confirmed')} disabled={loading || requiresManualPaymentReview(booking)}
               className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
               style={btnPrimary}>
-              {booking.payment_method === 'GCash' && booking.payment_status === 'pending' ? 'Awaiting Proof' : 'Accept'}
+              {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && !booking.payment_proof ? 'Awaiting Proof' : 'Accept'}
             </button>
             <button onClick={() => setDeclineModal({ bookingId: booking.id, reason: '' })} disabled={loading}
               className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
@@ -1151,9 +1187,10 @@ export default function OrganizerDashboard() {
             })() : activeTab === 'analytics' ? (
               <div className="space-y-6">
                 {/* Revenue summary */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
                   {[
-                    { label: 'Total Revenue', value: `₱${totalRevenue.toLocaleString()}` },
+                    { label: 'Accepted Revenue', value: `₱${totalRevenue.toLocaleString()}` },
+                    { label: 'Downpayments', value: `₱${totalDownpaymentRevenue.toLocaleString()}` },
                     { label: 'Confirmed Bookings', value: analyticsConfirmedCount },
                     { label: 'Popular Venue', value: analyticsMostPopular },
                     { label: 'Damage Cost', value: `₱${damageSummary.total_damage_cost.toLocaleString()}` },
@@ -1238,8 +1275,8 @@ export default function OrganizerDashboard() {
                         <p className="text-sm font-black text-white mb-1">Monthly Revenue</p>
                         <p className="text-xs text-slate-400 mb-3">
                           {analyticsEventType === 'all'
-                            ? `Current paid venue revenue: PHP ${analyticsRevenue.toLocaleString()}`
-                            : `${analyticsEventType} venue revenue: PHP ${analyticsRevenue.toLocaleString()}`}
+                            ? `Accepted booking revenue: PHP ${analyticsRevenue.toLocaleString()} • Downpayments: PHP ${analyticsDownpaymentRevenue.toLocaleString()}`
+                            : `${analyticsEventType} accepted revenue: PHP ${analyticsRevenue.toLocaleString()} • Downpayments: PHP ${analyticsDownpaymentRevenue.toLocaleString()}`}
                         </p>
                         {latestRevenueMonth && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">

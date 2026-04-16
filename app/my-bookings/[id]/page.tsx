@@ -290,48 +290,47 @@ export default function BookingDetailPage() {
         {booking.payment_method === 'GCash' && booking.status !== 'declined' && (
           <div style={card}>
             <p style={{ color: '#94a3b8', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Payment Submission</p>
-            {booking.payment_status === 'pending_verification' ? (
-              <div style={{ padding: '14px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 12 }}>
+            {booking.payment_status === 'pending_verification' && (
+              <div style={{ padding: '14px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 12, marginBottom: 16 }}>
                 <p style={{ color: '#fbbf24', fontWeight: 700, margin: 0 }}>Proof submitted. Waiting for owner verification.</p>
               </div>
-            ) : (
-              <>
-                <p style={{ color: '#cbd5e1', fontSize: 14, marginTop: 0, marginBottom: 16 }}>
-                  {booking.payment_status === 'paid'
-                    ? 'Your PayMongo payment is already successful. You can still upload your proof of payment and reference number here for organizer records.'
-                    : 'Upload your non-refundable booking downpayment proof and your payment reference number here even if the owner has not accepted the booking yet.'}
-                </p>
-                <div style={{ display: 'grid', gap: 12 }}>
-                  <input
-                    value={gcashRef}
-                    onChange={(event) => setGcashRef(event.target.value)}
-                    placeholder="Enter your payment reference number"
-                    style={{ ...infoItem, color: '#f1f5f9', outline: 'none' }}
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) => setGcashProof(event.target.files?.[0] || null)}
-                    style={{ ...infoItem, color: '#cbd5e1' }}
-                  />
-                  <button
-                    onClick={handleGcashUpload}
-                    disabled={uploading}
-                    style={{
-                      padding: '12px 18px',
-                      background: uploading ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #0ea5e9, #0369a1)',
-                      color: '#fff',
-                      borderRadius: 12,
-                      border: 'none',
-                      fontWeight: 700,
-                      cursor: uploading ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {uploading ? 'Uploading...' : booking.payment_proof ? 'Replace Proof of Payment' : 'Upload Proof of Payment'}
-                  </button>
-                </div>
-              </>
             )}
+            <p style={{ color: '#cbd5e1', fontSize: 14, marginTop: 0, marginBottom: 16 }}>
+              {booking.payment_status === 'paid'
+                ? 'Your PayMongo payment is already successful. You can still upload your proof of payment and reference number here for organizer records.'
+                : booking.payment_status === 'pending_verification'
+                  ? 'You can still replace the uploaded proof or update the payment reference number if needed.'
+                  : 'Upload your non-refundable booking downpayment proof and your payment reference number here even if the owner has not accepted the booking yet.'}
+            </p>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <input
+                value={gcashRef}
+                onChange={(event) => setGcashRef(event.target.value)}
+                placeholder="Enter your payment reference number"
+                style={{ ...infoItem, color: '#f1f5f9', outline: 'none' }}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => setGcashProof(event.target.files?.[0] || null)}
+                style={{ ...infoItem, color: '#cbd5e1' }}
+              />
+              <button
+                onClick={handleGcashUpload}
+                disabled={uploading}
+                style={{
+                  padding: '12px 18px',
+                  background: uploading ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #0ea5e9, #0369a1)',
+                  color: '#fff',
+                  borderRadius: 12,
+                  border: 'none',
+                  fontWeight: 700,
+                  cursor: uploading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {uploading ? 'Uploading...' : booking.payment_proof ? 'Replace Proof of Payment' : 'Upload Proof of Payment'}
+              </button>
+            </div>
           </div>
         )}
 

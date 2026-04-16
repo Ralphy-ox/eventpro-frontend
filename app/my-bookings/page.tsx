@@ -346,6 +346,15 @@ export default function MyBookings() {
                         </button>
                       </div>
                     )}
+                    {booking.payment_method === 'GCash' && booking.status !== 'declined' && (
+                      <div className="mb-4">
+                        <button onClick={() => router.push(`/my-bookings/${booking.id}`)}
+                          className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
+                          style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
+                          Upload Proof & Reference
+                        </button>
+                      </div>
+                    )}
                     {booking.payment_method === 'GCash' && booking.payment_status === 'rejected' && booking.status !== 'declined' && (
                       <div className="mb-4">
                         <button onClick={() => router.push(`/payment?id=${booking.id}&amount=${booking.total_amount * 0.5}&total=${booking.total_amount}&method=gcash`)}
@@ -359,15 +368,6 @@ export default function MyBookings() {
                       <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-yellow-300"
                         style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                         Proof submitted. Waiting for organizer verification.
-                      </div>
-                    )}
-                    {booking.payment_method === 'GCash' && booking.payment_status === 'paid' && !booking.payment_proof && booking.status !== 'declined' && (
-                      <div className="mb-4">
-                        <button onClick={() => router.push(`/my-bookings/${booking.id}`)}
-                          className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
-                          style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
-                          Upload Proof & Reference
-                        </button>
                       </div>
                     )}
                     {booking.payment_method === 'GCash' && booking.payment_status === 'rejected' && booking.payment_proof && (
