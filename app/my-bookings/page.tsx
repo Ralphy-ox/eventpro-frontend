@@ -54,10 +54,6 @@ export default function MyBookings() {
   const [reviewedBookings, setReviewedBookings] = useState<number[]>([]);
   const [cancelModal, setCancelModal] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-  const [gcashUploadId, setGcashUploadId] = useState<number | null>(null);
-  const [gcashRef, setGcashRef] = useState('');
-  const [gcashProof, setGcashProof] = useState<File | null>(null);
-  const [gcashUploading, setGcashUploading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'declined'>('all');
   const [requestingExtensionId, setRequestingExtensionId] = useState<number | null>(null);
   const router = useRouter();
@@ -111,23 +107,6 @@ export default function MyBookings() {
     });
     if (res.ok) { setCancelModal(null); setCancelReason(''); fetchBookings(); }
     else { const d = await res.json(); alert(d.message || 'Failed'); }
-  };
-
-  const handleGcashUpload = async (id: number) => {
-    if (!gcashRef.trim()) { alert('Reference number is required.'); return; }
-    if (!gcashProof) { alert('Please select a proof of payment image.'); return; }
-    const token = localStorage.getItem('clientToken');
-    setGcashUploading(true);
-    const fd = new FormData();
-    fd.append('gcash_reference', gcashRef);
-    fd.append('payment_proof', gcashProof);
-    const res = await fetch(`${API_BASE}/bookings/${id}/upload-proof/`, {
-      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
-    });
-    const data = await res.json();
-    if (res.ok) { setGcashUploadId(null); setGcashRef(''); setGcashProof(null); fetchBookings(); alert('Proof uploaded! Waiting for owner to verify your payment.'); }
-    else { alert(data.message || 'Upload failed.'); }
-    setGcashUploading(false);
   };
 
   const handleReschedule = async (id: number) => {
@@ -358,53 +337,22 @@ export default function MyBookings() {
                       </div>
                     )}
 
-                    {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && (
-                      <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-amber-300"
-                        style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                        Upload your GCash downpayment proof and reference number so the owner can review payment before accepting the booking.
-                      </div>
-                    )}
-                    {booking.payment_method === 'QRPh' && booking.payment_status === 'pending' && (
+                    {(booking.payment_method === 'GCash' || booking.payment_method === 'QRPh') && booking.payment_status === 'pending' && booking.status !== 'declined' && (
                       <div className="mb-4">
-                        <button onClick={() => router.push(`/payment?id=${booking.id}&amount=${booking.total_amount}&method=qrph`)}
+                        <button onClick={() => router.push(`/payment?id=${booking.id}&amount=${booking.total_amount * 0.5}&total=${booking.total_amount}&method=${booking.payment_method === 'QRPh' ? 'qrph' : 'gcash'}`)}
                           className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
                           style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
-                          Open PayMongo QR Payment
+                          {booking.payment_method === 'QRPh' ? 'Open PayMongo QR Payment' : 'Open PayMongo GCash Payment'}
                         </button>
                       </div>
                     )}
-                    {/* GCash upload proof */}
-                    {booking.payment_method === 'GCash' && (booking.payment_status === 'pending' || booking.payment_status === 'rejected') && booking.status !== 'declined' && (booking.payment_status === 'rejected' || !booking.payment_proof) && (
+                    {booking.payment_method === 'GCash' && booking.payment_status === 'rejected' && booking.status !== 'declined' && (
                       <div className="mb-4">
-                        {gcashUploadId === booking.id ? (
-                          <div className="p-4 rounded-xl space-y-3" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
-                            <p className="text-xs font-bold text-sky-300">Upload GCash Proof of Payment</p>
-                            <p className="text-xs text-slate-400">This upload is for your non-refundable booking downpayment.</p>
-                            <input value={gcashRef} onChange={e => setGcashRef(e.target.value)}
-                              placeholder="GCash Reference Number *"
-                              className="w-full px-3 py-2 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500"
-                              style={iStyle} />
-                            <input type="file" accept="image/*" onChange={e => setGcashProof(e.target.files?.[0] || null)}
-                              className="text-xs text-slate-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:text-white w-full"
-                              style={{ ...iStyle, padding: '8px 10px', borderRadius: 12 }} />
-                            <div className="flex gap-2">
-                              <button onClick={() => handleGcashUpload(booking.id)} disabled={gcashUploading}
-                                className="flex-1 py-2 text-white text-xs font-bold rounded-xl disabled:opacity-40"
-                                style={{ background: 'linear-gradient(135deg,#0ea5e9,#0369a1)' }}>
-                                {gcashUploading ? 'Uploading...' : 'Submit Proof'}
-                              </button>
-                              <button onClick={() => { setGcashUploadId(null); setGcashRef(''); setGcashProof(null); }}
-                                className="px-3 py-2 text-xs font-bold rounded-xl text-slate-400"
-                                style={{ background: 'rgba(255,255,255,0.07)' }}>Cancel</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button onClick={() => setGcashUploadId(booking.id)}
-                            className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
-                            style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
-                            {booking.payment_status === 'rejected' ? 'Upload New GCash Proof' : 'Upload GCash Proof of Payment'}
-                          </button>
-                        )}
+                        <button onClick={() => router.push(`/payment?id=${booking.id}&amount=${booking.total_amount * 0.5}&total=${booking.total_amount}&method=gcash`)}
+                          className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
+                          style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
+                          Retry PayMongo GCash Payment
+                        </button>
                       </div>
                     )}
                     {booking.payment_method === 'GCash' && booking.payment_status === 'pending_verification' && (
@@ -413,10 +361,19 @@ export default function MyBookings() {
                         Proof submitted. Waiting for organizer verification.
                       </div>
                     )}
+                    {booking.payment_method === 'GCash' && booking.payment_status === 'paid' && !booking.payment_proof && booking.status !== 'declined' && (
+                      <div className="mb-4">
+                        <button onClick={() => router.push(`/my-bookings/${booking.id}`)}
+                          className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
+                          style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
+                          Upload Proof & Reference
+                        </button>
+                      </div>
+                    )}
                     {booking.payment_method === 'GCash' && booking.payment_status === 'rejected' && booking.payment_proof && (
                       <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-red-300"
                         style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                        Your last proof was rejected. Upload a new proof and reference number.
+                        Your last proof was rejected. You can continue using PayMongo GCash for the downpayment.
                       </div>
                     )}
 

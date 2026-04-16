@@ -297,7 +297,9 @@ export default function BookingDetailPage() {
             ) : (
               <>
                 <p style={{ color: '#cbd5e1', fontSize: 14, marginTop: 0, marginBottom: 16 }}>
-                  Upload your non-refundable booking downpayment proof and your payment reference number here even if the owner has not accepted the booking yet.
+                  {booking.payment_status === 'paid'
+                    ? 'Your PayMongo payment is already successful. You can still upload your proof of payment and reference number here for organizer records.'
+                    : 'Upload your non-refundable booking downpayment proof and your payment reference number here even if the owner has not accepted the booking yet.'}
                 </p>
                 <div style={{ display: 'grid', gap: 12 }}>
                   <input
@@ -325,7 +327,7 @@ export default function BookingDetailPage() {
                       cursor: uploading ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {uploading ? 'Uploading...' : booking.payment_status === 'rejected' ? 'Upload New Proof' : 'Upload Proof of Payment'}
+                    {uploading ? 'Uploading...' : booking.payment_proof ? 'Replace Proof of Payment' : 'Upload Proof of Payment'}
                   </button>
                 </div>
               </>

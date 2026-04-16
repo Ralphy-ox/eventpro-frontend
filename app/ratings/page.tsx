@@ -185,7 +185,6 @@ export default function RatingsPage() {
       ]
     : [
         { label: 'Home', href: '/' },
-        { label: 'Events', href: '/events' },
         { label: 'Sign In', href: '/signin' },
         { label: 'Register', href: '/register', highlight: true as const },
       ];

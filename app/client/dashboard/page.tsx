@@ -261,12 +261,9 @@ export default function ClientDashboard() {
       if (res.status === 401) { localStorage.removeItem('clientToken'); router.push('/signin'); return; }
       if (!res.ok) { const e = await res.json(); alert(e.message || 'Failed to create booking'); setSubmitting(false); return; }
       const data = await res.json();
-      if (paymentMethod === 'QRPh') {
+      if (paymentMethod === 'QRPh' || paymentMethod === 'GCash') {
         const downpaymentAmount = Number(data.total_amount || 0) * 0.5;
         router.push(`/payment?id=${data.booking_id}&amount=${downpaymentAmount}&total=${data.total_amount}&method=${encodeURIComponent(paymentMethod.toLowerCase())}`);
-      } else if (paymentMethod === 'GCash') {
-        alert('Booking submitted. Upload your non-refundable downpayment proof and reference number in My Bookings so the owner can review it before accepting.');
-        router.push('/my-bookings');
       } else { alert('Booking created! Reference: ' + data.reference_number); router.push('/my-bookings'); }
     } catch { alert('Connection error.'); setSubmitting(false); }
   };
@@ -444,7 +441,7 @@ export default function ClientDashboard() {
                     </select>
                     {time && (
                       <p className="text-xs text-slate-400 mt-1">
-                        {formatTime12h(time)} – {getEndTime(time)} (8 hrs)
+                        {formatTime12h(time)} – {getEndTime(time)}
                       </p>
                     )}
                   </div>
@@ -608,3 +605,6 @@ export default function ClientDashboard() {
     </div>
   );
 }
+
+
+

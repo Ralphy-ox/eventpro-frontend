@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { API_BASE, WS_BASE } from '@/lib/api';
+import { API_BASE, WS_BASE, WS_ENABLED, getValidAccessToken, refreshAccessToken } from '@/lib/api';
 
 interface Notif {
   id: number;
@@ -17,7 +17,7 @@ interface Toast {
 }
 
 interface Props {
-  tokenKey?: string; // 'clientToken' | 'organizerToken'
+  tokenKey?: 'clientToken' | 'organizerToken';
 }
 
 export default function NotificationBell({ tokenKey = 'clientToken' }: Props) {
@@ -30,6 +30,7 @@ export default function NotificationBell({ tokenKey = 'clientToken' }: Props) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
 
   const showToast = useCallback((message: string, type: string) => {
@@ -58,9 +59,9 @@ export default function NotificationBell({ tokenKey = 'clientToken' }: Props) {
     } catch {}
   }, [tokenKey]);
 
-  const connectWS = useCallback(() => {
+  const connectWS = useCallback(async () => {
     if (!mountedRef.current) return;
-    const token = localStorage.getItem(tokenKey);
+    const token = await getValidAccessToken(tokenKey);
     if (!token) return;
 
     // Close existing connection
@@ -103,10 +104,16 @@ export default function NotificationBell({ tokenKey = 'clientToken' }: Props) {
       } catch {}
     };
 
-    ws.onclose = () => {
+    ws.onclose = async (event) => {
       if (!mountedRef.current) return;
       setWsStatus('disconnected');
       if (pingTimer.current) clearInterval(pingTimer.current);
+      if (event.code === 4001) {
+        const refreshedToken = await refreshAccessToken(tokenKey);
+        if (!mountedRef.current || !refreshedToken) {
+          return;
+        }
+      }
       // Auto-reconnect after 4 seconds
       reconnectTimer.current = setTimeout(() => {
         if (mountedRef.current && localStorage.getItem(tokenKey)) {
@@ -123,7 +130,16 @@ export default function NotificationBell({ tokenKey = 'clientToken' }: Props) {
   useEffect(() => {
     mountedRef.current = true;
     loadNotifs();
-    connectWS();
+    if (WS_ENABLED) {
+      connectWS();
+    } else {
+      setWsStatus('disconnected');
+      pollTimer.current = setInterval(() => {
+        if (mountedRef.current && localStorage.getItem(tokenKey)) {
+          loadNotifs();
+        }
+      }, 30000);
+    }
 
     // Request browser notification permission
     if ('Notification' in window && Notification.permission === 'default') {
@@ -134,12 +150,13 @@ export default function NotificationBell({ tokenKey = 'clientToken' }: Props) {
       mountedRef.current = false;
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       if (pingTimer.current) clearInterval(pingTimer.current);
+      if (pollTimer.current) clearInterval(pollTimer.current);
       if (wsRef.current) {
         wsRef.current.onclose = null;
         wsRef.current.close();
       }
     };
-  }, [loadNotifs, connectWS]);
+  }, [loadNotifs, connectWS, tokenKey]);
 
   // Close dropdown on outside click
   useEffect(() => {

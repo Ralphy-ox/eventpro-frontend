@@ -55,6 +55,7 @@ function PaymentSuccessContent() {
       nextSteps: isPaid
         ? [
             'Your booking downpayment is already marked as paid.',
+            'Open "My Bookings" if you still want to upload your proof of payment and reference number.',
             'The remaining balance can be settled separately.',
             'Downpayments are non-refundable.',
             'Check "My Bookings" to monitor organizer approval.',

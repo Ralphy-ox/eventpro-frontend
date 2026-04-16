@@ -4,13 +4,15 @@ export const API_BASE =
 
 export const APP_BASE =
   typeof window === 'undefined'
-    ? 'https://events-booking-ivpa.vercel.app'
+    ? 'https://eventpro-frontend-eight.vercel.app'
     : window.location.origin;
 
 export const WS_BASE = API_BASE
   .replace(/\/api\/user$/, '')
   .replace(/^http:\/\//, 'ws://')
   .replace(/^https:\/\//, 'wss://');
+
+export const WS_ENABLED = (process.env.NEXT_PUBLIC_ENABLE_WS || '').trim().toLowerCase() === 'true';
 
 // Keep Render backend alive — ping every 4 minutes to prevent spin-down
 if (typeof window !== 'undefined') {
@@ -20,7 +22,7 @@ if (typeof window !== 'undefined') {
   setInterval(ping, 4 * 60 * 1000);
 }
 
-async function refreshAccessToken(tokenKey: 'clientToken' | 'organizerToken'): Promise<string | null> {
+export async function refreshAccessToken(tokenKey: 'clientToken' | 'organizerToken'): Promise<string | null> {
   const refreshKey = tokenKey === 'clientToken' ? 'clientRefresh' : 'organizerRefresh';
   const refresh = localStorage.getItem(refreshKey);
   if (!refresh) return null;
@@ -35,6 +37,16 @@ async function refreshAccessToken(tokenKey: 'clientToken' | 'organizerToken'): P
     localStorage.setItem(tokenKey, data.access);
     return data.access;
   } catch { return null; }
+}
+
+export async function getValidAccessToken(
+  tokenKey: 'clientToken' | 'organizerToken'
+): Promise<string | null> {
+  const existingToken = localStorage.getItem(tokenKey);
+  if (existingToken) {
+    return existingToken;
+  }
+  return refreshAccessToken(tokenKey);
 }
 
 export async function apiFetch(

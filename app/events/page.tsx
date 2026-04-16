@@ -84,7 +84,6 @@ export default function EventsPage() {
       ]
     : [
         { label: 'Home', href: '/' },
-        { label: 'Events', href: '/events' },
         { label: 'Reviews', href: '/ratings' },
         { label: 'Sign In', href: '/signin' },
         { label: 'Register', href: '/register', highlight: true as const },
