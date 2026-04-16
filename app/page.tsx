@@ -246,7 +246,6 @@ export default function Home() {
 
   const navLinks = isLoggedIn
     ? [
-        { label: 'Events', href: '/events' },
         { label: 'Reviews', href: '/ratings' },
         { label: 'Contact', href: '/contact' },
         { label: 'My Bookings', href: '/my-bookings' },
@@ -257,7 +256,6 @@ export default function Home() {
         ]},
       ]
     : [
-        { label: 'Events', href: '/events' },
         { label: 'Reviews', href: '/ratings' },
         { label: 'Contact', href: '/contact' },
         { label: 'Sign In', href: '/signin' },
@@ -609,7 +607,7 @@ export default function Home() {
           <div>
             <h3 className="text-white font-bold text-sm mb-4 uppercase tracking-widest">Quick Links</h3>
             <ul className="space-y-2 text-sm">
-              {[['Events', '/events'], ['Reviews', '/ratings'], ['Book Now', '/client/dashboard'], ['My Bookings', '/my-bookings'], ['Contact', '/contact']].map(([l, h]) => (
+              {[['Reviews', '/ratings'], ['Book Now', '/client/dashboard'], ['My Bookings', '/my-bookings'], ['Contact', '/contact']].map(([l, h]) => (
                 <li key={l}><Link href={h} className="text-slate-500 hover:text-sky-400 transition-colors">{l}</Link></li>
               ))}
             </ul>
