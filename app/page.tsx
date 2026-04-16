@@ -242,7 +242,7 @@ export default function Home() {
   const activeLandingItem = landingImages[activeLandingImage] ?? null;
   const hasLandingImages = landingImages.length > 0;
   const landingHeroTitle = activeLandingItem?.title || 'Upload your first hero image from Django super admin';
-  const landingHeroSubtitle = activeLandingItem?.subtitle || 'Carousel images will appear here after a super admin uploads them in the Landing Carousel Images section.';
+  const landingHeroSubtitle = activeLandingItem?.subtitle || '';
 
   const navLinks = isLoggedIn
     ? [
