@@ -13,13 +13,20 @@ function PaymentContent() {
   const method = (searchParams.get('method') || 'gcash').toLowerCase();
   const failed = searchParams.get('failed') === '1';
 
+  const normalizedMethod = method === 'cash' ? 'cash' : method === 'qrph' ? 'qrph' : 'gcash';
+  const [selectedMethod, setSelectedMethod] = useState<'cash' | 'gcash' | 'qrph'>(normalizedMethod);
   const [processing, setProcessing] = useState(false);
+  const [savingMethod, setSavingMethod] = useState(false);
 
   useEffect(() => {
     if (!localStorage.getItem('clientToken')) router.push('/signin');
   }, [router]);
 
-  const paymentMeta = method === 'qrph'
+  useEffect(() => {
+    setSelectedMethod(normalizedMethod);
+  }, [normalizedMethod]);
+
+  const paymentMeta = selectedMethod === 'qrph'
     ? {
         title: 'QR Ph via PayMongo',
         subtitle: 'You will be redirected to a PayMongo checkout page with a scannable QR code.',
@@ -27,6 +34,15 @@ function PaymentContent() {
         processingText: 'Opening QR checkout...',
         endpoint: 'qrph',
         badge: 'Scan using GCash, Maya, or supported banks',
+      }
+    : selectedMethod === 'cash'
+    ? {
+        title: 'Cash Payment',
+        subtitle: 'You will pay directly at the venue.',
+        buttonText: 'Use Cash Payment',
+        processingText: 'Updating payment method...',
+        endpoint: 'cash',
+        badge: 'No online payment required',
       }
     : {
         title: 'GCash via PayMongo',
@@ -37,7 +53,51 @@ function PaymentContent() {
         badge: 'Secure payment powered by PayMongo',
       };
 
-  const handlePayMongoPayment = async () => {
+  const updatePaymentMethod = async (nextMethod: 'cash' | 'gcash' | 'qrph') => {
+    if (!bookingId) return false;
+
+    const token = localStorage.getItem('clientToken');
+    setSavingMethod(true);
+    try {
+      const res = await fetch(`${API_BASE}/bookings/${bookingId}/payment-method/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          payment_method: nextMethod === 'cash' ? 'Cash' : nextMethod === 'qrph' ? 'QRPh' : 'GCash',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || 'Failed to update payment method.');
+        return false;
+      }
+      router.replace(`/payment?id=${bookingId}&amount=${data.total_amount ?? amount}&method=${nextMethod}${failed ? '&failed=1' : ''}`);
+      return true;
+    } catch {
+      alert('Connection error while changing payment method.');
+      return false;
+    } finally {
+      setSavingMethod(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!bookingId) return;
+
+    if (selectedMethod === 'cash') {
+      const changed = normalizedMethod !== 'cash' ? await updatePaymentMethod('cash') : true;
+      if (changed) {
+        alert('Payment method changed to Cash.');
+        router.push('/my-bookings');
+      }
+      return;
+    }
+
+    if (selectedMethod !== normalizedMethod) {
+      const changed = await updatePaymentMethod(selectedMethod);
+      if (!changed) return;
+    }
+
     setProcessing(true);
     const token = localStorage.getItem('clientToken');
     try {
@@ -59,14 +119,12 @@ function PaymentContent() {
     }
   };
 
-  const navLinks = [
-    { label: 'Home', href: '/' },
-    { label: 'My Bookings', href: '/my-bookings' },
-  ];
-
   return (
     <div style={{ minHeight: '100vh', background: '#0a1628', color: '#e2e8f0' }}>
-      <MobileNav links={navLinks} />
+      <MobileNav links={[
+        { label: 'Home', href: '/' },
+        { label: 'My Bookings', href: '/my-bookings' },
+      ]} />
 
       <div style={{ background: 'linear-gradient(135deg, #0f172a, #0c2d4a, #0f172a)', borderBottom: '1px solid rgba(14,165,233,0.15)', padding: '40px 24px 32px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(14,165,233,0.06) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
@@ -91,25 +149,58 @@ function PaymentContent() {
 
         <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '28px 32px' }}>
           <p style={{ color: '#94a3b8', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Payment Method</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.25)', borderRadius: 12, marginBottom: 20 }}>
-            <span style={{ fontSize: 28 }}>{method === 'qrph' ? '▣' : '₲'}</span>
-            <div>
-              <p style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 15, margin: 0 }}>{paymentMeta.title}</p>
-              <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>{paymentMeta.subtitle}</p>
-            </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+            {[
+              { value: 'gcash', title: 'GCash via PayMongo', subtitle: 'Redirect to GCash checkout.' },
+              { value: 'qrph', title: 'QR Ph via PayMongo', subtitle: 'Open a QR checkout page.' },
+              { value: 'cash', title: 'Cash Payment', subtitle: 'Pay directly at the venue.' },
+            ].map((option) => (
+              <label
+                key={option.value}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '16px 18px',
+                  background: selectedMethod === option.value ? 'rgba(14,165,233,0.08)' : 'rgba(255,255,255,0.03)',
+                  border: selectedMethod === option.value ? '1px solid rgba(14,165,233,0.25)' : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 12,
+                  cursor: (savingMethod || processing) ? 'not-allowed' : 'pointer',
+                  opacity: (savingMethod || processing) ? 0.7 : 1,
+                }}>
+                <input
+                  type="radio"
+                  name="payment_method"
+                  value={option.value}
+                  checked={selectedMethod === option.value}
+                  disabled={savingMethod || processing}
+                  onChange={() => setSelectedMethod(option.value as 'cash' | 'gcash' | 'qrph')}
+                  style={{ accentColor: '#0ea5e9' }}
+                />
+                <div>
+                  <p style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 15, margin: 0 }}>{option.title}</p>
+                  <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>{option.subtitle}</p>
+                </div>
+              </label>
+            ))}
           </div>
 
           <div style={{ padding: '12px 16px', background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: 10, marginBottom: 20 }}>
-            <p style={{ color: '#38bdf8', fontSize: 13, margin: 0 }}>{paymentMeta.badge}. Your booking status will update automatically after PayMongo confirms payment.</p>
+            <p style={{ color: '#38bdf8', fontSize: 13, margin: 0 }}>
+              {selectedMethod === 'cash'
+                ? 'Switch to Cash if you want to pay at the venue instead of continuing online.'
+                : `${paymentMeta.badge}. Your booking status will update automatically after PayMongo confirms payment.`}
+            </p>
           </div>
 
           <div style={{ display: 'flex', gap: 12 }}>
             <button
-              onClick={handlePayMongoPayment}
-              disabled={processing}
-              style={{ flex: 1, padding: '14px 24px', background: processing ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #0ea5e9, #0369a1)', color: processing ? '#475569' : '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: processing ? 'not-allowed' : 'pointer', boxShadow: processing ? 'none' : '0 4px 20px rgba(14,165,233,0.3)' }}
+              onClick={handlePayment}
+              disabled={processing || savingMethod}
+              style={{ flex: 1, padding: '14px 24px', background: (processing || savingMethod) ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #0ea5e9, #0369a1)', color: (processing || savingMethod) ? '#475569' : '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: (processing || savingMethod) ? 'not-allowed' : 'pointer', boxShadow: (processing || savingMethod) ? 'none' : '0 4px 20px rgba(14,165,233,0.3)' }}
             >
-              {processing ? paymentMeta.processingText : paymentMeta.buttonText}
+              {savingMethod ? 'Saving payment method...' : processing ? paymentMeta.processingText : paymentMeta.buttonText}
             </button>
             <button
               onClick={() => router.push('/my-bookings')}

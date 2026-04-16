@@ -95,7 +95,7 @@ export default function MyBookings() {
       method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
     });
     const data = await res.json();
-    if (res.ok) { setGcashUploadId(null); setGcashRef(''); setGcashProof(null); fetchBookings(); alert('Proof uploaded! Waiting for organizer verification.'); }
+    if (res.ok) { setGcashUploadId(null); setGcashRef(''); setGcashProof(null); fetchBookings(); alert('Proof uploaded! Waiting for owner to verify your payment.'); }
     else { alert(data.message || 'Upload failed.'); }
     setGcashUploading(false);
   };

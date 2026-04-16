@@ -14,6 +14,13 @@ interface EventType {
   max_invited_emails: number; excess_person_fee: number; image: string | null;
 }
 
+interface ComboSuggestion {
+  label: string;
+  combined_capacity: number;
+  base_price: number;
+  halls: string[];
+}
+
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
 const iCls = "w-full h-12 px-4 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all text-sm";
 const lCls = "block text-xs font-bold text-sky-400 uppercase tracking-widest mb-2";
@@ -51,7 +58,7 @@ const formatTime12h = (time24: string) => {
 
 const getEndTime = (startTime: string) => {
   const [h] = startTime.split(':').map(Number);
-  const endH = Math.min(h + 12, 23);
+  const endH = Math.min(h + 8, 23);
   return formatTime12h(`${endH}:00`);
 };
 
@@ -67,7 +74,8 @@ export default function ClientDashboard() {
   const [time, setTime] = useState('');
   const [availableRooms, setAvailableRooms] = useState<number | null>(null);
   const [isBooked, setIsBooked] = useState<boolean | null>(null);
-  const [comboSuggestions, setComboSuggestions] = useState<Array<{ label: string; combined_capacity: number; base_price: number }>>([]);
+  const [comboSuggestions, setComboSuggestions] = useState<ComboSuggestion[]>([]);
+  const [selectedCombo, setSelectedCombo] = useState<ComboSuggestion | null>(null);
   const [pricingInfo, setPricingInfo] = useState<null | {
     base_price: number;
     included_capacity: number;
@@ -151,7 +159,12 @@ export default function ClientDashboard() {
   const localExcessGuests = selectedEventType ? Math.max(0, numPeopleInvited - includedCapacity) : 0;
   const localExcessTotal = localExcessGuests * excessPersonFee;
   const hasExplicitSingleHallLimit = !!selectedEventType && singleHallLimit > includedCapacity;
-  const singleHallTooSmall = pricingInfo ? pricingInfo.single_hall_supported === false : (!!selectedEventType && numPeopleInvited > singleHallLimit);
+  const singleHallTooSmall = !!selectedEventType && numPeopleInvited > singleHallLimit;
+  const activeSelectionLabel = selectedCombo?.label || selectedEventType?.event_type || '';
+  const activeCapacityLimit = selectedCombo
+    ? (pricingInfo?.max_capacity ?? selectedCombo.combined_capacity)
+    : singleHallLimit;
+  const selectionTooSmall = !!activeSelectionLabel && numPeopleInvited > activeCapacityLimit;
   const isFullyBooked = isBooked === true;
   const slotAvail = isBooked === false ? 1 : 0;
   const displayPrice = pricingInfo?.total_amount ?? (sessionBasePrice + localExcessTotal);
@@ -161,24 +174,37 @@ export default function ClientDashboard() {
       setAvailableRooms(null);
       setIsBooked(null);
       setComboSuggestions([]);
+      setSelectedCombo(null);
       setPricingInfo(null);
       return;
     }
     setLoading(true);
     const token = localStorage.getItem('clientToken');
     if (!token) { router.push('/signin'); return; }
-    fetch(`${API_BASE}/client/check-availability/?date=${date}&event_type=${encodeURIComponent(eventType)}&time_slot=${timeSlot}&guest_count=${numPeopleInvited || 0}`, { headers: { Authorization: `Bearer ${token}` } })
+    const params = new URLSearchParams({
+      date,
+      event_type: eventType,
+      time_slot: timeSlot,
+      guest_count: String(numPeopleInvited || 0),
+    });
+    (selectedCombo?.halls || []).forEach((hall) => params.append('selected_halls', hall));
+    fetch(`${API_BASE}/client/check-availability/?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => { if (res.status === 401) { localStorage.removeItem('clientToken'); router.push('/signin'); return; } return res.json(); })
       .then(data => {
         if (data) {
           setAvailableRooms(data.available_rooms);
           setIsBooked(data.available_rooms === 0 || (data.morning?.available === 0 && data.afternoon?.available === 0));
           setPricingInfo(data.pricing ?? null);
-          setComboSuggestions(Array.isArray(data.combo_suggestions) ? data.combo_suggestions : []);
+          const nextSuggestions = Array.isArray(data.combo_suggestions) ? data.combo_suggestions : [];
+          setComboSuggestions(nextSuggestions);
+          if (selectedCombo) {
+            const stillExists = nextSuggestions.find((combo: ComboSuggestion) => combo.label === selectedCombo.label);
+            if (!stillExists) setSelectedCombo(null);
+          }
         }
       })
       .catch(() => {}).finally(() => setLoading(false));
-  }, [eventType, numPeopleInvited, date, router, timeSlot]);
+  }, [eventType, numPeopleInvited, date, router, timeSlot, selectedCombo]);
 
   const handleBookingRequest = async () => {
     if (!eventType || !description || !numPeopleInvited || !date || !time || !paymentMethod) {
@@ -189,7 +215,11 @@ export default function ClientDashboard() {
       return;
     }
     if (description.length < 10) { setDescriptionError('Description must be at least 10 characters'); return; }
-    if (singleHallTooSmall) {
+    if (selectionTooSmall) {
+      alert(`Your current selection only supports up to ${activeCapacityLimit} guests. Please choose a valid hall combination.`);
+      return;
+    }
+    if (singleHallTooSmall && !selectedCombo) {
       alert(`This hall supports up to ${singleHallLimit} guests only. Please choose one of the suggested hall combinations.`);
       return;
     }
@@ -207,6 +237,7 @@ export default function ClientDashboard() {
     try {
       const payload = {
         event_type: eventType,
+        selected_halls: selectedCombo?.halls || [eventType],
         description: capitalizeWords(description ?? ''),
         capacity: numPeopleInvited,
         date,
@@ -272,7 +303,7 @@ export default function ClientDashboard() {
           <div className="w-1 rounded-full shrink-0" style={{ background: '#0ea5e9' }} />
           <div>
             <p className="text-sky-300 text-sm font-bold mb-1">Booking Info</p>
-            <p className="text-slate-400 text-xs">Pick your preferred start time (8:00 AM – 8:00 PM). Your event runs for 12 hours from the selected start time. Bookings must be made at least 1 day in advance.</p>
+            <p className="text-slate-400 text-xs">Pick your preferred start time (8:00 AM – 8:00 PM). Your event runs for 8 hours from the selected start time. Bookings must be made at least 1 day in advance.</p>
           </div>
         </div>
 
@@ -294,7 +325,7 @@ export default function ClientDashboard() {
                     <select value={eventType} onChange={e => {
                       const sel = eventTypes.find(et => et.event_type === e.target.value);
                       setEventType(e.target.value); setSelectedEventType(sel || null);
-                      setNumPeopleInvited(getEffectiveIncludedCapacity(sel || null) || 0); setEventDetails({});
+                      setNumPeopleInvited(getEffectiveIncludedCapacity(sel || null) || 0); setEventDetails({}); setSelectedCombo(null);
                     }} className={iCls} style={iStyle}>
                       <option value="" style={{ background: '#0c2d4a' }}>Select hall type</option>
                       {eventTypes.map(et => <option key={et.id} value={et.event_type} style={{ background: '#0c2d4a' }}>{et.event_type}</option>)}
@@ -370,9 +401,14 @@ export default function ClientDashboard() {
                       Excess fee applies: {localExcessGuests} guest{localExcessGuests !== 1 ? 's' : ''} x P{excessPersonFee.toLocaleString()} = P{localExcessTotal.toLocaleString()}.
                     </p>
                   )}
-                  {selectedEventType && singleHallTooSmall && (
+                  {selectedEventType && singleHallTooSmall && !selectedCombo && (
                     <p className="mt-1 text-xs text-red-400">
                       This hall only supports up to {singleHallLimit} guests. Check the hall combo suggestions below.
+                    </p>
+                  )}
+                  {selectedCombo && (
+                    <p className="mt-1 text-xs text-sky-300">
+                      Combo selected: {selectedCombo.label}. Combined capacity up to {activeCapacityLimit} guests.
                     </p>
                   )}
                 </div>
@@ -407,7 +443,7 @@ export default function ClientDashboard() {
                     </select>
                     {time && (
                       <p className="text-xs text-slate-400 mt-1">
-                        {formatTime12h(time)} – {getEndTime(time)} (12 hrs)
+                        {formatTime12h(time)} – {getEndTime(time)} (8 hrs)
                       </p>
                     )}
                   </div>
@@ -435,7 +471,7 @@ export default function ClientDashboard() {
                 <div className="p-5 grid grid-cols-2 gap-3">
                   {[
                     { label: 'Base Rate', value: `₱${selectedEventType.price.toLocaleString()}` },
-                    { label: 'Max Guests', value: singleHallLimit },
+                    { label: 'Can Accommodate', value: singleHallLimit },
                     { label: 'Per Table', value: `${selectedEventType.people_per_table} pax` },
                     { label: 'Tables Needed', value: numPeopleInvited > 0 ? tablesNeeded : '—' },
                   ].map(item => (
@@ -480,7 +516,7 @@ export default function ClientDashboard() {
                         <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.25)' }}>
                           <p className="text-xs text-sky-500 font-bold uppercase tracking-widest mb-1">Total Price</p>
                           <p className="text-3xl font-black text-white">₱{displayPrice.toLocaleString()}</p>
-                          <p className="text-xs text-sky-400 mt-1">{selectedEventType.event_type}{time ? ` · ${formatTime12h(time)} – ${getEndTime(time)}` : ''}</p>
+                          <p className="text-xs text-sky-400 mt-1">{activeSelectionLabel}{time ? ` · ${formatTime12h(time)} – ${getEndTime(time)}` : ''}</p>
                         </div>
                       )}
 
@@ -498,11 +534,20 @@ export default function ClientDashboard() {
                         <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)' }}>
                           <p className="text-xs text-amber-300 font-bold uppercase tracking-widest mb-2">Suggested Hall Combinations</p>
                           {comboSuggestions.map((combo) => (
-                            <div key={combo.label} className="rounded-lg px-3 py-2 mb-2 last:mb-0" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                            <button
+                              type="button"
+                              key={combo.label}
+                              onClick={() => setSelectedCombo(current => current?.label === combo.label ? null : combo)}
+                              className="w-full text-left rounded-lg px-3 py-2 mb-2 last:mb-0 transition-all"
+                              style={{
+                                background: selectedCombo?.label === combo.label ? 'rgba(14,165,233,0.18)' : 'rgba(255,255,255,0.05)',
+                                border: selectedCombo?.label === combo.label ? '1px solid rgba(14,165,233,0.35)' : '1px solid transparent',
+                              }}>
                               <p className="text-sm font-bold text-white">{combo.label}</p>
                               <p className="text-xs text-slate-300">Combined capacity: {combo.combined_capacity} guests</p>
                               <p className="text-xs text-slate-300">Estimated base total: P{Number(combo.base_price).toLocaleString()}</p>
-                            </div>
+                              <p className="text-xs text-amber-200 mt-1">{selectedCombo?.label === combo.label ? 'Selected for booking' : 'Tap to use this hall combination'}</p>
+                            </button>
                           ))}
                           <p className="text-xs text-amber-200 mt-2">Use these venue combinations when one hall is no longer enough for your guest count.</p>
                         </div>
@@ -534,7 +579,7 @@ export default function ClientDashboard() {
                         <p className="text-sm text-red-200">NO CANCELLATION AND NOT REFUNDABLE ONCE YOUR BOOKING IS ACCEPTED.</p>
                       </div>
 
-                      <button onClick={handleBookingRequest} disabled={submitting || !paymentMethod || singleHallTooSmall}
+                      <button onClick={handleBookingRequest} disabled={submitting || !paymentMethod || selectionTooSmall || (singleHallTooSmall && !selectedCombo)}
                         className="w-full py-3.5 rounded-xl text-white font-black text-sm transition-all hover:-translate-y-0.5 active:scale-95 disabled:opacity-40"
                         style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 4px 20px rgba(14,165,233,0.3)' }}>
                         {submitting ? (
