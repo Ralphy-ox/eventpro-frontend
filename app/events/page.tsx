@@ -29,13 +29,18 @@ export default function EventsPage() {
   const [eventTypeOptions, setEventTypeOptions] = useState<string[]>([]);
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('clientToken'));
+    const loggedIn = !!localStorage.getItem('clientToken');
+    setIsLoggedIn(loggedIn);
+    if (loggedIn) {
+      router.replace('/my-bookings');
+      return;
+    }
     fetch(`${API_BASE}/event-types/`)
       .then(r => r.json())
       .then(data => setEventTypeOptions(data.map((et: {event_type: string}) => et.event_type)))
       .catch(() => {});
     fetchEvents(filter);
-  }, [filter]);
+  }, [filter, router]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -69,7 +74,6 @@ export default function EventsPage() {
   const navLinks = isLoggedIn
     ? [
         { label: 'Home', href: '/' },
-        { label: 'Events', href: '/events' },
         { label: 'Reviews', href: '/ratings' },
         { label: 'My Bookings', href: '/my-bookings' },
         { label: 'Book Now', href: '/client/dashboard', highlight: true as const },

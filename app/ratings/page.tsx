@@ -176,7 +176,6 @@ export default function RatingsPage() {
   const navLinks = isLoggedIn
     ? [
         { label: 'Home', href: '/' },
-        { label: 'Events', href: '/events' },
         { label: 'My Bookings', href: '/my-bookings' },
         { label: 'Book Now', href: '/client/dashboard', highlight: true as const },
         { label: 'Settings', dropdown: [

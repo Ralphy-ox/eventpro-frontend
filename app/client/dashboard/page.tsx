@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { API_BASE } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
 
-const MAX_ROOMS = 1;
 const VENUE_LOCATION = "Ralphy's Venue, Basak San Nicolas Villa Kalubihan Cebu City 6000.";
 
 interface EventType {
@@ -150,7 +149,6 @@ export default function ClientDashboard() {
 
   const tablesNeeded = selectedEventType && numPeopleInvited > 0
     ? Math.ceil(numPeopleInvited / selectedEventType.people_per_table) : 0;
-  const wholeDay = false;
   const timeSlot = 'whole_day';
   const includedCapacity = getEffectiveIncludedCapacity(selectedEventType);
   const excessPersonFee = getEffectiveExcessPersonFee(selectedEventType);
@@ -263,8 +261,11 @@ export default function ClientDashboard() {
       if (res.status === 401) { localStorage.removeItem('clientToken'); router.push('/signin'); return; }
       if (!res.ok) { const e = await res.json(); alert(e.message || 'Failed to create booking'); setSubmitting(false); return; }
       const data = await res.json();
-      if (paymentMethod === 'GCash' || paymentMethod === 'QRPh') {
+      if (paymentMethod === 'QRPh') {
         router.push(`/payment?id=${data.booking_id}&amount=${data.total_amount}&method=${encodeURIComponent(paymentMethod.toLowerCase())}`);
+      } else if (paymentMethod === 'GCash') {
+        alert('Booking submitted. Upload your proof of payment and reference number in My Bookings so the owner can review it before accepting.');
+        router.push('/my-bookings');
       } else { alert('Booking created! Reference: ' + data.reference_number); router.push('/my-bookings'); }
     } catch { alert('Connection error.'); setSubmitting(false); }
   };
@@ -278,7 +279,6 @@ export default function ClientDashboard() {
     <div className="min-h-screen" style={{ background: '#0a1628' }}>
       <MobileNav links={[
         { label: 'Home', href: '/' },
-        { label: 'Events', href: '/events' },
         { label: 'Reviews', href: '/ratings' },
         { label: 'My Bookings', href: '/my-bookings' },
         { label: 'Settings', dropdown: [

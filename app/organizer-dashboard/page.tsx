@@ -57,6 +57,18 @@ interface ContactMsg {
 interface Reply { id: number; user_id: number; user: string; is_organizer: boolean; comment: string; created_at: string; }
 interface ReviewItem { id: number; user: string; rating: number; comment: string; event_type: string | null; created_at: string; replies: Reply[]; }
 interface EventTypeOption { event_type: string; }
+interface ExtensionRequest {
+  id: number;
+  booking_id: number;
+  event_type: string;
+  date: string;
+  client: string;
+  extension_hours: number;
+  extension_fee: number;
+  status: 'pending' | 'approved' | 'declined';
+  end_time: string | null;
+  created_at: string;
+}
 
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
 const iCls = 'w-full px-4 py-3 rounded-xl text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500 transition-all text-sm';
@@ -72,7 +84,7 @@ export default function OrganizerDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [eventTypeFilter, setEventTypeFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
-  const [activeTab, setActiveTab] = useState<'pending' | 'confirmed' | 'declined' | 'reviews' | 'analytics' | 'messages' | 'calendar' | 'damages'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'confirmed' | 'declined' | 'extensions' | 'reviews' | 'analytics' | 'messages' | 'calendar' | 'damages'>('pending');
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarBookings, setCalendarBookings] = useState<{id:number;event_type:string;date:string;time:string|null;user:string;capacity:number;whole_day:boolean}[]>([]);
   const [declineModal, setDeclineModal] = useState<{ bookingId: number; reason: string } | null>(null);
@@ -99,6 +111,8 @@ export default function OrganizerDashboard() {
   const [damagePhoto, setDamagePhoto] = useState<File | null>(null);
   const [damageSubmitting, setDamageSubmitting] = useState(false);
   const [damageReports, setDamageReports] = useState<DamageReport[]>([]);
+  const [extensionRequests, setExtensionRequests] = useState<ExtensionRequest[]>([]);
+  const [extensionActionBookingId, setExtensionActionBookingId] = useState<number | null>(null);
   const [damageSummary, setDamageSummary] = useState<DamageSummary>({
     gross_revenue: 0,
     total_damage_cost: 0,
@@ -179,12 +193,27 @@ export default function OrganizerDashboard() {
       .catch(() => {});
   }, []);
 
+  const loadExtensionRequests = useCallback(() => {
+    const token = localStorage.getItem('organizerToken');
+    if (!token) return;
+    fetch(`${API_BASE}/bookings/extensions/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (r) => {
+        if (!r.ok) return [];
+        return r.json();
+      })
+      .then((data) => {
+        setExtensionRequests(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     fetchBookings();
     loadReviews();
     loadContactMessages();
     loadEventTypes();
     loadDamages();
+    loadExtensionRequests();
     loadCalendar(calendarDate);
     const token = localStorage.getItem('organizerToken');
     if (token) {
@@ -196,12 +225,13 @@ export default function OrganizerDashboard() {
         })
         .catch(() => {});
     }
-  }, [fetchBookings, loadReviews, loadContactMessages, loadEventTypes, loadDamages, loadCalendar, calendarDate]);
+  }, [fetchBookings, loadReviews, loadContactMessages, loadEventTypes, loadDamages, loadExtensionRequests, loadCalendar, calendarDate]);
 
   // Real-time: auto-refresh when a WS notification arrives
   useRealtimeRefresh('organizerToken', (type) => {
     fetchBookings();
     loadDamages();
+    loadExtensionRequests();
     if (type === 'new_review') loadReviews();
     if (type === 'new_message') loadContactMessages();
   });
@@ -286,6 +316,9 @@ export default function OrganizerDashboard() {
   const avgRating = reviews.length > 0
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '—';
 
+  const requiresManualPaymentReview = (booking: Booking) =>
+    booking.payment_method === 'GCash' && booking.payment_status !== 'paid';
+
   const handleReplyMsg = async (msgId: number) => {
     if (!replyMsgText.trim()) return;
     const token = localStorage.getItem('organizerToken');
@@ -327,6 +360,29 @@ export default function OrganizerDashboard() {
     const token = localStorage.getItem('organizerToken');
     await fetch(`${API_BASE}/contact/messages/${msgId}/read/`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
     loadContactMessages();
+  };
+
+  const handleExtensionRequest = async (bookingId: number, action: 'approve' | 'decline') => {
+    const token = localStorage.getItem('organizerToken');
+    if (!token) { router.push('/signin'); return; }
+    setExtensionActionBookingId(bookingId);
+    try {
+      const res = await fetch(`${API_BASE}/bookings/${bookingId}/handle-extension/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || 'Failed to handle extension request.');
+        return;
+      }
+      alert(data.message || `Extension request ${action}d.`);
+      fetchBookings();
+      loadExtensionRequests();
+    } finally {
+      setExtensionActionBookingId(null);
+    }
   };
 
   // Analytics data
@@ -454,6 +510,7 @@ export default function OrganizerDashboard() {
     { key: 'pending', label: `Pending (${pending.length})` },
     { key: 'confirmed', label: `Confirmed (${confirmed.length})` },
     { key: 'declined', label: `Declined (${declined.length})` },
+    { key: 'extensions', label: `Extensions (${extensionRequests.length})` },
     { key: 'reviews', label: `Reviews (${reviews.length})` },
     { key: 'analytics', label: 'Analytics' },
     { key: 'damages', label: `Damages (${damageSummary.damage_reports_count})` },
@@ -550,6 +607,7 @@ export default function OrganizerDashboard() {
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
             <p className="text-xs font-bold text-yellow-300 mb-1">⚠ Manual GCash proof pending verification</p>
             {booking.gcash_reference && <p className="text-xs text-slate-400 mb-2">Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
+            {booking.reference_number && <p className="text-xs text-slate-400 mb-2">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
             {booking.payment_proof && (
               <a href={booking.payment_proof} target="_blank" rel="noreferrer">
                 <img src={booking.payment_proof} alt="GCash proof"
@@ -587,8 +645,9 @@ export default function OrganizerDashboard() {
 
         {booking.payment_status === 'paid' && booking.payment_method === 'GCash' && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>
-            <p className="text-xs font-bold text-green-400">✓ GCash payment confirmed via PayMongo</p>
+            <p className="text-xs font-bold text-green-400">✓ GCash payment confirmed</p>
             {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
+            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
           </div>
         )}
 
@@ -596,11 +655,20 @@ export default function OrganizerDashboard() {
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
             <p className="text-xs font-bold text-sky-300 mb-1">GCash — Awaiting proof from client</p>
             {booking.gcash_reference && <p className="text-xs text-slate-400">Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
+            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
             {booking.payment_proof && (
               <a href={booking.payment_proof} target="_blank" rel="noreferrer">
                 <img src={booking.payment_proof} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
               </a>
             )}
+          </div>
+        )}
+
+        {activeTab === 'pending' && requiresManualPaymentReview(booking) && (
+          <div className="mb-3 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <p className="text-xs font-bold text-amber-300">
+              Review the client&apos;s GCash proof and reference first. After payment is approved, you can accept the booking.
+            </p>
           </div>
         )}
 
@@ -632,10 +700,10 @@ export default function OrganizerDashboard() {
               style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
               {expandedBookingId === booking.id ? 'Hide Details' : 'View Details'}
             </button>
-            <button onClick={() => handleStatusUpdate(booking.id, 'confirmed')} disabled={loading}
+            <button onClick={() => handleStatusUpdate(booking.id, 'confirmed')} disabled={loading || requiresManualPaymentReview(booking)}
               className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
               style={btnPrimary}>
-              Accept
+              {booking.payment_method === 'GCash' && booking.payment_status === 'pending' ? 'Awaiting Proof' : 'Accept'}
             </button>
             <button onClick={() => setDeclineModal({ bookingId: booking.id, reason: '' })} disabled={loading}
               className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
@@ -759,6 +827,75 @@ export default function OrganizerDashboard() {
                 <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
                 <p className="text-sky-400 text-sm">Loading...</p>
               </div>
+            ) : activeTab === 'extensions' ? (
+              extensionRequests.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                    style={{ background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.2)' }}>
+                    <svg className="w-7 h-7 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-white font-black">No pending extension requests</p>
+                  <p className="text-slate-500 text-sm mt-1">Confirmed bookings that request extra time will appear here.</p>
+                </div>
+              ) : (
+                <div className="grid lg:grid-cols-2 gap-4">
+                  {extensionRequests.map((request) => (
+                    <div key={request.id} className="rounded-2xl p-5"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <p className="font-black text-white text-sm">{request.event_type}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{request.client}</p>
+                        </div>
+                        <span className="px-2.5 py-1 text-xs font-bold rounded-full text-amber-300 bg-amber-900/30">
+                          {request.status.toUpperCase()}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        {[
+                          { label: 'Date', value: formatDate(request.date) },
+                          { label: 'Current End', value: formatTime(request.end_time) },
+                          { label: 'Extension', value: `+${request.extension_hours} hour${request.extension_hours > 1 ? 's' : ''}` },
+                          { label: 'Fee', value: `P${Number(request.extension_fee).toLocaleString()}` },
+                        ].map((item) => (
+                          <div key={item.label} className="rounded-xl p-3"
+                            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <p className="text-xs text-sky-500 font-bold">{item.label}</p>
+                            <p className="text-xs text-white font-semibold mt-0.5">{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mb-4 p-3 rounded-xl"
+                        style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.15)' }}>
+                        <p className="text-xs text-slate-300">
+                          Booking #{request.booking_id} requested on {new Date(request.created_at).toLocaleString()}.
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <button
+                          onClick={() => handleExtensionRequest(request.booking_id, 'approve')}
+                          disabled={extensionActionBookingId === request.booking_id}
+                          className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
+                          style={btnPrimary}>
+                          {extensionActionBookingId === request.booking_id ? 'Saving...' : 'Approve Extension'}
+                        </button>
+                        <button
+                          onClick={() => handleExtensionRequest(request.booking_id, 'decline')}
+                          disabled={extensionActionBookingId === request.booking_id}
+                          className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
+                          style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             ) : activeTab === 'reviews' ? (
               <div>
                 {/* Rating summary */}

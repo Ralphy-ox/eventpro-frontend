@@ -23,11 +23,11 @@ interface MobileNavProps {
   brand?: string;
   links: NavLink[];
   showNotification?: boolean;
-  notificationTokenKey?: string;
+  notificationTokenKey?: 'clientToken' | 'organizerToken';
 }
 
 export default function MobileNav({
-  brand = 'EventPro',
+  brand = 'Spacio Grande',
   links,
   showNotification = false,
   notificationTokenKey = 'clientToken',

@@ -13,6 +13,14 @@ interface Booking {
   payment_status: string; payment_method: string; total_amount: number;
   created_at: string; gcash_reference?: string; payment_proof?: string;
   decline_reason?: string; has_review?: boolean;
+  end_time?: string | null;
+  is_extended?: boolean;
+  extension?: {
+    status: 'pending' | 'approved' | 'declined';
+    extension_hours: number;
+    extension_fee: number;
+    created_at: string;
+  } | null;
 }
 
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
@@ -51,8 +59,30 @@ export default function MyBookings() {
   const [gcashProof, setGcashProof] = useState<File | null>(null);
   const [gcashUploading, setGcashUploading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'declined'>('all');
+  const [requestingExtensionId, setRequestingExtensionId] = useState<number | null>(null);
   const router = useRouter();
   const { loggingOut, logout } = useLogout();
+
+  const formatDisplayTime = (value?: string | null) => {
+    if (!value) return 'N/A';
+    const raw = value.includes('T') ? value.split('T')[1] : value;
+    const cleaned = raw.slice(0, 5);
+    const [h, m] = cleaned.split(':').map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return value;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2, '0')} ${period}`;
+  };
+
+  const computeFallbackEndTime = (time?: string | null) => {
+    if (!time) return 'N/A';
+    const [h, m] = time.slice(0, 5).split(':').map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return 'N/A';
+    const end = new Date();
+    end.setHours(h, m, 0, 0);
+    end.setHours(end.getHours() + 8);
+    return formatDisplayTime(`${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`);
+  };
 
   const fetchBookings = useCallback(() => {
     const token = localStorage.getItem('clientToken');
@@ -123,6 +153,27 @@ export default function MyBookings() {
     setSubmittingReview(false);
   };
 
+  const handleRequestExtension = async (id: number) => {
+    const token = localStorage.getItem('clientToken');
+    if (!token) { router.push('/signin'); return; }
+    setRequestingExtensionId(id);
+    try {
+      const res = await fetch(`${API_BASE}/bookings/${id}/request-extension/`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || 'Failed to request extension.');
+        return;
+      }
+      alert(`${data.message} Additional fee: ₱${Number(data.extension_fee || 0).toLocaleString()}.`);
+      fetchBookings();
+    } finally {
+      setRequestingExtensionId(null);
+    }
+  };
+
   const filtered = bookings.filter(b =>
     (statusFilter === 'all' || b.status === statusFilter) &&
     (search === '' || b.event_type.toLowerCase().includes(search.toLowerCase()) || b.description.toLowerCase().includes(search.toLowerCase())) &&
@@ -144,7 +195,6 @@ export default function MyBookings() {
       <LogoutOverlay visible={loggingOut} />
       <MobileNav links={[
         { label: 'Home', href: '/' },
-        { label: 'Events', href: '/events' },
         { label: 'Reviews', href: '/ratings' },
         { label: 'My Bookings', href: '/my-bookings' },
         { label: 'Book Now', href: '/client/dashboard', highlight: true },
@@ -253,7 +303,8 @@ export default function MyBookings() {
                     <div className="grid grid-cols-2 gap-2 mb-4">
                       {[
                         { label: 'Date', value: booking.date },
-                        { label: 'Time', value: booking.time || 'N/A' },
+                        { label: 'Start', value: formatDisplayTime(booking.time) },
+                        { label: 'End', value: booking.end_time ? formatDisplayTime(booking.end_time) : computeFallbackEndTime(booking.time) },
                         { label: 'Guests', value: `${booking.capacity} pax` },
                         { label: 'Method', value: booking.payment_method || 'N/A' },
                       ].map(item => (
@@ -287,10 +338,30 @@ export default function MyBookings() {
                       </div>
                     )}
 
-                    {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && booking.status !== 'confirmed' && (
+                    {booking.status === 'confirmed' && (
+                      <div className="mb-4 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.16)' }}>
+                        <p className="text-xs font-bold text-sky-300 mb-1">Extension Window</p>
+                        <p className="text-xs text-slate-300">
+                          Reservation ends at <strong className="text-white">{booking.end_time ? formatDisplayTime(booking.end_time) : computeFallbackEndTime(booking.time)}</strong>.
+                        </p>
+                        {booking.is_extended && (
+                          <p className="text-xs text-green-300 mt-2">This booking has already been extended.</p>
+                        )}
+                        {booking.extension?.status === 'pending' && (
+                          <p className="text-xs text-amber-300 mt-2">
+                            Extension request pending: +{booking.extension.extension_hours} hours for ₱{Number(booking.extension.extension_fee).toLocaleString()}.
+                          </p>
+                        )}
+                        {booking.extension?.status === 'declined' && !booking.is_extended && (
+                          <p className="text-xs text-red-300 mt-2">Previous extension request was declined. You can request again if needed.</p>
+                        )}
+                      </div>
+                    )}
+
+                    {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && (
                       <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-amber-300"
                         style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                        Wait for the owner to accept your booking before uploading GCash proof.
+                        Upload your GCash proof and reference number so the owner can review payment before accepting the booking.
                       </div>
                     )}
                     {booking.payment_method === 'QRPh' && booking.payment_status === 'pending' && (
@@ -303,7 +374,7 @@ export default function MyBookings() {
                       </div>
                     )}
                     {/* GCash upload proof */}
-                    {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && booking.status === 'confirmed' && (
+                    {booking.payment_method === 'GCash' && (booking.payment_status === 'pending' || booking.payment_status === 'rejected') && booking.status !== 'declined' && (booking.payment_status === 'rejected' || !booking.payment_proof) && (
                       <div className="mb-4">
                         {gcashUploadId === booking.id ? (
                           <div className="p-4 rounded-xl space-y-3" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
@@ -330,7 +401,7 @@ export default function MyBookings() {
                           <button onClick={() => setGcashUploadId(booking.id)}
                             className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
                             style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
-                            Upload GCash Proof of Payment
+                            {booking.payment_status === 'rejected' ? 'Upload New GCash Proof' : 'Upload GCash Proof of Payment'}
                           </button>
                         )}
                       </div>
@@ -339,6 +410,12 @@ export default function MyBookings() {
                       <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-yellow-300"
                         style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                         Proof submitted. Waiting for organizer verification.
+                      </div>
+                    )}
+                    {booking.payment_method === 'GCash' && booking.payment_status === 'rejected' && booking.payment_proof && (
+                      <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-red-300"
+                        style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                        Your last proof was rejected. Upload a new proof and reference number.
                       </div>
                     )}
 
@@ -417,6 +494,17 @@ export default function MyBookings() {
                       <div className="mb-4 py-2.5 rounded-xl text-center text-xs font-bold text-sky-400"
                         style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.15)' }}>
                         Review submitted — Thank you!
+                      </div>
+                    )}
+                    {booking.status === 'confirmed' && !booking.is_extended && booking.extension?.status !== 'pending' && (
+                      <div className="mb-4">
+                        <button
+                          onClick={() => handleRequestExtension(booking.id)}
+                          disabled={requestingExtensionId === booking.id}
+                          className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
+                          style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
+                          {requestingExtensionId === booking.id ? 'Requesting Extension...' : 'Request Time Extension'}
+                        </button>
                       </div>
                     )}
 

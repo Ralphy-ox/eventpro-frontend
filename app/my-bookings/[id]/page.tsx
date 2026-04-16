@@ -112,7 +112,6 @@ export default function BookingDetailPage() {
       <MobileNav links={[
         { label: '← My Bookings', href: '/my-bookings' },
         { label: 'Home', href: '/' },
-        { label: 'Events', href: '/events' },
         { label: 'Reviews', href: '/ratings' },
         { label: 'Profile', href: '/profile' },
       ]} />

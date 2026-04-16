@@ -64,7 +64,6 @@ export default function ContactPage() {
   const navLinks = isLoggedIn
     ? [
         { label: 'Home', href: '/' },
-        { label: 'Events', href: '/events' },
         { label: 'Reviews', href: '/ratings' },
         { label: 'My Bookings', href: '/my-bookings' },
         { label: 'Book Now', href: '/client/dashboard', highlight: true as const },
