@@ -1,15 +1,18 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { API_BASE } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
+
+const DOWNPAYMENT_RATE = 0.5;
 
 function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('id');
   const amount = searchParams.get('amount') || '0';
+  const total = searchParams.get('total') || amount;
   const method = (searchParams.get('method') || 'gcash').toLowerCase();
   const failed = searchParams.get('failed') === '1';
 
@@ -17,6 +20,15 @@ function PaymentContent() {
   const [selectedMethod, setSelectedMethod] = useState<'cash' | 'gcash' | 'qrph'>(normalizedMethod);
   const [processing, setProcessing] = useState(false);
   const [savingMethod, setSavingMethod] = useState(false);
+
+  const totalAmount = Number.parseFloat(total || '0');
+  const requestedAmount = Number.parseFloat(amount || '0');
+  const downpaymentAmount = totalAmount > 0 && requestedAmount >= totalAmount
+    ? totalAmount * DOWNPAYMENT_RATE
+    : requestedAmount > 0
+      ? requestedAmount
+      : totalAmount * DOWNPAYMENT_RATE;
+  const remainingBalance = Math.max(totalAmount - downpaymentAmount, 0);
 
   useEffect(() => {
     if (!localStorage.getItem('clientToken')) router.push('/signin');
@@ -36,22 +48,22 @@ function PaymentContent() {
         badge: 'Scan using GCash, Maya, or supported banks',
       }
     : selectedMethod === 'cash'
-    ? {
-        title: 'Cash Payment',
-        subtitle: 'You will pay directly at the venue.',
-        buttonText: 'Use Cash Payment',
-        processingText: 'Updating payment method...',
-        endpoint: 'cash',
-        badge: 'No online payment required',
-      }
-    : {
-        title: 'GCash via PayMongo',
-        subtitle: 'You will be redirected to GCash to complete payment.',
-        buttonText: 'Pay with GCash',
-        processingText: 'Redirecting to GCash...',
-        endpoint: 'gcash',
-        badge: 'Secure payment powered by PayMongo',
-      };
+      ? {
+          title: 'Cash Payment',
+          subtitle: 'You will pay directly at the venue.',
+          buttonText: 'Use Cash Payment',
+          processingText: 'Updating payment method...',
+          endpoint: 'cash',
+          badge: 'No online payment required',
+        }
+      : {
+          title: 'GCash via PayMongo',
+          subtitle: 'You will be redirected to GCash to complete payment.',
+          buttonText: 'Pay Downpayment with GCash',
+          processingText: 'Redirecting to GCash...',
+          endpoint: 'gcash',
+          badge: 'Secure payment powered by PayMongo',
+        };
 
   const updatePaymentMethod = async (nextMethod: 'cash' | 'gcash' | 'qrph') => {
     if (!bookingId) return false;
@@ -71,7 +83,7 @@ function PaymentContent() {
         alert(data.message || 'Failed to update payment method.');
         return false;
       }
-      router.replace(`/payment?id=${bookingId}&amount=${data.total_amount ?? amount}&method=${nextMethod}${failed ? '&failed=1' : ''}`);
+      router.replace(`/payment?id=${bookingId}&amount=${data.downpayment_amount ?? data.total_amount ?? amount}&total=${data.total_amount ?? total}&method=${nextMethod}${failed ? '&failed=1' : ''}`);
       return true;
     } catch {
       alert('Connection error while changing payment method.');
@@ -129,7 +141,7 @@ function PaymentContent() {
       <div style={{ background: 'linear-gradient(135deg, #0f172a, #0c2d4a, #0f172a)', borderBottom: '1px solid rgba(14,165,233,0.15)', padding: '40px 24px 32px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(14,165,233,0.06) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
         <div style={{ maxWidth: 640, margin: '0 auto', position: 'relative' }}>
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: '#f1f5f9', margin: 0 }}>Complete Payment</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: '#f1f5f9', margin: 0 }}>Complete Booking Payment</h1>
           <p style={{ color: '#64748b', fontSize: 14, marginTop: 6 }}>Booking #{bookingId}</p>
         </div>
       </div>
@@ -142,8 +154,10 @@ function PaymentContent() {
         )}
 
         <div style={{ background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 16, padding: '28px 32px', textAlign: 'center' }}>
-          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 8 }}>Total Amount</p>
-          <p style={{ color: '#4ade80', fontSize: 48, fontWeight: 900, margin: 0 }}>₱{parseFloat(amount).toLocaleString()}</p>
+          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 8 }}>Downpayment Due Now</p>
+          <p style={{ color: '#4ade80', fontSize: 48, fontWeight: 900, margin: 0 }}>P{downpaymentAmount.toLocaleString()}</p>
+          <p style={{ color: '#475569', fontSize: 13, marginTop: 6 }}>Booking total: P{totalAmount.toLocaleString()} · Remaining balance: P{remainingBalance.toLocaleString()}</p>
+          <p style={{ color: '#fca5a5', fontSize: 12, fontWeight: 700, marginTop: 10 }}>This booking downpayment is non-refundable.</p>
           <p style={{ color: '#475569', fontSize: 13, marginTop: 6 }}>Booking ID: #{bookingId}</p>
         </div>
 
@@ -152,9 +166,9 @@ function PaymentContent() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
             {[
-              { value: 'gcash', title: 'GCash via PayMongo', subtitle: 'Redirect to GCash checkout.' },
-              { value: 'qrph', title: 'QR Ph via PayMongo', subtitle: 'Open a QR checkout page.' },
-              { value: 'cash', title: 'Cash Payment', subtitle: 'Pay directly at the venue.' },
+              { value: 'gcash', title: 'GCash via PayMongo', subtitle: 'Pay the booking downpayment online.' },
+              { value: 'qrph', title: 'QR Ph via PayMongo', subtitle: 'Open a QR checkout page for the downpayment.' },
+              { value: 'cash', title: 'Cash Payment', subtitle: 'Pay the downpayment or balance directly at the venue.' },
             ].map((option) => (
               <label
                 key={option.value}
@@ -186,12 +200,16 @@ function PaymentContent() {
             ))}
           </div>
 
-          <div style={{ padding: '12px 16px', background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: 10, marginBottom: 20 }}>
+          <div style={{ padding: '12px 16px', background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: 10, marginBottom: 12 }}>
             <p style={{ color: '#38bdf8', fontSize: 13, margin: 0 }}>
               {selectedMethod === 'cash'
-                ? 'Switch to Cash if you want to pay at the venue instead of continuing online.'
-                : `${paymentMeta.badge}. Your booking status will update automatically after PayMongo confirms payment.`}
+                ? 'Choose Cash if you want to settle the booking amount directly at the venue.'
+                : `${paymentMeta.badge}. This checkout is for the booking downpayment only.`}
             </p>
+          </div>
+
+          <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, marginBottom: 20 }}>
+            <p style={{ color: '#fca5a5', fontSize: 13, fontWeight: 700, margin: 0 }}>Notice: booking downpayments are non-refundable.</p>
           </div>
 
           <div style={{ display: 'flex', gap: 12 }}>
@@ -220,7 +238,7 @@ export default function Payment() {
     <Suspense fallback={
       <div style={{ minHeight: '100vh', background: '#0a1628', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 48, height: 48, border: '3px solid rgba(14,165,233,0.3)', borderTop: '3px solid #0ea5e9', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <style>{'@keyframes spin { to { transform: rotate(360deg); } }'}</style>
       </div>
     }>
       <PaymentContent />

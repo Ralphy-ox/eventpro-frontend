@@ -262,9 +262,10 @@ export default function ClientDashboard() {
       if (!res.ok) { const e = await res.json(); alert(e.message || 'Failed to create booking'); setSubmitting(false); return; }
       const data = await res.json();
       if (paymentMethod === 'QRPh') {
-        router.push(`/payment?id=${data.booking_id}&amount=${data.total_amount}&method=${encodeURIComponent(paymentMethod.toLowerCase())}`);
+        const downpaymentAmount = Number(data.total_amount || 0) * 0.5;
+        router.push(`/payment?id=${data.booking_id}&amount=${downpaymentAmount}&total=${data.total_amount}&method=${encodeURIComponent(paymentMethod.toLowerCase())}`);
       } else if (paymentMethod === 'GCash') {
-        alert('Booking submitted. Upload your proof of payment and reference number in My Bookings so the owner can review it before accepting.');
+        alert('Booking submitted. Upload your non-refundable downpayment proof and reference number in My Bookings so the owner can review it before accepting.');
         router.push('/my-bookings');
       } else { alert('Booking created! Reference: ' + data.reference_number); router.push('/my-bookings'); }
     } catch { alert('Connection error.'); setSubmitting(false); }
@@ -515,6 +516,8 @@ export default function ClientDashboard() {
                       {selectedEventType && (
                         <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.25)' }}>
                           <p className="text-xs text-sky-500 font-bold uppercase tracking-widest mb-1">Total Price</p>
+                          <p className="text-xs text-amber-300 mt-2">Downpayment due now: P{(displayPrice * 0.5).toLocaleString()}</p>
+                          <p className="text-xs text-slate-400 mt-1">Remaining balance after downpayment: P{(displayPrice * 0.5).toLocaleString()}</p>
                           <p className="text-3xl font-black text-white">₱{displayPrice.toLocaleString()}</p>
                           <p className="text-xs text-sky-400 mt-1">{activeSelectionLabel}{time ? ` · ${formatTime12h(time)} – ${getEndTime(time)}` : ''}</p>
                         </div>
@@ -576,7 +579,7 @@ export default function ClientDashboard() {
 
                       <div className="mb-4 rounded-xl p-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
                         <p className="text-xs font-bold uppercase tracking-widest text-red-300 mb-1">Important Note</p>
-                        <p className="text-sm text-red-200">NO CANCELLATION AND NOT REFUNDABLE ONCE YOUR BOOKING IS ACCEPTED.</p>
+                        <p className="text-sm text-red-200">A 50% booking downpayment is required. This downpayment is non-refundable once submitted.</p>
                       </div>
 
                       <button onClick={handleBookingRequest} disabled={submitting || !paymentMethod || selectionTooSmall || (singleHallTooSmall && !selectedCombo)}

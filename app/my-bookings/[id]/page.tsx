@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { API_BASE } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
 
+const DOWNPAYMENT_RATE = 0.5;
+
 interface Booking {
   id: number;
   event_type: string;
@@ -178,6 +180,8 @@ export default function BookingDetailPage() {
   const emails = booking.invited_emails
     ? booking.invited_emails.split(',').map((email) => email.trim()).filter(Boolean)
     : [];
+  const downpaymentAmount = Number(booking.total_amount) * DOWNPAYMENT_RATE;
+  const remainingBalance = Number(booking.total_amount) - downpaymentAmount;
 
   const statusStyle = STATUS_STYLES[booking.status] ?? {
     bg: 'rgba(148,163,184,0.15)',
@@ -256,6 +260,12 @@ export default function BookingDetailPage() {
             </div>
           )}
 
+          <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 12 }}>
+            <p style={{ color: '#fbbf24', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Booking Downpayment</p>
+            <p style={{ color: '#fde68a', fontWeight: 700, fontSize: 16, margin: 0 }}>P{downpaymentAmount.toLocaleString()}</p>
+            <p style={{ color: '#cbd5e1', fontSize: 13, margin: '6px 0 0' }}>Remaining balance: P{remainingBalance.toLocaleString()}</p>
+          </div>
+
           {booking.gcash_reference && (
             <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)', borderRadius: 12 }}>
               <p style={{ color: '#38bdf8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Client Payment Reference</p>
@@ -287,7 +297,7 @@ export default function BookingDetailPage() {
             ) : (
               <>
                 <p style={{ color: '#cbd5e1', fontSize: 14, marginTop: 0, marginBottom: 16 }}>
-                  Upload your proof of payment and your payment reference number here even if the owner has not accepted the booking yet.
+                  Upload your non-refundable booking downpayment proof and your payment reference number here even if the owner has not accepted the booking yet.
                 </p>
                 <div style={{ display: 'grid', gap: 12 }}>
                   <input

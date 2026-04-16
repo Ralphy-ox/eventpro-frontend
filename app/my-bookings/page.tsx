@@ -361,7 +361,7 @@ export default function MyBookings() {
                     {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && (
                       <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-amber-300"
                         style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                        Upload your GCash proof and reference number so the owner can review payment before accepting the booking.
+                        Upload your GCash downpayment proof and reference number so the owner can review payment before accepting the booking.
                       </div>
                     )}
                     {booking.payment_method === 'QRPh' && booking.payment_status === 'pending' && (
@@ -379,6 +379,7 @@ export default function MyBookings() {
                         {gcashUploadId === booking.id ? (
                           <div className="p-4 rounded-xl space-y-3" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
                             <p className="text-xs font-bold text-sky-300">Upload GCash Proof of Payment</p>
+                            <p className="text-xs text-slate-400">This upload is for your non-refundable booking downpayment.</p>
                             <input value={gcashRef} onChange={e => setGcashRef(e.target.value)}
                               placeholder="GCash Reference Number *"
                               className="w-full px-3 py-2 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500"

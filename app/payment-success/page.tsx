@@ -46,21 +46,24 @@ function PaymentSuccessContent() {
     const isPaid = booking?.payment_status === 'paid';
 
     return {
-      title: isPaid ? 'Payment Received!' : 'Payment Submitted!',
+      title: isPaid ? 'Downpayment Received!' : 'Downpayment Submitted!',
       subtitle: isPaid
-        ? `Your ${paymentMethod} payment has been confirmed by PayMongo.`
-        : `Your ${paymentMethod} checkout was submitted. We are waiting for the final PayMongo confirmation.`,
+        ? `Your ${paymentMethod} booking downpayment has been confirmed by PayMongo.`
+        : `Your ${paymentMethod} downpayment checkout was submitted. We are waiting for the final PayMongo confirmation.`,
       status: isPaid ? 'Paid' : 'Processing',
       proof: paymentMethod === 'GCash' ? 'Direct checkout' : 'QR checkout',
       nextSteps: isPaid
         ? [
-            'Your payment is already marked as paid.',
+            'Your booking downpayment is already marked as paid.',
+            'The remaining balance can be settled separately.',
+            'Downpayments are non-refundable.',
             'Check "My Bookings" to monitor organizer approval.',
             'You will receive a notification once the booking is updated.',
           ]
         : [
             'PayMongo is still finalizing your payment status.',
             'Refresh "My Bookings" in a moment to confirm the paid status.',
+            'This checkout is only for the booking downpayment.',
             'If it stays pending, verify that your PayMongo webhook is enabled.',
           ],
     };
@@ -134,6 +137,11 @@ function PaymentSuccessContent() {
               </div>
             ))}
           </div>
+        </div>
+
+        <div style={{ ...card, borderColor: 'rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)' }}>
+          <p style={{ color: '#fca5a5', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Notice</p>
+          <p style={{ color: '#fecaca', fontSize: 14, margin: 0 }}>Booking downpayments are non-refundable.</p>
         </div>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
