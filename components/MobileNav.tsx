@@ -187,7 +187,7 @@ export default function MobileNav({
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black text-white"
-            style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>E</div>
+            style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>S</div>
           <span className="text-lg font-black text-white">{brand}</span>
         </Link>
 

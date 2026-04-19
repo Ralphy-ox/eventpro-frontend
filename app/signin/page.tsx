@@ -235,7 +235,7 @@ export default function SignIn() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black shadow-lg" style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>E</div>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black shadow-lg" style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>S</div>
             <span className="text-3xl font-black text-white">Spacio Grande</span>
           </div>
           <p className="text-slate-400 text-sm">Sign in to your account</p>
