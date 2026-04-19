@@ -166,6 +166,7 @@ export default function ClientDashboard() {
   const isFullyBooked = isBooked === true;
   const slotAvail = isBooked === false ? 1 : 0;
   const displayPrice = pricingInfo?.total_amount ?? (sessionBasePrice + localExcessTotal);
+  const displayedCardCapacity = selectedEventType ? includedCapacity : 0;
 
   useEffect(() => {
     if (!date || !eventType) {
@@ -469,7 +470,7 @@ export default function ClientDashboard() {
                 <div className="p-5 grid grid-cols-2 gap-3">
                   {[
                     { label: 'Base Rate', value: `₱${selectedEventType.price.toLocaleString()}` },
-                    { label: 'Can Accommodate', value: singleHallLimit },
+                    { label: 'Can Accommodate', value: displayedCardCapacity },
                     { label: 'Per Table', value: `${selectedEventType.people_per_table} pax` },
                     { label: 'Tables Needed', value: numPeopleInvited > 0 ? tablesNeeded : '—' },
                   ].map(item => (

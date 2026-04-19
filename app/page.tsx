@@ -599,7 +599,7 @@ export default function Home() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black text-white"
-                style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>E</div>
+                style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>S</div>
               <span className="text-white font-black text-lg">Spacio Grande</span>
             </div>
             <p className="text-slate-500 text-sm leading-relaxed">Professional event management at Ralphy&apos;s Venue. Creating unforgettable memories.</p>
