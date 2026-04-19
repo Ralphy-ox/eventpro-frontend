@@ -27,6 +27,8 @@ interface EventType {
   id: number;
   event_type: string;
   description: string;
+  image?: string | null;
+  max_capacity?: number;
 }
 
 interface Review {
@@ -79,6 +81,31 @@ const getEventTypeIcon = (eventType: string): LucideIcon => {
   return matchedRule?.icon || CandlestickChart;
 };
 
+const getEventTypeSurface = (eventType: string) => {
+  if (/diamond/i.test(eventType)) {
+    return {
+      accent: '#38bdf8',
+      background: 'linear-gradient(135deg, rgba(56,189,248,0.24), rgba(15,23,42,0.92))',
+    };
+  }
+  if (/emerald/i.test(eventType)) {
+    return {
+      accent: '#34d399',
+      background: 'linear-gradient(135deg, rgba(52,211,153,0.24), rgba(15,23,42,0.92))',
+    };
+  }
+  if (/jade|jadeite/i.test(eventType)) {
+    return {
+      accent: '#2dd4bf',
+      background: 'linear-gradient(135deg, rgba(45,212,191,0.22), rgba(15,23,42,0.92))',
+    };
+  }
+  return {
+    accent: '#60a5fa',
+    background: 'linear-gradient(135deg, rgba(96,165,250,0.2), rgba(15,23,42,0.92))',
+  };
+};
+
 const getFeatureIcon = (title: string): LucideIcon => {
   switch (title) {
     case 'Easy Booking':
@@ -100,6 +127,7 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
+  const [previewHall, setPreviewHall] = useState<EventType | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [landingImages, setLandingImages] = useState<LandingCarouselImage[]>([]);
   const [activeLandingImage, setActiveLandingImage] = useState(0);
@@ -184,6 +212,17 @@ export default function Home() {
     }, 4500);
     return () => clearInterval(timer);
   }, [landingImages]);
+
+  useEffect(() => {
+    if (!previewHall) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPreviewHall(null);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [previewHall]);
 
   const averageRating = publicStats.average_rating > 0
     ? publicStats.average_rating.toFixed(1)
@@ -470,21 +509,61 @@ export default function Home() {
               >
                 {eventTypes.map((e) => {
                   const EventTypeIcon = getEventTypeIcon(e.event_type);
+                  const surface = getEventTypeSurface(e.event_type);
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={e.id}
                       data-event-card="true"
-                      className="min-w-[260px] sm:min-w-[280px] lg:min-w-[300px] rounded-2xl p-6 text-center transition-all duration-300 hover:-translate-y-1 cursor-default snap-start"
-                      style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)' }}
+                      onClick={() => setPreviewHall(e)}
+                      className="min-w-[260px] sm:min-w-[280px] lg:min-w-[320px] overflow-hidden rounded-[26px] text-left transition-all duration-300 hover:-translate-y-1 snap-start"
+                      style={{ background: 'rgba(8,47,73,0.4)', border: '1px solid rgba(14,165,233,0.15)', boxShadow: '0 18px 45px rgba(2,12,27,0.28)' }}
                     >
-                      <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
-                        style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.3)' }}>
-                        <EventTypeIcon className="w-5 h-5 text-sky-400" strokeWidth={2.2} />
+                      <div className="relative h-48 overflow-hidden">
+                        {e.image ? (
+                          <>
+                            <img
+                              src={e.image}
+                              alt={e.event_type}
+                              className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                            />
+                            <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0.04) 0%, rgba(2,6,23,0.18) 45%, rgba(2,6,23,0.72) 100%)' }} />
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ background: surface.background }}>
+                            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)', border: `1px solid ${surface.accent}` }}>
+                              <EventTypeIcon className="w-7 h-7" style={{ color: surface.accent }} strokeWidth={2.2} />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold"
+                          style={{ background: 'rgba(8,47,73,0.82)', border: '1px solid rgba(255,255,255,0.12)', color: '#e0f2fe' }}>
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: surface.accent }} />
+                          View Hall
+                        </div>
                       </div>
-                      <p className="font-bold text-white text-sm mb-1">{e.event_type}</p>
-                      <p className="text-xs text-slate-400">{e.description || 'Well-prepared hall option for your venue reservation.'}</p>
-                    </div>
+
+                      <div className="p-5">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <p className="font-black text-white text-lg leading-tight">{e.event_type}</p>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.25)' }}>
+                            <EventTypeIcon className="w-4 h-4 text-sky-400" strokeWidth={2.2} />
+                          </div>
+                        </div>
+                        <p className="text-sm text-slate-300 leading-relaxed mb-4">
+                          {e.description || 'Well-prepared hall option for your venue reservation.'}
+                        </p>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs text-slate-400">
+                            {e.max_capacity ? `Up to ${e.max_capacity} guests` : 'Venue preview available'}
+                          </span>
+                          <span className="text-xs font-bold uppercase tracking-[0.2em] text-sky-300">Open</span>
+                        </div>
+                      </div>
+                    </button>
                   );
                 })}
               </div>
@@ -584,6 +663,86 @@ export default function Home() {
             </div>
           </div>
         </section>
+      )}
+
+      {previewHall && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6">
+          <button
+            type="button"
+            aria-label="Close hall preview"
+            onClick={() => setPreviewHall(null)}
+            className="absolute inset-0"
+            style={{ background: 'rgba(2,6,23,0.78)', backdropFilter: 'blur(8px)' }}
+          />
+
+          <div className="relative z-10 w-full max-w-4xl overflow-hidden rounded-[30px] border"
+            style={{ background: '#081423', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 30px 80px rgba(2,6,23,0.55)' }}>
+            <div className="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]">
+              <div className="relative min-h-[280px] sm:min-h-[380px]">
+                {previewHall.image ? (
+                  <img src={previewHall.image} alt={previewHall.event_type} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ background: getEventTypeSurface(previewHall.event_type).background }}>
+                    {(() => {
+                      const PreviewIcon = getEventTypeIcon(previewHall.event_type);
+                      const previewSurface = getEventTypeSurface(previewHall.event_type);
+
+                      return (
+                        <div className="w-24 h-24 rounded-[24px] flex items-center justify-center"
+                          style={{ background: 'rgba(255,255,255,0.08)', border: `1px solid ${previewSurface.accent}` }}>
+                          <PreviewIcon className="w-10 h-10" style={{ color: previewSurface.accent }} strokeWidth={2.2} />
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0.04) 0%, rgba(2,6,23,0.2) 52%, rgba(2,6,23,0.66) 100%)' }} />
+              </div>
+
+              <div className="p-6 sm:p-8 flex flex-col justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold mb-5"
+                    style={{ background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.22)', color: '#7dd3fc' }}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                    Hall Preview
+                  </div>
+
+                  <h3 className="text-3xl sm:text-4xl font-black text-white leading-tight mb-4">{previewHall.event_type}</h3>
+                  <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6">
+                    {previewHall.description || 'This hall is prepared for polished venue setups, guest-ready layouts, and memorable event styling.'}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Capacity</p>
+                      <p className="text-lg font-black text-white">{previewHall.max_capacity ? `${previewHall.max_capacity} Guests` : 'Available'}</p>
+                    </div>
+                    <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Use</p>
+                      <p className="text-lg font-black text-white">Events & Functions</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link href={ctaHref}
+                    className="inline-flex justify-center px-6 py-3 rounded-xl text-white font-black text-sm transition-all hover:-translate-y-0.5"
+                    style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 10px 28px rgba(14,165,233,0.3)' }}>
+                    Reserve This Hall
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewHall(null)}
+                    className="inline-flex justify-center px-6 py-3 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#cbd5e1' }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* FOOTER */}
