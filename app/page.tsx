@@ -60,6 +60,12 @@ const FEATURES = [
   { title: 'Verified Reviews', desc: 'Read honest reviews from real clients who\'ve hosted events.' },
 ];
 
+const getFeatureCardClassName = (index: number, total: number) => {
+  if (total === 5 && index === 3) return 'xl:col-start-2 xl:col-span-2';
+  if (total === 5 && index === 4) return 'xl:col-start-4 xl:col-span-2';
+  return 'xl:col-span-2';
+};
+
 const EVENT_ICON_RULES: Array<{ match: RegExp; icon: LucideIcon }> = [
   { match: /wedding|bridal|engagement/i, icon: CalendarHeart },
   { match: /birthday|debut|anniversary|celebration/i, icon: PartyPopper },
@@ -241,7 +247,6 @@ export default function Home() {
 
   const activeLandingItem = landingImages[activeLandingImage] ?? null;
   const hasLandingImages = landingImages.length > 0;
-  const landingHeroTitle = activeLandingItem?.title || 'Upload your first hero image from Django super admin';
   const landingHeroSubtitle = activeLandingItem?.subtitle || '';
 
   const navLinks = isLoggedIn
@@ -273,16 +278,35 @@ export default function Home() {
 
       {/* HERO */}
       <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0c2d4a 50%, #0a1628 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #07111f 0%, #0c2d4a 50%, #07111f 100%)' }}>
+        {hasLandingImages && activeLandingItem?.image && (
+          <div
+            className="absolute inset-0 scale-105"
+            style={{
+              backgroundImage: `url(${activeLandingItem.image})`,
+              backgroundPosition: 'center',
+              backgroundSize: 'cover',
+              filter: 'blur(3px)',
+            }}
+          />
+        )}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: hasLandingImages
+              ? 'linear-gradient(105deg, rgba(3,10,23,0.88) 8%, rgba(3,10,23,0.58) 48%, rgba(3,10,23,0.82) 100%)'
+              : 'linear-gradient(135deg, #0a1628 0%, #0c2d4a 50%, #0a1628 100%)',
+          }}
+        />
         <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle, #0ea5e9 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, #0ea5e9, transparent 60%)' }} />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] opacity-8 pointer-events-none" style={{ background: 'radial-gradient(ellipse at bottom left, #0ea5e9, transparent 60%)' }} />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, #38bdf8, transparent 60%)' }} />
+        <div className="absolute bottom-0 left-0 w-[420px] h-[420px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at bottom left, #0ea5e9, transparent 60%)' }} />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 py-20 sm:py-24 w-full">
           <div className="grid items-center gap-10 lg:gap-12 xl:gap-16 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
             <div className="order-2 lg:order-1">
               <div className="relative h-full overflow-hidden rounded-[34px] border p-3 sm:p-4"
-                style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 26px 60px rgba(2, 12, 27, 0.45)' }}>
+                style={{ background: 'rgba(10,22,40,0.42)', borderColor: 'rgba(255,255,255,0.12)', boxShadow: '0 26px 60px rgba(2, 12, 27, 0.5)', backdropFilter: 'blur(12px)' }}>
                 {hasLandingImages ? (
                   <div className="relative aspect-[4/3] min-h-[300px] sm:min-h-[360px] overflow-hidden rounded-[28px]">
                     <img
@@ -290,7 +314,7 @@ export default function Home() {
                       alt={activeLandingItem?.title || 'Venue setup preview'}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0.06) 0%, rgba(2,6,23,0.36) 100%)' }} />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0.04) 0%, rgba(2,6,23,0.2) 55%, rgba(2,6,23,0.4) 100%)' }} />
                   </div>
                 ) : (
                   <div
@@ -311,14 +335,7 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-
-                <div className="absolute left-5 right-5 bottom-5 flex flex-wrap items-end justify-between gap-3 sm:left-6 sm:right-6 sm:bottom-6">
-                  <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold"
-                    style={{ background: 'rgba(8,47,73,0.82)', border: '1px solid rgba(125,211,252,0.3)', color: '#dbeafe' }}>
-                    <span className="w-2 h-2 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
-                    {hasLandingImages ? `Slide ${activeLandingImage + 1} of ${landingImages.length}` : 'No uploaded slides yet'}
-                  </div>
-
+                <div className="absolute left-5 right-5 bottom-5 flex justify-end sm:left-6 sm:right-6 sm:bottom-6">
                   <div className="hidden sm:flex items-center gap-2">
                     <button
                       type="button"
@@ -363,12 +380,8 @@ export default function Home() {
                 </span>
               </h1>
 
-              <p className="text-sm font-bold uppercase tracking-[0.24em] text-sky-300 mb-4">
-                {landingHeroTitle}
-              </p>
-
               <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-[34rem] mx-auto lg:mx-0 mb-8">
-                {landingHeroSubtitle}
+                {landingHeroSubtitle || 'Browse the hall, check the vibe, and lock in your preferred date without digging through a plain landing page.'}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-7">
@@ -382,24 +395,6 @@ export default function Home() {
                   style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: '#cbd5e1' }}>
                   Learn More
                 </Link>
-              </div>
-
-              <div className="flex items-center justify-center lg:justify-start gap-2 mb-8">
-                {Array.from({ length: Math.max(landingImages.length, 1) }).map((_, index) => (
-                  <button
-                    key={`hero-dot-${index}`}
-                    type="button"
-                    aria-label={`Show venue image ${index + 1}`}
-                    onClick={() => showLandingImage(index)}
-                    disabled={!hasLandingImages}
-                    className="rounded-full transition-all"
-                    style={{
-                      width: index === activeLandingImage ? 28 : 11,
-                      height: 11,
-                      background: index === activeLandingImage ? '#38bdf8' : 'rgba(226,232,240,0.32)',
-                    }}
-                  />
-                ))}
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto lg:mx-0">
@@ -547,14 +542,14 @@ export default function Home() {
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Everything You Need</h2>
             <p className="text-slate-400 max-w-md mx-auto">All the tools and features to make your event a success.</p>
           </div>
-          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {FEATURES.map((f) => {
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-6">
+            {FEATURES.map((f, index) => {
               const FeatureIcon = getFeatureIcon(f.title);
 
               return (
                 <div
                   key={f.title}
-                  className="flex h-full min-h-[210px] flex-col rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1"
+                  className={`flex h-full min-h-[210px] flex-col rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 ${getFeatureCardClassName(index, FEATURES.length)}`}
                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                   <div className="w-10 h-10 rounded-xl mb-4 flex items-center justify-center"
                     style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>

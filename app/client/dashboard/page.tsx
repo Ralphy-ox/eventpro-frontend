@@ -167,6 +167,10 @@ export default function ClientDashboard() {
   const slotAvail = isBooked === false ? 1 : 0;
   const displayPrice = pricingInfo?.total_amount ?? (sessionBasePrice + localExcessTotal);
   const displayedCardCapacity = selectedEventType ? includedCapacity : 0;
+  const displayedIncludedGuests = Math.min(
+    numPeopleInvited || 0,
+    pricingInfo?.included_capacity ?? includedCapacity
+  );
 
   useEffect(() => {
     if (!date || !eventType) {
@@ -525,7 +529,7 @@ export default function ClientDashboard() {
                         <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-2">Price Breakdown</p>
                         <div className="text-xs text-slate-300 space-y-1">
                           <p>Base session: P{(pricingInfo?.base_price ?? sessionBasePrice).toLocaleString()}</p>
-                          <p>Included guests: {pricingInfo?.included_capacity ?? includedCapacity}</p>
+                          <p>Included guests: {displayedIncludedGuests}</p>
                           <p>Excess guests: {pricingInfo?.excess_guests ?? localExcessGuests}</p>
                           <p>Excess total: P{(pricingInfo?.excess_total ?? localExcessTotal).toLocaleString()}</p>
                         </div>
