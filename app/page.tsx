@@ -28,7 +28,9 @@ interface EventType {
   event_type: string;
   description: string;
   image?: string | null;
+  included_capacity?: number;
   max_capacity?: number;
+  excess_person_fee?: number;
 }
 
 interface Review {
@@ -558,7 +560,9 @@ export default function Home() {
                         </p>
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-xs text-slate-400">
-                            {e.max_capacity ? `Up to ${e.max_capacity} guests` : 'Venue preview available'}
+                            {e.included_capacity
+                              ? `${e.included_capacity} guests included`
+                              : '50 guests included'}
                           </span>
                           <span className="text-xs font-bold uppercase tracking-[0.2em] text-sky-300">Open</span>
                         </div>
@@ -715,13 +719,23 @@ export default function Home() {
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                       <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Capacity</p>
-                      <p className="text-lg font-black text-white">{previewHall.max_capacity ? `${previewHall.max_capacity} Guests` : 'Available'}</p>
+                      <p className="text-lg font-black text-white">
+                        {previewHall.included_capacity ? `${previewHall.included_capacity} Guests` : '50 Guests'}
+                      </p>
                     </div>
                     <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Use</p>
-                      <p className="text-lg font-black text-white">Events & Functions</p>
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Excess Fee</p>
+                      <p className="text-lg font-black text-white">
+                        {previewHall.excess_person_fee
+                          ? `+P${previewHall.excess_person_fee.toLocaleString()} / guest`
+                          : 'Applied beyond 50'}
+                      </p>
                     </div>
                   </div>
+
+                  <p className="text-xs text-slate-400 leading-relaxed mb-6">
+                    Base rate covers up to {previewHall.included_capacity ?? 50} guests. If the headcount goes above that, excess guest fees apply automatically.
+                  </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
