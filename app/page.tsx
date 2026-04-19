@@ -278,13 +278,13 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, #0ea5e9, transparent 60%)' }} />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] opacity-8 pointer-events-none" style={{ background: 'radial-gradient(ellipse at bottom left, #0ea5e9, transparent 60%)' }} />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 py-20 sm:py-24 w-full">
-          <div className="grid items-center gap-10 lg:gap-14 lg:grid-cols-[1.14fr_0.86fr]">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 py-20 sm:py-24 w-full">
+          <div className="grid items-center gap-10 lg:gap-12 xl:gap-16 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
             <div className="order-2 lg:order-1">
-              <div className="relative overflow-hidden rounded-[34px] border p-3 sm:p-4"
+              <div className="relative h-full overflow-hidden rounded-[34px] border p-3 sm:p-4"
                 style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 26px 60px rgba(2, 12, 27, 0.45)' }}>
                 {hasLandingImages ? (
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-[28px]">
+                  <div className="relative aspect-[4/3] min-h-[300px] sm:min-h-[360px] overflow-hidden rounded-[28px]">
                     <img
                       src={activeLandingItem?.image}
                       alt={activeLandingItem?.title || 'Venue setup preview'}
@@ -312,8 +312,8 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className="absolute left-6 right-6 bottom-6 flex items-center justify-between gap-4">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold"
+                <div className="absolute left-5 right-5 bottom-5 flex flex-wrap items-end justify-between gap-3 sm:left-6 sm:right-6 sm:bottom-6">
+                  <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold"
                     style={{ background: 'rgba(8,47,73,0.82)', border: '1px solid rgba(125,211,252,0.3)', color: '#dbeafe' }}>
                     <span className="w-2 h-2 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
                     {hasLandingImages ? `Slide ${activeLandingImage + 1} of ${landingImages.length}` : 'No uploaded slides yet'}
@@ -349,7 +349,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="order-1 lg:order-2 text-center lg:text-left lg:pl-2">
+            <div className="order-1 lg:order-2 text-center lg:text-left lg:pl-2 xl:pl-4">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold mb-6"
                 style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', color: '#7dd3fc' }}>
                 <span className="w-1.5 h-1.5 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
@@ -373,12 +373,12 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-7">
                 <Link href={ctaHref}
-                  className="px-10 py-4 text-white font-bold text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
+                  className="inline-flex min-w-[190px] justify-center px-10 py-4 text-white font-bold text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
                   style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.35)' }}>
                   {ctaLabel}
                 </Link>
                 <Link href="/learn-more"
-                  className="px-10 py-4 font-semibold text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
+                  className="inline-flex min-w-[190px] justify-center px-10 py-4 font-semibold text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
                   style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: '#cbd5e1' }}>
                   Learn More
                 </Link>
@@ -404,7 +404,7 @@ export default function Home() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto lg:mx-0">
                 {stats.map(s => (
-                  <div key={s.label} className="rounded-xl p-4 text-center"
+                  <div key={s.label} className="rounded-xl min-h-[102px] p-4 text-center flex flex-col items-center justify-center"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <p className="text-2xl font-black text-white">{s.value}</p>
                     <p className="text-xs text-slate-400 mt-1">{s.label}</p>
@@ -547,16 +547,14 @@ export default function Home() {
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Everything You Need</h2>
             <p className="text-slate-400 max-w-md mx-auto">All the tools and features to make your event a success.</p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-5">
-            {FEATURES.map((f, index) => {
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {FEATURES.map((f) => {
               const FeatureIcon = getFeatureIcon(f.title);
 
               return (
                 <div
                   key={f.title}
-                  className={`rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 sm:col-span-1 lg:col-span-2 ${
-                    FEATURES.length % 3 === 2 && index >= FEATURES.length - 2 ? 'lg:col-span-3' : ''
-                  }`}
+                  className="flex h-full min-h-[210px] flex-col rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1"
                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                   <div className="w-10 h-10 rounded-xl mb-4 flex items-center justify-center"
                     style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>
