@@ -318,6 +318,10 @@ export default function OrganizerDashboard() {
 
   const requiresManualPaymentReview = (booking: Booking) =>
     booking.payment_method === 'GCash' && booking.payment_status !== 'paid';
+  const hasClientPaymentSubmission = (booking: Booking) =>
+    booking.payment_method === 'GCash' && Boolean(booking.payment_proof) && Boolean(booking.gcash_reference?.trim());
+  const canVerifyManualPayment = (booking: Booking) =>
+    hasClientPaymentSubmission(booking) && booking.payment_status === 'pending_verification';
 
   const handleReplyMsg = async (msgId: number) => {
     if (!replyMsgText.trim()) return;
@@ -622,10 +626,12 @@ export default function OrganizerDashboard() {
             </div>
           </div>
         )}
-
-        {booking.payment_status === 'pending_verification' && (
+        {canVerifyManualPayment(booking) && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-            <p className="text-xs font-bold text-yellow-300 mb-1">⚠ Manual GCash proof pending verification</p>
+            <p className="text-xs font-bold text-yellow-300 mb-1">Manual GCash proof pending verification</p>
+            <p className="text-xs text-slate-300 mb-2">
+              Client already submitted the proof of payment. Review the image and reference number first before accepting the booking.
+            </p>
             {booking.reference_number && <p className="text-xs text-slate-400 mb-2">Reference No.: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
             {booking.gcash_reference && <p className="text-xs text-slate-400 mb-1">GCash Ref (client): <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {booking.payment_proof && (
@@ -689,7 +695,7 @@ export default function OrganizerDashboard() {
           </div>
         )}
 
-        {booking.payment_method === 'GCash' && booking.payment_proof && booking.payment_status !== 'pending_verification' && (
+        {hasClientPaymentSubmission(booking) && booking.payment_status !== 'pending_verification' && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
             <p className="text-xs font-bold text-sky-300 mb-1">Client uploaded proof and reference number</p>
             {booking.gcash_reference && <p className="text-xs text-slate-400">Reference Number: <strong className="text-white">{booking.gcash_reference}</strong></p>}
@@ -703,7 +709,7 @@ export default function OrganizerDashboard() {
         {activeTab === 'pending' && requiresManualPaymentReview(booking) && (
           <div className="mb-3 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
             <p className="text-xs font-bold text-amber-300">
-              Review the client&apos;s GCash proof and reference first. After payment is approved, you can accept the booking.
+              Client can upload proof before you accept the booking. Review the proof and reference first, then accept once payment is verified.
             </p>
           </div>
         )}
@@ -739,7 +745,11 @@ export default function OrganizerDashboard() {
             <button onClick={() => handleStatusUpdate(booking.id, 'confirmed')} disabled={loading || requiresManualPaymentReview(booking)}
               className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
               style={btnPrimary}>
-              {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && !booking.payment_proof ? 'Awaiting Proof' : 'Accept'}
+              {booking.payment_method === 'GCash' && !hasClientPaymentSubmission(booking)
+                ? 'Awaiting Proof'
+                : booking.payment_method === 'GCash' && booking.payment_status !== 'paid'
+                  ? 'Verify Payment First'
+                  : 'Accept'}
             </button>
             <button onClick={() => setDeclineModal({ bookingId: booking.id, reason: '' })} disabled={loading}
               className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
