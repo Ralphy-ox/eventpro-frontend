@@ -276,7 +276,7 @@ export default function BookingDetailPage() {
           {booking.payment_proof && (
             <div style={{ marginTop: 16 }}>
               <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Uploaded Proof of Payment</p>
-              <a href={booking.payment_proof} target="_blank" rel="noreferrer" style={{ display: 'inline-block', textDecoration: 'none' }}>
+              <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer" style={{ display: 'inline-block', textDecoration: 'none' }}>
                 <img
                   src={booking.payment_proof}
                   alt="Payment proof"
