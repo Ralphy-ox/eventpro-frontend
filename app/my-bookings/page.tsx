@@ -315,14 +315,14 @@ export default function MyBookings() {
                         {booking.reference_number && (
                           <div className="px-3 py-2.5 rounded-xl"
                             style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-green-300 mb-1">System Reference</p>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-green-300 mb-1">System Payment Reference</p>
                             <p className="text-xs font-black text-white break-all">{booking.reference_number}</p>
                           </div>
                         )}
                         {booking.gcash_reference && (
                           <div className="px-3 py-2.5 rounded-xl"
                             style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.18)' }}>
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-sky-300 mb-1">Client Payment Reference</p>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-sky-300 mb-1">Your Entered Reference</p>
                             <p className="text-xs font-black text-white break-all">{booking.gcash_reference}</p>
                           </div>
                         )}

@@ -255,7 +255,7 @@ export default function BookingDetailPage() {
 
           {booking.reference_number && (
             <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 12 }}>
-              <p style={{ color: '#4ade80', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Payment Reference Number</p>
+              <p style={{ color: '#4ade80', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>System Payment Reference</p>
               <p style={{ color: '#dcfce7', fontWeight: 700, fontSize: 16, margin: 0 }}>{booking.reference_number}</p>
             </div>
           )}
@@ -268,7 +268,7 @@ export default function BookingDetailPage() {
 
           {booking.gcash_reference && (
             <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)', borderRadius: 12 }}>
-              <p style={{ color: '#38bdf8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Client Payment Reference</p>
+              <p style={{ color: '#38bdf8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Your Entered Reference</p>
               <p style={{ color: '#7dd3fc', fontWeight: 700, fontSize: 16, margin: 0 }}>{booking.gcash_reference}</p>
             </div>
           )}
@@ -306,7 +306,7 @@ export default function BookingDetailPage() {
               <input
                 value={gcashRef}
                 onChange={(event) => setGcashRef(event.target.value)}
-                placeholder="Enter your payment reference number"
+                placeholder="Enter your own GCash reference number"
                 style={{ ...infoItem, color: '#f1f5f9', outline: 'none' }}
               />
               <input
