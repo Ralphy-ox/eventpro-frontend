@@ -636,7 +636,7 @@ export default function OrganizerDashboard() {
             {booking.gcash_reference && <p className="text-xs text-slate-400 mb-1">GCash Ref (client): <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {booking.payment_proof && (
               <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer">
-                <img src={booking.payment_proof} alt="GCash proof"
+                <img src={booking.payment_proof ?? undefined} alt="GCash proof"
                   className="w-full rounded-xl mb-2 object-cover cursor-pointer hover:opacity-90"
                   style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
               </a>
@@ -676,7 +676,7 @@ export default function OrganizerDashboard() {
             {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">GCash Ref: <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {booking.payment_proof && (
               <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer">
-                <img src={booking.payment_proof} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
+                <img src={booking.payment_proof ?? undefined} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
               </a>
             )}
           </div>
@@ -689,7 +689,7 @@ export default function OrganizerDashboard() {
             {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">PayMongo Source: <strong className="text-slate-400">{booking.gcash_reference}</strong></p>}
             {booking.payment_proof && (
               <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer">
-                <img src={booking.payment_proof} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
+                <img src={booking.payment_proof ?? undefined} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
               </a>
             )}
           </div>
@@ -701,7 +701,7 @@ export default function OrganizerDashboard() {
             {booking.gcash_reference && <p className="text-xs text-slate-400">Reference Number: <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System Ref: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
             <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer">
-              <img src={booking.payment_proof} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
+              <img src={booking.payment_proof ?? undefined} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
             </a>
           </div>
         )}

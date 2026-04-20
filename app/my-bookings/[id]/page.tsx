@@ -278,7 +278,7 @@ export default function BookingDetailPage() {
               <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Uploaded Proof of Payment</p>
               <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer" style={{ display: 'inline-block', textDecoration: 'none' }}>
                 <img
-                  src={booking.payment_proof}
+                  src={booking.payment_proof ?? undefined}
                   alt="Payment proof"
                   style={{ width: '100%', maxWidth: 420, borderRadius: 12, border: '1px solid rgba(14,165,233,0.2)' }}
                 />
