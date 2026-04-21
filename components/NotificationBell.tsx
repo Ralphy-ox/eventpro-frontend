@@ -40,7 +40,7 @@ export default function NotificationBell({ tokenKey = 'clientToken' }: Props) {
 
     // Browser notification if tab not focused
     if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification('EventPro', { body: message, icon: '/favicon.ico' });
+      new Notification('SpacioGrande', { body: message, icon: '/favicon.ico' });
     }
   }, []);
 
@@ -195,6 +195,7 @@ export default function NotificationBell({ tokenKey = 'clientToken' }: Props) {
   const toastColor = (type: string) => {
     if (type === 'booking_confirmed') return 'from-green-500 to-emerald-600';
     if (type === 'booking_declined') return 'from-red-500 to-rose-600';
+    if (type === 'damage_report') return 'from-red-500 to-orange-600';
     if (type === 'reminder_24h' || type === 'reminder_1h') return 'from-amber-500 to-orange-500';
     if (type === 'new_booking') return 'from-blue-500 to-indigo-600';
     return 'from-sky-500 to-blue-600';
