@@ -340,7 +340,7 @@ export default function MyBookings() {
                       </div>
                     )}
 
-                    {(booking.payment_method === 'GCash' || booking.payment_method === 'QRPh') && booking.payment_status === 'pending' && booking.status !== 'declined' && (
+                    {(booking.payment_method === 'GCash' || booking.payment_method === 'QRPh') && booking.payment_status === 'pending' && !['declined', 'cancelled', 'canceled'].includes(booking.status) && (
                       <div className="mb-4">
                         <button onClick={() => router.push(`/payment?id=${booking.id}&amount=${booking.total_amount * 0.5}&total=${booking.total_amount}&method=${booking.payment_method === 'QRPh' ? 'qrph' : 'gcash'}`)}
                           className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
@@ -349,7 +349,7 @@ export default function MyBookings() {
                         </button>
                       </div>
                     )}
-                    {booking.payment_method === 'GCash' && booking.status !== 'declined' && (
+                    {booking.payment_method === 'GCash' && !['declined', 'cancelled', 'canceled'].includes(booking.status) && (
                       <div className="mb-4">
                         <button onClick={() => router.push(`/my-bookings/${booking.id}`)}
                           className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
@@ -358,7 +358,7 @@ export default function MyBookings() {
                         </button>
                       </div>
                     )}
-                    {booking.payment_method === 'GCash' && booking.payment_status === 'rejected' && booking.status !== 'declined' && (
+                    {booking.payment_method === 'GCash' && booking.payment_status === 'rejected' && !['declined', 'cancelled', 'canceled'].includes(booking.status) && (
                       <div className="mb-4">
                         <button onClick={() => router.push(`/payment?id=${booking.id}&amount=${booking.total_amount * 0.5}&total=${booking.total_amount}&method=gcash`)}
                           className="w-full py-2.5 text-sky-400 text-xs font-bold rounded-xl transition-all hover:-translate-y-0.5"
