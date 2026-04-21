@@ -112,12 +112,56 @@ const DAMAGE_ITEM_TYPE_LABELS: Record<string, string> = {
   equipment: 'Equipment',
   other: 'Other',
 };
+const DEFAULT_DAMAGE_CATALOG: DamageCatalogItem[] = [
+  { id: -1, item_type: 'chair', name: 'Plastic Chair', unit_price: 100, is_active: true },
+  { id: -2, item_type: 'table', name: 'Table', unit_price: 500, is_active: true },
+  { id: -3, item_type: 'glassware', name: 'Wine Glass', unit_price: 120, is_active: true },
+  { id: -4, item_type: 'utensil', name: 'Spoon', unit_price: 40, is_active: true },
+  { id: -5, item_type: 'utensil', name: 'Fork', unit_price: 40, is_active: true },
+  { id: -6, item_type: 'decor', name: 'Table Decor', unit_price: 300, is_active: true },
+];
 const createDamageDraftItem = (): DamageDraftItem => ({
   rowId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   catalog_item_id: '',
   quantity: '1',
   unit_price: '',
 });
+const deriveCatalogFromDamageReports = (reports: DamageReport[]): DamageCatalogItem[] => {
+  const seen = new Map<string, DamageCatalogItem>();
+
+  reports.forEach((report) => {
+    (report.items || []).forEach((item) => {
+      const key = item.catalog_item_id
+        ? `catalog:${item.catalog_item_id}`
+        : `name:${item.item_type}:${item.item_name}:${item.unit_price}`;
+      if (seen.has(key)) return;
+      seen.set(key, {
+        id: item.catalog_item_id ?? -(seen.size + 1),
+        item_type: item.item_type || 'other',
+        name: item.item_name || 'Unknown item',
+        unit_price: Number(item.unit_price || 0),
+        is_active: true,
+      });
+    });
+
+    if ((!report.items || report.items.length === 0) && report.item_name) {
+      const quantity = Number(report.quantity || 0);
+      const estimatedCost = Number(report.estimated_cost || 0);
+      const fallbackUnitPrice = quantity > 0 ? estimatedCost / quantity : estimatedCost;
+      const key = `report:${report.item_type}:${report.item_name}:${fallbackUnitPrice}`;
+      if (seen.has(key)) return;
+      seen.set(key, {
+        id: -(seen.size + 1),
+        item_type: report.item_type || 'other',
+        name: report.item_name,
+        unit_price: Number.isFinite(fallbackUnitPrice) ? fallbackUnitPrice : 0,
+        is_active: true,
+      });
+    }
+  });
+
+  return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+};
 
 export default function OrganizerDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -241,16 +285,47 @@ export default function OrganizerDashboard() {
     const token = localStorage.getItem('organizerToken');
     if (!token) return;
     setDamageCatalogLoading(true);
-    fetch(`${API_BASE}/damages/catalog/`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(async (r) => {
-        if (!r.ok) return [];
-        return r.json();
-      })
-      .then((data) => {
-        setDamageCatalog(Array.isArray(data) ? data : []);
-      })
-      .catch(() => setDamageCatalog([]))
-      .finally(() => setDamageCatalogLoading(false));
+    const catalogEndpoints = [
+      `${API_BASE}/damages/catalog/`,
+      `${API_BASE}/damages/catalog`,
+      `${API_BASE.replace(/\/user$/, '')}/damages/catalog/`,
+      `${API_BASE.replace(/\/user$/, '')}/damages/catalog`,
+    ];
+
+    const load = async () => {
+      for (const endpoint of catalogEndpoints) {
+        try {
+          const response = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+              setDamageCatalog(data);
+              return;
+            }
+          }
+        } catch {
+          // Try the next known route shape.
+        }
+      }
+
+      try {
+        const damageResponse = await fetch(`${API_BASE}/damages/`, { headers: { Authorization: `Bearer ${token}` } });
+        if (damageResponse.ok) {
+          const damageData = await damageResponse.json();
+          const inferredCatalog = deriveCatalogFromDamageReports(Array.isArray(damageData?.reports) ? damageData.reports : []);
+          if (inferredCatalog.length > 0) {
+            setDamageCatalog(inferredCatalog);
+            return;
+          }
+        }
+      } catch {
+        // Fall back to the built-in starter catalog below.
+      }
+
+      setDamageCatalog(DEFAULT_DAMAGE_CATALOG);
+    };
+
+    load().finally(() => setDamageCatalogLoading(false));
   }, []);
 
   const loadExtensionRequests = useCallback(() => {
