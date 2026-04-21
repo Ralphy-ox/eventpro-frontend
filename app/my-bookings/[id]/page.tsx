@@ -28,6 +28,40 @@ interface Booking {
   payment_proof?: string | null;
   whole_day: boolean;
   has_review?: boolean;
+  damage_count?: number;
+  damage_reports?: DamageReport[];
+}
+
+interface DamageReport {
+  id: number;
+  booking_id: number;
+  booking_event_type: string;
+  booking_date: string;
+  client_name: string;
+  item_type: string;
+  item_name: string;
+  quantity: number;
+  estimated_cost: number;
+  recovered_amount: number;
+  net_loss: number;
+  charge_to_client: boolean;
+  status: string;
+  notes: string;
+  photo?: string | null;
+  reported_by?: string | null;
+  created_at: string;
+  updated_at: string;
+  items?: DamageReportItem[];
+}
+
+interface DamageReportItem {
+  id: number;
+  catalog_item_id: number | null;
+  item_type: string;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; border: string }> = {
@@ -359,6 +393,64 @@ export default function BookingDetailPage() {
                 <span key={index} style={{ padding: '6px 14px', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.2)', color: '#38bdf8', fontSize: 13, borderRadius: 999 }}>
                   {email}
                 </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!!booking.damage_reports?.length && (
+          <div style={card}>
+            <p style={{ color: '#94a3b8', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>
+              Damage Reports ({booking.damage_reports.length})
+            </p>
+            <div style={{ display: 'grid', gap: 16 }}>
+              {booking.damage_reports.map((report) => (
+                <div key={report.id} style={{ ...infoItem, padding: 18 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <div>
+                      <p style={{ color: '#f1f5f9', fontWeight: 800, margin: 0 }}>Report #{report.id}</p>
+                      <p style={{ color: '#64748b', fontSize: 13, margin: '4px 0 0' }}>
+                        {new Date(report.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ color: '#fca5a5', fontWeight: 800, margin: 0 }}>P{Number(report.estimated_cost).toLocaleString()}</p>
+                      <p style={{ color: '#94a3b8', fontSize: 13, margin: '4px 0 0' }}>{report.status}</p>
+                    </div>
+                  </div>
+
+                  {!!report.items?.length && (
+                    <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
+                      {report.items.map((item) => (
+                        <div key={item.id} style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                          <p style={{ color: '#f1f5f9', fontWeight: 700, margin: 0 }}>{item.item_name}</p>
+                          <p style={{ color: '#94a3b8', fontSize: 13, margin: '6px 0 0' }}>
+                            {item.quantity} x P{Number(item.unit_price).toLocaleString()} = P{Number(item.total_price).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                    <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.14)' }}>
+                      <p style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', margin: '0 0 4px' }}>Estimated Cost</p>
+                      <p style={{ color: '#fca5a5', fontWeight: 800, margin: 0 }}>P{Number(report.estimated_cost).toLocaleString()}</p>
+                    </div>
+                    <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.14)' }}>
+                      <p style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', margin: '0 0 4px' }}>Recovered</p>
+                      <p style={{ color: '#7dd3fc', fontWeight: 800, margin: 0 }}>P{Number(report.recovered_amount).toLocaleString()}</p>
+                    </div>
+                    <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.14)' }}>
+                      <p style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', margin: '0 0 4px' }}>Net Loss</p>
+                      <p style={{ color: '#fde68a', fontWeight: 800, margin: 0 }}>P{Number(report.net_loss).toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {report.notes && (
+                    <p style={{ color: '#cbd5e1', fontSize: 14, margin: '12px 0 0', whiteSpace: 'pre-wrap' }}>{report.notes}</p>
+                  )}
+                </div>
               ))}
             </div>
           </div>

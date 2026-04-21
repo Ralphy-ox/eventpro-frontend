@@ -43,6 +43,7 @@ interface DamageReport {
   client_name: string; item_type: string; item_name: string; quantity: number;
   estimated_cost: number; recovered_amount: number; net_loss: number;
   charge_to_client: boolean; status: string; notes: string; photo: string | null;
+  items?: DamageReportItem[];
   reported_by: string | null; created_at: string; updated_at: string;
 }
 interface DamageCatalogItem {
@@ -50,6 +51,16 @@ interface DamageCatalogItem {
   item_type: string;
   name: string;
   unit_price: number;
+  is_active?: boolean;
+}
+interface DamageReportItem {
+  id: number;
+  catalog_item_id: number | null;
+  item_type: string;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
 }
 interface DamageDraftItem {
   rowId: string;
@@ -101,18 +112,6 @@ const DAMAGE_ITEM_TYPE_LABELS: Record<string, string> = {
   equipment: 'Equipment',
   other: 'Other',
 };
-const DAMAGE_CATALOG_PRESETS: DamageCatalogItem[] = [
-  { id: 1, item_type: 'chair', name: 'Plastic Chair', unit_price: 150 },
-  { id: 2, item_type: 'chair', name: 'Monoblock Chair', unit_price: 180 },
-  { id: 3, item_type: 'table', name: 'Round Table', unit_price: 1200 },
-  { id: 4, item_type: 'table', name: 'Long Table', unit_price: 900 },
-  { id: 5, item_type: 'utensil', name: 'Spoon', unit_price: 40 },
-  { id: 6, item_type: 'utensil', name: 'Fork', unit_price: 40 },
-  { id: 7, item_type: 'glassware', name: 'Glass', unit_price: 60 },
-  { id: 8, item_type: 'utensil', name: 'Plate', unit_price: 80 },
-  { id: 9, item_type: 'decor', name: 'Centerpiece', unit_price: 500 },
-  { id: 10, item_type: 'equipment', name: 'Speaker', unit_price: 3500 },
-];
 const createDamageDraftItem = (): DamageDraftItem => ({
   rowId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   catalog_item_id: '',
@@ -153,6 +152,8 @@ export default function OrganizerDashboard() {
   const [damagePhoto, setDamagePhoto] = useState<File | null>(null);
   const [damageSubmitting, setDamageSubmitting] = useState(false);
   const [damageReports, setDamageReports] = useState<DamageReport[]>([]);
+  const [damageCatalog, setDamageCatalog] = useState<DamageCatalogItem[]>([]);
+  const [damageCatalogLoading, setDamageCatalogLoading] = useState(false);
   const [extensionRequests, setExtensionRequests] = useState<ExtensionRequest[]>([]);
   const [extensionActionBookingId, setExtensionActionBookingId] = useState<number | null>(null);
   const [damageSummary, setDamageSummary] = useState<DamageSummary>({
@@ -236,6 +237,22 @@ export default function OrganizerDashboard() {
       .catch(() => {});
   }, []);
 
+  const loadDamageCatalog = useCallback(() => {
+    const token = localStorage.getItem('organizerToken');
+    if (!token) return;
+    setDamageCatalogLoading(true);
+    fetch(`${API_BASE}/damages/catalog/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (r) => {
+        if (!r.ok) return [];
+        return r.json();
+      })
+      .then((data) => {
+        setDamageCatalog(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setDamageCatalog([]))
+      .finally(() => setDamageCatalogLoading(false));
+  }, []);
+
   const loadExtensionRequests = useCallback(() => {
     const token = localStorage.getItem('organizerToken');
     if (!token) return;
@@ -256,6 +273,7 @@ export default function OrganizerDashboard() {
     loadContactMessages();
     loadEventTypes();
     loadDamages();
+    loadDamageCatalog();
     loadExtensionRequests();
     loadCalendar(calendarDate);
     const token = localStorage.getItem('organizerToken');
@@ -268,7 +286,7 @@ export default function OrganizerDashboard() {
         })
         .catch(() => {});
     }
-  }, [fetchBookings, loadReviews, loadContactMessages, loadEventTypes, loadDamages, loadExtensionRequests, loadCalendar, calendarDate]);
+  }, [fetchBookings, loadReviews, loadContactMessages, loadEventTypes, loadDamages, loadDamageCatalog, loadExtensionRequests, loadCalendar, calendarDate]);
 
   // Real-time: auto-refresh when a WS notification arrives
   useRealtimeRefresh('organizerToken', (type) => {
@@ -336,7 +354,7 @@ export default function OrganizerDashboard() {
   };
   const formatDate = (date: string) => date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
   const formatCurrency = (value: number) => `P${Number(value || 0).toLocaleString()}`;
-  const activeDamageCatalog = DAMAGE_CATALOG_PRESETS;
+  const activeDamageCatalog = damageCatalog.filter(item => item.is_active !== false);
   const selectedDamageLineTotal = damageItems.reduce((sum, item) => {
     const quantity = Number(item.quantity || 0);
     const unitPrice = Number(item.unit_price || 0);
@@ -1633,7 +1651,7 @@ export default function OrganizerDashboard() {
       {/* Damage Report Modal */}
       {damageModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, overflowY: 'auto' }}>
-          <div style={{ background: '#0c2d4a', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: 32, width: '100%', maxWidth: 520 }}>
+          <div style={{ background: '#0c2d4a', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: 32, width: '100%', maxWidth: 760 }}>
             <h3 style={{ color: '#f1f5f9', fontWeight: 900, fontSize: 18, marginBottom: 4 }}>Report Damage</h3>
             <p style={{ color: '#64748b', fontSize: 13, marginBottom: 20 }}>Booking #{damageModal.bookingId} &mdash; {damageModal.eventType}</p>
             <div className="space-y-3">
@@ -1652,25 +1670,26 @@ export default function OrganizerDashboard() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-black text-white">Damaged Items</p>
-                    <p className="text-xs text-slate-500 mt-1">Select multiple items and each quantity will use its fixed catalog price.</p>
+                    <p className="text-xs text-slate-500 mt-1">Select multiple items from your admin damage catalog and each quantity will use its saved unit price.</p>
                   </div>
                   <button onClick={addDamageItemRow} type="button" className="px-3 py-2 text-xs font-black rounded-lg text-sky-300" style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.22)' }}>
                     Add Item
                   </button>
                 </div>
+                {damageCatalogLoading && <p className="text-xs text-slate-500">Loading catalog...</p>}
 
                 {damageItems.map((item, index) => {
                   const selectedCatalogItem = activeDamageCatalog.find(entry => entry.id === Number(item.catalog_item_id));
                   const lineTotal = Number(item.quantity || 0) * Number(item.unit_price || 0);
                   return (
-                    <div key={item.rowId} className="grid md:grid-cols-[1.7fr_0.7fr_0.8fr_auto] gap-3 items-end rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div key={item.rowId} className="grid md:grid-cols-[2.2fr_0.9fr_1fr_auto] gap-3 items-end rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                       <div>
                         <p className="text-xs text-slate-400 mb-1">Item #{index + 1}</p>
                         <select value={item.catalog_item_id} onChange={e => applyCatalogItemToDamageRow(item.rowId, e.target.value)} className={iCls} style={iStyle}>
                           <option value="" style={{ background: '#0c2d4a' }}>Select item</option>
                           {activeDamageCatalog.map((catalogItem) => (
                             <option key={catalogItem.id} value={catalogItem.id} style={{ background: '#0c2d4a' }}>
-                              {catalogItem.name} • {formatCurrency(catalogItem.unit_price)}
+                              {catalogItem.name} - {formatCurrency(catalogItem.unit_price)}
                             </option>
                           ))}
                         </select>
@@ -1686,7 +1705,7 @@ export default function OrganizerDashboard() {
                       </div>
                       <div>
                         <p className="text-xs text-slate-400 mb-1">Unit Price (&#8369;)</p>
-                        <input type="number" min="0" value={item.unit_price} readOnly className={iCls} style={{ ...iStyle, opacity: 0.8 }} />
+                        <input type="text" value={item.unit_price ? formatCurrency(Number(item.unit_price)) : ''} readOnly className={iCls} style={{ ...iStyle, opacity: 0.9, minWidth: 0 }} />
                       </div>
                       <button onClick={() => removeDamageItemRow(item.rowId)} type="button" disabled={damageItems.length === 1} className="px-4 py-3 font-black rounded-xl text-slate-300 disabled:opacity-40" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
                         Remove
@@ -1696,7 +1715,7 @@ export default function OrganizerDashboard() {
                 })}
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid md:grid-cols-3 gap-3">
                 <div>
                   <p className="text-xs text-slate-400 mb-1">Recovered (&#8369;)</p>
                   <input type="number" min="0" value={damageForm.recovered_amount} onChange={e => setDamageForm(f => ({ ...f, recovered_amount: e.target.value }))} placeholder="0.00" className={iCls} style={iStyle} />

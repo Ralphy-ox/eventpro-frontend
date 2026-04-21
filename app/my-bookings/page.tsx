@@ -13,6 +13,7 @@ interface Booking {
   payment_status: string; payment_method: string; total_amount: number;
   created_at: string; gcash_reference?: string; payment_proof?: string;
   decline_reason?: string; has_review?: boolean;
+  damage_count?: number;
   whole_day?: boolean;
   end_time?: string | null;
   is_extended?: boolean;
@@ -327,6 +328,16 @@ export default function MyBookings() {
                         {false && booking.extension?.status === 'declined' && !booking.is_extended && (
                           <p className="text-xs text-red-300 mt-2">Previous extension request was declined. You can request again if needed.</p>
                         )}
+                      </div>
+                    )}
+
+                    {!!booking.damage_count && booking.damage_count > 0 && (
+                      <div className="mb-4 p-3 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)' }}>
+                        <p className="text-xs font-bold text-red-300 mb-1">Damage Report Notice</p>
+                        <p className="text-xs text-slate-300">
+                          The owner reported {booking.damage_count} damage report{booking.damage_count > 1 ? 's' : ''} for this booking.
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">Open the booking details to see the full item breakdown and charges.</p>
                       </div>
                     )}
 
