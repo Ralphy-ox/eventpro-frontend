@@ -282,7 +282,7 @@ export default function MyBookings() {
                     <div className="grid grid-cols-2 gap-2 mb-4">
                       {[
                         { label: 'Date', value: booking.date },
-                        { label: 'Schedule', value: booking.whole_day ? 'Whole day' : formatDisplayTime(booking.time) },
+                        { label: 'Schedule', value: booking.whole_day ? 'Whole day' : (booking.time ? formatDisplayTime(booking.time) : 'N/A') },
                         { label: 'Guests', value: `${booking.capacity} pax` },
                         { label: 'Method', value: booking.payment_method || 'N/A' },
                       ].map(item => (
@@ -473,7 +473,7 @@ export default function MyBookings() {
                         View Details
                       </button>
                       {booking.status === 'pending' && editingBooking !== booking.id && (
-                        <button onClick={() => { setEditingBooking(booking.id); setNewDate(booking.date); setNewTime(booking.time); }}
+                        <button onClick={() => { setEditingBooking(booking.id); setNewDate(booking.date); setNewTime(booking.time ?? ''); }}
                           className={btn} style={{ background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.1)' }}>
                           Reschedule
                         </button>
