@@ -113,12 +113,12 @@ const DAMAGE_ITEM_TYPE_LABELS: Record<string, string> = {
   other: 'Other',
 };
 const DEFAULT_DAMAGE_CATALOG: DamageCatalogItem[] = [
-  { id: -1, item_type: 'chair', name: 'Plastic Chair', unit_price: 100, is_active: true },
-  { id: -2, item_type: 'table', name: 'Table', unit_price: 500, is_active: true },
-  { id: -3, item_type: 'glassware', name: 'Wine Glass', unit_price: 120, is_active: true },
-  { id: -4, item_type: 'utensil', name: 'Spoon', unit_price: 40, is_active: true },
-  { id: -5, item_type: 'utensil', name: 'Fork', unit_price: 40, is_active: true },
-  { id: -6, item_type: 'decor', name: 'Table Decor', unit_price: 300, is_active: true },
+  { id: -1, item_type: 'glassware', name: 'Regular Glass', unit_price: 25, is_active: true },
+  { id: -2, item_type: 'glassware', name: 'Wine Glass', unit_price: 45, is_active: true },
+  { id: -3, item_type: 'table', name: 'Presidential Table', unit_price: 2000, is_active: true },
+  { id: -4, item_type: 'chair', name: 'Regular Chair', unit_price: 100, is_active: true },
+  { id: -5, item_type: 'utensil', name: 'Fork', unit_price: 15, is_active: true },
+  { id: -6, item_type: 'utensil', name: 'Spoon', unit_price: 15, is_active: true },
 ];
 const createDamageDraftItem = (): DamageDraftItem => ({
   rowId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -161,6 +161,18 @@ const deriveCatalogFromDamageReports = (reports: DamageReport[]): DamageCatalogI
   });
 
   return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+};
+const mergeDamageCatalog = (items: DamageCatalogItem[]): DamageCatalogItem[] => {
+  const merged = new Map<string, DamageCatalogItem>();
+
+  [...items, ...DEFAULT_DAMAGE_CATALOG].forEach((item) => {
+    const key = `${item.item_type}:${item.name.toLowerCase()}`;
+    if (!merged.has(key)) {
+      merged.set(key, item);
+    }
+  });
+
+  return Array.from(merged.values()).sort((a, b) => a.name.localeCompare(b.name));
 };
 
 export default function OrganizerDashboard() {
@@ -314,7 +326,7 @@ export default function OrganizerDashboard() {
           const damageData = await damageResponse.json();
           const inferredCatalog = deriveCatalogFromDamageReports(Array.isArray(damageData?.reports) ? damageData.reports : []);
           if (inferredCatalog.length > 0) {
-            setDamageCatalog(inferredCatalog);
+            setDamageCatalog(mergeDamageCatalog(inferredCatalog));
             return;
           }
         }

@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { API_BASE, resolveUploadedAssetUrl } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 
 const DOWNPAYMENT_RATE = 0.5;
 
@@ -159,6 +160,12 @@ export default function BookingDetailPage() {
   useEffect(() => {
     fetchBooking();
   }, [fetchBooking]);
+
+  useRealtimeRefresh('clientToken', (type) => {
+    if (type === 'damage_report' || type === 'new_booking' || type === 'booking_status') {
+      fetchBooking();
+    }
+  });
 
   const handleGcashUpload = async () => {
     if (!booking) return;
