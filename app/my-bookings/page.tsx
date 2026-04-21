@@ -9,18 +9,11 @@ import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 
 interface Booking {
   id: number; event_type: string; description: string; capacity: number;
-  date: string; time: string; location: string; status: string;
+  date: string; time: string | null; location: string; status: string;
   payment_status: string; payment_method: string; total_amount: number;
   created_at: string; gcash_reference?: string; payment_proof?: string;
   decline_reason?: string; has_review?: boolean;
-  end_time?: string | null;
-  is_extended?: boolean;
-  extension?: {
-    status: 'pending' | 'approved' | 'declined';
-    extension_hours: number;
-    extension_fee: number;
-    created_at: string;
-  } | null;
+  whole_day?: boolean;
 }
 
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
@@ -79,16 +72,6 @@ export default function MyBookings() {
     return `${hour}:${String(m).padStart(2, '0')} ${period}`;
   };
 
-  const computeFallbackEndTime = (time?: string | null) => {
-    if (!time) return 'N/A';
-    const [h, m] = time.slice(0, 5).split(':').map(Number);
-    if (Number.isNaN(h) || Number.isNaN(m)) return 'N/A';
-    const end = new Date();
-    end.setHours(h, m, 0, 0);
-    end.setHours(end.getHours() + 8);
-    return formatDisplayTime(`${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`);
-  };
-
   const fetchBookings = useCallback(() => {
     const token = localStorage.getItem('clientToken');
     if (!token) { router.push('/signin'); return; }
@@ -119,13 +102,13 @@ export default function MyBookings() {
   };
 
   const handleReschedule = async (id: number) => {
-    if (!newDate && !newTime) { alert('Select a new date or time'); return; }
+    if (!newDate) { alert('Select a new date'); return; }
     const token = localStorage.getItem('clientToken');
     const res = await fetch(`${API_BASE}/bookings/${id}/update/`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ date: newDate || undefined, time: newTime || undefined }),
+      body: JSON.stringify({ date: newDate || undefined }),
     });
-    if (res.ok) { setEditingBooking(null); setNewDate(''); setNewTime(''); fetchBookings(); }
+    if (res.ok) { setEditingBooking(null); setNewDate(''); fetchBookings(); }
     else { const d = await res.json(); alert(d.message || 'Failed'); }
   };
   const handleSubmitReview = async (id: number) => {
@@ -291,8 +274,7 @@ export default function MyBookings() {
                     <div className="grid grid-cols-2 gap-2 mb-4">
                       {[
                         { label: 'Date', value: booking.date },
-                        { label: 'Start', value: formatDisplayTime(booking.time) },
-                        { label: 'End', value: booking.end_time ? formatDisplayTime(booking.end_time) : computeFallbackEndTime(booking.time) },
+                        { label: 'Schedule', value: booking.whole_day ? 'Whole day' : formatDisplayTime(booking.time) },
                         { label: 'Guests', value: `${booking.capacity} pax` },
                         { label: 'Method', value: booking.payment_method || 'N/A' },
                       ].map(item => (
@@ -322,19 +304,19 @@ export default function MyBookings() {
 
                     {booking.status === 'confirmed' && (
                       <div className="mb-4 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.16)' }}>
-                        <p className="text-xs font-bold text-sky-300 mb-1">Extension Window</p>
+                        <p className="text-xs font-bold text-sky-300 mb-1">Schedule</p>
                         <p className="text-xs text-slate-300">
-                          Reservation ends at <strong className="text-white">{booking.end_time ? formatDisplayTime(booking.end_time) : computeFallbackEndTime(booking.time)}</strong>.
+                          This reservation covers the whole selected date.
                         </p>
-                        {booking.is_extended && (
+                        {false && booking.is_extended && (
                           <p className="text-xs text-green-300 mt-2">This booking has already been extended.</p>
                         )}
-                        {booking.extension?.status === 'pending' && (
+                        {false && booking.extension?.status === 'pending' && (
                           <p className="text-xs text-amber-300 mt-2">
                             Extension request pending: +{booking.extension.extension_hours} hours for ₱{Number(booking.extension.extension_fee).toLocaleString()}.
                           </p>
                         )}
-                        {booking.extension?.status === 'declined' && !booking.is_extended && (
+                        {false && booking.extension?.status === 'declined' && !booking.is_extended && (
                           <p className="text-xs text-red-300 mt-2">Previous extension request was declined. You can request again if needed.</p>
                         )}
                       </div>
@@ -390,11 +372,12 @@ export default function MyBookings() {
                     {editingBooking === booking.id && (
                       <div className="mb-4 p-4 rounded-xl space-y-3" style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
                         <p className="text-xs font-bold text-sky-300">Reschedule Booking</p>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-2">
                           <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)}
                             className="w-full px-3 py-2 rounded-xl text-xs text-white focus:ring-2 focus:ring-sky-500 outline-none"
                             style={{ ...iStyle, colorScheme: 'dark' }} />
                           <select value={newTime} onChange={e => setNewTime(e.target.value)}
+                            hidden
                             className="w-full px-3 py-2 rounded-xl text-xs text-white focus:ring-2 focus:ring-sky-500 outline-none"
                             style={iStyle}>
                             <option value="" style={{ background: '#0c2d4a' }}>Select time</option>
@@ -463,7 +446,7 @@ export default function MyBookings() {
                         Review submitted — Thank you!
                       </div>
                     )}
-                    {booking.status === 'confirmed' && !booking.is_extended && booking.extension?.status !== 'pending' && (
+                    {false && booking.status === 'confirmed' && !booking.is_extended && booking.extension?.status !== 'pending' && (
                       <div className="mb-4">
                         <button
                           onClick={() => handleRequestExtension(booking.id)}

@@ -99,7 +99,7 @@ function BookingConfirmationContent() {
     { label: 'Event Type', value: booking.event_type },
     { label: 'Status', value: booking.status.charAt(0).toUpperCase() + booking.status.slice(1) },
     { label: 'Date', value: booking.date },
-    { label: 'Time', value: booking.whole_day ? 'Whole Day (9AM - 10PM)' : (booking.time || 'TBD') },
+    { label: 'Schedule', value: booking.whole_day ? 'Whole day reservation' : (booking.time || 'TBD') },
     { label: 'Guests', value: `${booking.capacity} people` },
     { label: 'Booked On', value: new Date(booking.created_at).toLocaleDateString() },
   ] : [];

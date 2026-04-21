@@ -36,13 +36,6 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; border: string }
   declined: { bg: 'rgba(239,68,68,0.15)', text: '#f87171', border: 'rgba(239,68,68,0.3)' },
 };
 
-const PAYMENT_STYLES: Record<string, { bg: string; text: string }> = {
-  paid: { bg: 'rgba(34,197,94,0.15)', text: '#4ade80' },
-  pending: { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24' },
-  pending_verification: { bg: 'rgba(14,165,233,0.15)', text: '#38bdf8' },
-  rejected: { bg: 'rgba(239,68,68,0.15)', text: '#f87171' },
-};
-
 const getDisplayPaymentMeta = (booking: Booking) => {
   if (booking.status === 'pending') return { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24', label: 'PENDING' };
   if (booking.payment_status === 'paid') return { bg: 'rgba(34,197,94,0.15)', text: '#4ade80', label: 'PAID' };
@@ -62,6 +55,14 @@ const eventDetailLabels: Record<string, string> = {
   genre: 'Genre',
   honoree_name: 'Honoree',
   occasion: 'Occasion',
+  regular_tables: 'Regular Tables',
+  regular_table_price: 'Regular Table Price',
+  presidential_tables: 'Presidential Tables',
+  presidential_table_price: 'Presidential Table Price',
+  add_on_total: 'Add-on Total',
+  extra_tables: 'Extra Table Bundles',
+  extra_chairs_included: 'Bundled Chairs',
+  extra_table_bundle_fee: 'Extra Table Bundle Fee',
 };
 
 const card: React.CSSProperties = {
@@ -246,7 +247,7 @@ export default function BookingDetailPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
             {[
               { label: 'Date', value: new Date(booking.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) },
-              { label: 'Time', value: booking.whole_day ? 'Whole Day (9AM - 10PM)' : (booking.time ?? 'TBD') },
+              { label: 'Schedule', value: booking.whole_day ? 'Whole day reservation' : (booking.time ?? 'TBD') },
               { label: 'Guests', value: `${booking.capacity} people` },
               { label: 'Venue', value: booking.location },
               { label: 'Payment Method', value: booking.payment_method || 'N/A' },

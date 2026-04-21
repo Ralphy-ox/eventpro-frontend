@@ -128,6 +128,7 @@ export default function OrganizerDashboard() {
   const { loggingOut, logout } = useLogout();
   const djangoAdminBase = API_BASE.replace(/\/api\/user$/, '/admin');
   const landingCarouselAdminUrl = `${djangoAdminBase}/user/landingcarouselimage/`;
+  const eventTypesAdminUrl = `${djangoAdminBase}/user/eventtype/`;
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -536,7 +537,6 @@ export default function OrganizerDashboard() {
     { key: 'pending', label: `Pending (${pending.length})` },
     { key: 'confirmed', label: `Confirmed (${confirmed.length})` },
     { key: 'declined', label: `Declined (${declined.length})` },
-    { key: 'extensions', label: `Extensions (${extensionRequests.length})` },
     { key: 'reviews', label: `Reviews (${reviews.length})` },
     { key: 'analytics', label: 'Analytics' },
     { key: 'damages', label: `Damages (${damageSummary.damage_reports_count})` },
@@ -563,7 +563,7 @@ export default function OrganizerDashboard() {
         </div>
 
         <div className="grid grid-cols-2 gap-2 mb-3">
-          {[{ label: 'Date', value: formatDate(booking.date) }, { label: 'Time', value: formatTime(booking.time) }].map(item => (
+          {[{ label: 'Date', value: formatDate(booking.date) }, { label: 'Schedule', value: booking.whole_day ? 'Whole day' : formatTime(booking.time) }].map(item => (
             <div key={item.label} className="rounded-xl p-2.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <p className="text-xs text-sky-500 font-bold">{item.label}</p>
               <p className="text-xs text-white font-semibold mt-0.5">{item.value}</p>
@@ -607,7 +607,7 @@ export default function OrganizerDashboard() {
               )}
               <p className="text-slate-300"><span className="text-slate-500">Description:</span> {booking.description || 'No description submitted.'}</p>
               <p className="text-slate-300"><span className="text-slate-500">Guests:</span> {booking.capacity}</p>
-              <p className="text-slate-300"><span className="text-slate-500">Schedule:</span> {formatDate(booking.date)} | {formatTime(booking.time)}</p>
+              <p className="text-slate-300"><span className="text-slate-500">Schedule:</span> {formatDate(booking.date)} | {booking.whole_day ? 'Whole day' : formatTime(booking.time)}</p>
               <p className="text-slate-300"><span className="text-slate-500">Payment method:</span> {booking.payment_method || 'N/A'}</p>
               {booking.client_email && (
                 <p className="text-slate-300"><span className="text-slate-500">Client email:</span> {booking.client_email}</p>
@@ -823,9 +823,9 @@ export default function OrganizerDashboard() {
             style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.18)' }}>
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-sky-300 mb-2">Superadmin Tools</p>
-              <h2 className="text-xl font-black text-white mb-1">Landing Carousel Manager</h2>
+              <h2 className="text-xl font-black text-white mb-1">Landing Carousel And Venue Pricing</h2>
               <p className="text-sm text-slate-300 max-w-2xl">
-                Diri ka maka-add, edit, ug arrange sa homepage hero images. Mo-open ni sa Django admin list for Landing Carousel Images.
+                Diri ka maka-add, edit, ug arrange sa homepage hero images. Pwede pud nimo i-open ang venue pricing para sa regular ug presidential table rates kung naka-setup na sa event type data.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -836,6 +836,14 @@ export default function OrganizerDashboard() {
                 style={btnPrimary}
               >
                 Open Carousel Manager
+              </button>
+              <button
+                type="button"
+                onClick={() => window.open(eventTypesAdminUrl, '_blank', 'noopener,noreferrer')}
+                className="px-5 py-3 rounded-xl font-black text-sm transition-all hover:-translate-y-0.5"
+                style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.24)', color: '#e0f2fe' }}
+              >
+                Open Venue Pricing
               </button>
               <button
                 type="button"

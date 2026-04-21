@@ -11,6 +11,9 @@ interface EventType {
   id: number; event_type: string; price: number;
   included_capacity: number; max_capacity: number; people_per_table: number; description: string;
   max_invited_emails: number; excess_person_fee: number; image: string | null;
+  regular_table_price?: number;
+  presidential_table_price?: number;
+  extra_table_bundle_fee?: number;
 }
 
 interface ComboSuggestion {
@@ -42,24 +45,8 @@ const getTomorrowDate = () => {
   return new Date(now.getTime() - timezoneOffsetMs + 86400000).toISOString().split('T')[0];
 };
 
-const TIME_OPTIONS = [
-  '08:00','09:00','10:00','11:00','12:00',
-  '13:00','14:00','15:00','16:00','17:00',
-  '18:00','19:00','20:00',
-];
-
-const formatTime12h = (time24: string) => {
-  const [h] = time24.split(':').map(Number);
-  const period = h >= 12 ? 'PM' : 'AM';
-  const hour = h % 12 || 12;
-  return `${hour}:00 ${period}`;
-};
-
-const getEndTime = (startTime: string) => {
-  const [h] = startTime.split(':').map(Number);
-  const endH = Math.min(h + 8, 23);
-  return formatTime12h(`${endH}:00`);
-};
+const DEFAULT_REGULAR_TABLE_PRICE = 100;
+const DEFAULT_PRESIDENTIAL_TABLE_PRICE = 0;
 
 export default function ClientDashboard() {
   const router = useRouter();
@@ -70,7 +57,6 @@ export default function ClientDashboard() {
   const [description, setDescription] = useState('');
   const [numPeopleInvited, setNumPeopleInvited] = useState<number>(0);
   const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
   const [availableRooms, setAvailableRooms] = useState<number | null>(null);
   const [isBooked, setIsBooked] = useState<boolean | null>(null);
   const [comboSuggestions, setComboSuggestions] = useState<ComboSuggestion[]>([]);
@@ -95,6 +81,16 @@ export default function ClientDashboard() {
   const [invitedEmails, setInvitedEmails] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
   const [emailsError, setEmailsError] = useState('');
+  const [regularTables, setRegularTables] = useState(0);
+  const [presidentialTables, setPresidentialTables] = useState(0);
+
+  const applyClientContactDetails = (profile: { first_name?: string; last_name?: string }) => {
+    setEventDetails(prev => ({
+      ...prev,
+      contact_first_name: prev.contact_first_name || capitalizeWords(profile.first_name || ''),
+      contact_last_name: prev.contact_last_name || capitalizeWords(profile.last_name || ''),
+    }));
+  };
 
   const getEffectiveIncludedCapacity = (venue: EventType | null) => {
     if (!venue) return 0;
@@ -116,11 +112,37 @@ export default function ClientDashboard() {
     return venue.max_capacity > included ? venue.max_capacity : included;
   };
 
+  const getRegularTablePrice = (venue: EventType | null) => {
+    if (!venue) return DEFAULT_REGULAR_TABLE_PRICE;
+    const rawPrice = Number(venue.regular_table_price ?? venue.extra_table_bundle_fee);
+    return Number.isFinite(rawPrice) && rawPrice >= 0 ? rawPrice : DEFAULT_REGULAR_TABLE_PRICE;
+  };
+
+  const getPresidentialTablePrice = (venue: EventType | null) => {
+    if (!venue) return DEFAULT_PRESIDENTIAL_TABLE_PRICE;
+    const rawPrice = Number(venue.presidential_table_price);
+    return Number.isFinite(rawPrice) && rawPrice >= 0 ? rawPrice : DEFAULT_PRESIDENTIAL_TABLE_PRICE;
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('clientToken');
     if (!token) { alert('Please login to access this page'); router.push('/signin'); return; }
     if (localStorage.getItem('organizerToken')) { alert('Organizers cannot access client pages!'); router.push('/organizer-dashboard'); return; }
     loadEventTypes();
+    fetch(`${API_BASE}/profile/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        if (res.status === 401) {
+          localStorage.removeItem('clientToken');
+          router.push('/signin');
+          return null;
+        }
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then(data => {
+        if (data) applyClientContactDetails(data);
+      })
+      .catch(() => {});
   }, [router]);
 
   const loadEventTypes = async () => {
@@ -156,6 +178,12 @@ export default function ClientDashboard() {
   const sessionBasePrice = selectedEventType ? selectedEventType.price : 0;
   const localExcessGuests = selectedEventType ? Math.max(0, numPeopleInvited - includedCapacity) : 0;
   const localExcessTotal = localExcessGuests * excessPersonFee;
+  const regularTablePrice = getRegularTablePrice(selectedEventType);
+  const presidentialTablePrice = getPresidentialTablePrice(selectedEventType);
+  const bundledChairCount = selectedEventType ? regularTables * selectedEventType.people_per_table : 0;
+  const regularTablesTotal = regularTables * regularTablePrice;
+  const presidentialTablesTotal = presidentialTables * presidentialTablePrice;
+  const addOnTotal = regularTablesTotal + presidentialTablesTotal;
   const hasExplicitSingleHallLimit = !!selectedEventType && singleHallLimit > includedCapacity;
   const singleHallTooSmall = !!selectedEventType && numPeopleInvited > singleHallLimit;
   const activeSelectionLabel = selectedCombo?.label || selectedEventType?.event_type || '';
@@ -165,7 +193,8 @@ export default function ClientDashboard() {
   const selectionTooSmall = !!activeSelectionLabel && numPeopleInvited > activeCapacityLimit;
   const isFullyBooked = isBooked === true;
   const slotAvail = isBooked === false ? 1 : 0;
-  const displayPrice = pricingInfo?.total_amount ?? (sessionBasePrice + localExcessTotal);
+  const computedBaseTotal = pricingInfo?.total_amount ?? (sessionBasePrice + localExcessTotal);
+  const displayPrice = computedBaseTotal + addOnTotal;
   const displayedCardCapacity = selectedEventType ? includedCapacity : 0;
   const displayedIncludedGuests = Math.min(
     numPeopleInvited || 0,
@@ -196,7 +225,11 @@ export default function ClientDashboard() {
       .then(data => {
         if (data) {
           setAvailableRooms(data.available_rooms);
-          setIsBooked(data.available_rooms === 0 || (data.morning?.available === 0 && data.afternoon?.available === 0));
+          setIsBooked(
+            data.conflicts?.date_blocked === true ||
+            data.available_rooms === 0 ||
+            (data.morning?.available === 0 && data.afternoon?.available === 0)
+          );
           setPricingInfo(data.pricing ?? null);
           const nextSuggestions = Array.isArray(data.combo_suggestions) ? data.combo_suggestions : [];
           setComboSuggestions(nextSuggestions);
@@ -210,7 +243,7 @@ export default function ClientDashboard() {
   }, [eventType, numPeopleInvited, date, router, timeSlot, selectedCombo]);
 
   const handleBookingRequest = async () => {
-    if (!eventType || !description || !numPeopleInvited || !date || !time || !paymentMethod) {
+    if (!eventType || !description || !numPeopleInvited || !date || !paymentMethod) {
       alert('Please fill in all required fields'); return;
     }
     if (date <= today) {
@@ -244,16 +277,26 @@ export default function ClientDashboard() {
         description: capitalizeWords(description ?? ''),
         capacity: numPeopleInvited,
         date,
-        time,
-        whole_day: false,
+        time: null,
+        whole_day: true,
         time_slot: timeSlot,
         invited_emails: invitedEmails ?? '',
         payment_method: paymentMethod,
         event_details: Object.fromEntries(
-          Object.entries(eventDetails ?? {}).map(([key, value]) => [
-            key,
-            shouldCapitalizeEventField(key) ? capitalizeWords(value) : value,
-          ])
+          [
+            ...Object.entries(eventDetails ?? {}).map(([key, value]) => [
+              key,
+              shouldCapitalizeEventField(key) ? capitalizeWords(value) : value,
+            ]),
+            ['regular_tables', String(regularTables)],
+            ['regular_table_price', String(regularTablePrice)],
+            ['extra_chairs_included', String(bundledChairCount)],
+            ['presidential_tables', String(presidentialTables)],
+            ['presidential_table_price', String(presidentialTablePrice)],
+            ['add_on_total', String(addOnTotal)],
+            ['extra_tables', String(regularTables)],
+            ['extra_table_bundle_fee', String(regularTablePrice)],
+          ]
         ),
         special_requests: capitalizeWords((specialRequests ?? '').trim()),
       };
@@ -267,8 +310,9 @@ export default function ClientDashboard() {
       if (!res.ok) { const e = await res.json(); alert(e.message || 'Failed to create booking'); setSubmitting(false); return; }
       const data = await res.json();
       if (paymentMethod === 'QRPh' || paymentMethod === 'GCash') {
-        const downpaymentAmount = Number(data.total_amount || 0) * 0.5;
-        router.push(`/payment?id=${data.booking_id}&amount=${downpaymentAmount}&total=${data.total_amount}&method=${encodeURIComponent(paymentMethod.toLowerCase())}`);
+        const finalTotalAmount = Number(data.total_amount || 0) + addOnTotal;
+        const downpaymentAmount = finalTotalAmount * 0.5;
+        router.push(`/payment?id=${data.booking_id}&amount=${downpaymentAmount}&total=${finalTotalAmount}&method=${encodeURIComponent(paymentMethod.toLowerCase())}`);
       } else { alert('Booking created successfully. Payment will stay unpaid until the owner accepts it.'); router.push('/my-bookings'); }
     } catch { alert('Connection error.'); setSubmitting(false); }
   };
@@ -306,7 +350,7 @@ export default function ClientDashboard() {
           <div className="w-1 rounded-full shrink-0" style={{ background: '#0ea5e9' }} />
           <div>
             <p className="text-sky-300 text-sm font-bold mb-1">Booking Info</p>
-            <p className="text-slate-400 text-xs">Pick your preferred start time (8:00 AM – 8:00 PM). Your event runs for 8 hours from the selected start time. Bookings must be made at least 1 day in advance.</p>
+            <p className="text-slate-400 text-xs">One booking per day only. Once a date has an active booking, it becomes unavailable. Bookings must be made at least 1 day in advance.</p>
           </div>
         </div>
 
@@ -328,7 +372,7 @@ export default function ClientDashboard() {
                     <select value={eventType} onChange={e => {
                       const sel = eventTypes.find(et => et.event_type === e.target.value);
                       setEventType(e.target.value); setSelectedEventType(sel || null);
-                      setNumPeopleInvited(getEffectiveIncludedCapacity(sel || null) || 0); setEventDetails({}); setSelectedCombo(null);
+                      setNumPeopleInvited(getEffectiveIncludedCapacity(sel || null) || 0); setEventDetails({}); setSelectedCombo(null); setRegularTables(0); setPresidentialTables(0);
                     }} className={iCls} style={iStyle}>
                       <option value="" style={{ background: '#0c2d4a' }}>Select hall type</option>
                       {eventTypes.map(et => <option key={et.id} value={et.event_type} style={{ background: '#0c2d4a' }}>{et.event_type}</option>)}
@@ -415,6 +459,68 @@ export default function ClientDashboard() {
                     </p>
                   )}
                 </div>
+
+{selectedEventType && (
+                  <div>
+                    <label className={lCls}>Special Add-ons <span className="text-slate-500 normal-case font-normal">(optional)</span></label>
+                    <div className="rounded-xl p-4 space-y-3" style={{ ...iStyle }}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold text-white">Regular Table</p>
+                          <p className="text-xs text-slate-400">
+                            Each regular table includes {selectedEventType.people_per_table} bundled chairs for P{regularTablePrice.toLocaleString()}.
+                          </p>
+                        </div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={regularTables || ''}
+                          onChange={e => setRegularTables(Math.max(0, Number(e.target.value) || 0))}
+                          className="w-24 h-11 px-3 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          style={iStyle}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold text-white">Presidential Table</p>
+                          <p className="text-xs text-slate-400">
+                            Presidential table pricing is P{presidentialTablePrice.toLocaleString()} each.
+                          </p>
+                        </div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={presidentialTables || ''}
+                          onChange={e => setPresidentialTables(Math.max(0, Number(e.target.value) || 0))}
+                          className="w-24 h-11 px-3 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          style={iStyle}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                        <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <p className="text-sky-500 mb-1">Regular</p>
+                          <p className="font-bold text-white">{regularTables}</p>
+                        </div>
+                        <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <p className="text-sky-500 mb-1">Bundled Chairs</p>
+                          <p className="font-bold text-white">{bundledChairCount}</p>
+                        </div>
+                        <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <p className="text-sky-500 mb-1">Regular Total</p>
+                          <p className="font-bold text-white">P{regularTablesTotal.toLocaleString()}</p>
+                        </div>
+                        <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <p className="text-sky-500 mb-1">Presidential</p>
+                          <p className="font-bold text-white">{presidentialTables}</p>
+                        </div>
+                        <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <p className="text-sky-500 mb-1">Add-on Total</p>
+                          <p className="font-bold text-white">P{addOnTotal.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -437,18 +543,13 @@ export default function ClientDashboard() {
                     )}
                   </div>
                   <div>
-                    <label className={lCls}>Start Time</label>
-                    <select value={time} onChange={e => setTime(e.target.value)} className={iCls} style={iStyle}>
-                      <option value="" style={{ background: '#0c2d4a' }}>Select start time</option>
-                      {TIME_OPTIONS.map(t => (
-                        <option key={t} value={t} style={{ background: '#0c2d4a' }}>{formatTime12h(t)}</option>
-                      ))}
-                    </select>
-                    {time && (
-                      <p className="text-xs text-slate-400 mt-1">
-                        {formatTime12h(time)} – {getEndTime(time)}
-                      </p>
-                    )}
+                    <label className={lCls}>Schedule</label>
+                    <div className="h-12 px-4 rounded-xl flex items-center text-sm font-semibold text-white" style={iStyle}>
+                      Whole day booking
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Start time removed. This reservation blocks the entire selected date.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -503,7 +604,7 @@ export default function ClientDashboard() {
                     <div className="rounded-2xl p-5 mb-5 text-center" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
                       <p className="text-xs text-red-300 uppercase tracking-[0.25em] mb-2">Status</p>
                       <p className="text-2xl font-black text-red-400">Fully Booked</p>
-                      <p className="text-xs text-red-200 mt-2">This hall is already reserved for this date.</p>
+                      <p className="text-xs text-red-200 mt-2">This date is already reserved, including pending bookings.</p>
                     </div>
                   ) : (
                     <div className="rounded-2xl p-4 mb-5 text-center" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>
@@ -521,7 +622,7 @@ export default function ClientDashboard() {
                           <p className="text-xs text-amber-300 mt-2">Downpayment due now: P{(displayPrice * 0.5).toLocaleString()}</p>
                           <p className="text-xs text-slate-400 mt-1">Remaining balance after downpayment: P{(displayPrice * 0.5).toLocaleString()}</p>
                           <p className="text-3xl font-black text-white">₱{displayPrice.toLocaleString()}</p>
-                          <p className="text-xs text-sky-400 mt-1">{activeSelectionLabel}{time ? ` · ${formatTime12h(time)} – ${getEndTime(time)}` : ''}</p>
+                          <p className="text-xs text-sky-400 mt-1">{activeSelectionLabel} · Whole day reservation</p>
                         </div>
                       )}
 
@@ -532,6 +633,10 @@ export default function ClientDashboard() {
                           <p>Included guests: {displayedIncludedGuests}</p>
                           <p>Excess guests: {pricingInfo?.excess_guests ?? localExcessGuests}</p>
                           <p>Excess total: P{(pricingInfo?.excess_total ?? localExcessTotal).toLocaleString()}</p>
+                          <p>Regular tables: {regularTables} x P{regularTablePrice.toLocaleString()}</p>
+                          <p>Presidential tables: {presidentialTables} x P{presidentialTablePrice.toLocaleString()}</p>
+                          <p>Add-on total: P{addOnTotal.toLocaleString()}</p>
+                          <p>Final total: P{displayPrice.toLocaleString()}</p>
                         </div>
                       </div>
 
@@ -597,8 +702,8 @@ export default function ClientDashboard() {
                     </>
                   ) : (
                     <div className="text-center py-6 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                      <p className="text-red-400 font-bold text-sm">This hall is already booked for this date.</p>
-                      <p className="text-red-300 text-xs mt-1">Please choose a different date.</p>
+                      <p className="text-red-400 font-bold text-sm">This date is not available anymore.</p>
+                      <p className="text-red-300 text-xs mt-1">Please choose another date because an active booking already exists, even if it is still pending.</p>
                     </div>
                   )}
                 </div>
