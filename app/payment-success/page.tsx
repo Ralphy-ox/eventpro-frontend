@@ -44,13 +44,16 @@ function PaymentSuccessContent() {
   const details = useMemo(() => {
     const paymentMethod = booking?.payment_method || (method === 'qrph' ? 'QRPh' : 'GCash');
     const isPaid = booking?.payment_status === 'paid';
+    const isPendingReview = booking?.payment_status === 'pending_review';
 
     return {
-      title: isPaid ? 'Downpayment Received!' : 'Downpayment Submitted!',
+      title: isPaid ? 'Downpayment Received!' : isPendingReview ? 'Payment Received!' : 'Downpayment Submitted!',
       subtitle: isPaid
         ? `Your ${paymentMethod} booking downpayment has been confirmed by PayMongo.`
+        : isPendingReview
+        ? `Your ${paymentMethod} payment was received, but the booking is still waiting for organizer acceptance.`
         : `Your ${paymentMethod} downpayment checkout was submitted. We are waiting for the final PayMongo confirmation.`,
-      status: isPaid ? 'Paid' : 'Processing',
+      status: isPaid ? 'Paid' : isPendingReview ? 'Pending Review' : 'Processing',
       proof: paymentMethod === 'GCash' ? 'Direct checkout' : 'QR checkout',
       nextSteps: isPaid
         ? [
@@ -60,6 +63,13 @@ function PaymentSuccessContent() {
             'Downpayments are non-refundable.',
             'Check "My Bookings" to monitor organizer approval.',
             'You will receive a notification once the booking is updated.',
+          ]
+        : isPendingReview
+        ? [
+            'Your payment was received successfully.',
+            'The booking will stay under review until the organizer accepts it.',
+            'Open "My Bookings" if you still want to upload your proof of payment and your reference number.',
+            'You will receive a notification once the booking is accepted or updated.',
           ]
         : [
             'PayMongo is still finalizing your payment status.',

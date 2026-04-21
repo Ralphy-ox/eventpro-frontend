@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { LogoutOverlay, useLogout } from '@/components/LogoutOverlay';
 import { API_BASE } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
+import { PASSWORD_MIN_LENGTH, getPasswordRuleMessage } from '@/lib/password-validation';
 
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
 const iCls = "w-full rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all text-sm";
@@ -92,8 +93,9 @@ export default function ProfilePage() {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword || !confirmPassword) { alert('Fill in all fields'); return; }
+    const passwordError = getPasswordRuleMessage(newPassword);
+    if (passwordError) { alert(passwordError); return; }
     if (newPassword !== confirmPassword) { alert('Passwords do not match'); return; }
-    if (newPassword.length < 6) { alert('Min 6 characters'); return; }
     setLoading(true);
     const token = localStorage.getItem('clientToken');
     const res = await fetch(`${API_BASE}/change-password/`, {
@@ -322,12 +324,17 @@ export default function ProfilePage() {
                   <div>
                     <label className={lCls}>New Password</label>
                     <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                      minLength={PASSWORD_MIN_LENGTH}
                       className={iCls} style={iStyle} />
                   </div>
                   <div>
                     <label className={lCls}>Confirm New Password</label>
                     <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                      minLength={PASSWORD_MIN_LENGTH}
                       className={iCls} style={iStyle} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-slate-400">Password must be at least {PASSWORD_MIN_LENGTH} characters and include 1 uppercase letter and 1 special character.</p>
                   </div>
                   <div className="sm:col-span-2">
                     <button type="submit" disabled={loading} className={btn}

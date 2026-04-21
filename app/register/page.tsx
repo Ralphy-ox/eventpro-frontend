@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE } from '@/lib/api';
+import { PASSWORD_MIN_LENGTH, getPasswordRuleMessage, validatePasswordRules } from '@/lib/password-validation';
 
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(14,165,233,0.2)' };
 const iCls = "w-full px-4 py-3 rounded-xl text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500 transition-all text-sm";
@@ -44,6 +45,9 @@ export default function ClientRegister() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const passwordRules = validatePasswordRules(password);
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   useEffect(() => {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -71,6 +75,8 @@ export default function ClientRegister() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const passwordError = getPasswordRuleMessage(password);
+    if (passwordError) { setError(passwordError); return; }
     if (password !== confirmPassword) { setError('Passwords do not match'); return; }
     setLoading(true);
     setLoadingMsg('Creating Account...');
@@ -283,7 +289,9 @@ export default function ClientRegister() {
               <label className={lCls}>Password</label>
               <div className="relative">
                 <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required
-                  placeholder="Min 6 characters" className={iCls + ' pr-16'} style={iStyle} />
+                  minLength={PASSWORD_MIN_LENGTH}
+                  autoComplete="new-password"
+                  placeholder={`Minimum ${PASSWORD_MIN_LENGTH} characters`} className={iCls + ' pr-16'} style={iStyle} />
                 <button
                   type="button"
                   onClick={() => setShowPassword(prev => !prev)}
@@ -292,12 +300,25 @@ export default function ClientRegister() {
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
+              <div className="mt-3 space-y-1 text-xs">
+                <p className={passwordRules.hasMinLength ? 'text-emerald-400' : 'text-slate-400'}>
+                  {passwordRules.hasMinLength ? 'OK' : '-'} Minimum {PASSWORD_MIN_LENGTH} characters
+                </p>
+                <p className={passwordRules.hasUppercase ? 'text-emerald-400' : 'text-slate-400'}>
+                  {passwordRules.hasUppercase ? 'OK' : '-'} At least 1 uppercase letter
+                </p>
+                <p className={passwordRules.hasSpecialCharacter ? 'text-emerald-400' : 'text-slate-400'}>
+                  {passwordRules.hasSpecialCharacter ? 'OK' : '-'} At least 1 special character
+                </p>
+              </div>
             </div>
 
             <div>
               <label className={lCls}>Confirm Password</label>
               <div className="relative">
                 <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
+                  minLength={PASSWORD_MIN_LENGTH}
+                  autoComplete="new-password"
                   placeholder="Repeat password" className={iCls + ' pr-16'} style={iStyle} />
                 <button
                   type="button"
@@ -307,6 +328,8 @@ export default function ClientRegister() {
                   {showConfirmPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
+              {passwordsMatch && <p className="mt-3 text-xs font-semibold text-emerald-400">Passwords match.</p>}
+              {passwordsMismatch && <p className="mt-3 text-xs font-semibold text-red-400">Passwords do not match.</p>}
             </div>
 
             {error && (

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE } from '@/lib/api';
+import { PASSWORD_MIN_LENGTH, getPasswordRuleMessage, validatePasswordRules } from '@/lib/password-validation';
 
 type ForgotStep = 'email' | 'code' | 'newpass' | null;
 
@@ -16,7 +17,6 @@ export default function SignIn() {
   const [isLocked, setIsLocked] = useState(false);
   const [lockTime, setLockTime] = useState<number | null>(null);
 
-  // Forgot password state
   const [forgotStep, setForgotStep] = useState<ForgotStep>(null);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotCode, setForgotCode] = useState('');
@@ -28,6 +28,10 @@ export default function SignIn() {
   const [forgotError, setForgotError] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  const forgotPasswordRules = validatePasswordRules(newPassword);
+  const forgotPasswordsMatch = confirmNewPassword.length > 0 && newPassword === confirmNewPassword;
+  const forgotPasswordsMismatch = confirmNewPassword.length > 0 && newPassword !== confirmNewPassword;
 
   const router = useRouter();
 
@@ -53,7 +57,9 @@ export default function SignIn() {
     if (!isLocked || !lockTime) return;
     const interval = setInterval(() => {
       if (Date.now() >= lockTime) {
-        setIsLocked(false); setLockTime(null); setLoginAttempts(0);
+        setIsLocked(false);
+        setLockTime(null);
+        setLoginAttempts(0);
         localStorage.removeItem('loginLocked');
         localStorage.removeItem('lockTimestamp');
         localStorage.removeItem('loginAttempts');
@@ -61,6 +67,12 @@ export default function SignIn() {
     }, 1000);
     return () => clearInterval(interval);
   }, [isLocked, lockTime]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
   const getRemainingTime = () => {
     if (!lockTime) return '';
@@ -74,7 +86,7 @@ export default function SignIn() {
         return await fetch(url, { ...options, signal: AbortSignal.timeout(90000) });
       } catch (err) {
         if (i === retries) throw err;
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 3000));
       }
     }
     throw new Error('Failed after retries');
@@ -82,15 +94,22 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLocked) { setError(`Account locked. Try again in ${getRemainingTime()}`); return; }
-    setError(''); setLoading(true);
+    if (isLocked) {
+      setError(`Account locked. Try again in ${getRemainingTime()}`);
+      return;
+    }
+
+    setError('');
+    setLoading(true);
     const wakeTimer = setTimeout(() => setError('Server is waking up, please wait up to 60 seconds...'), 8000);
+
     try {
       const res = await fetchWithRetry(`${API_BASE}/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+
       if (res.ok) {
         const data = await res.json();
         localStorage.removeItem('loginAttempts');
@@ -98,6 +117,7 @@ export default function SignIn() {
         localStorage.removeItem('lockTimestamp');
         setLoginAttempts(0);
         setIsLocked(false);
+
         if (data.is_organizer) {
           localStorage.removeItem('clientToken');
           localStorage.setItem('organizerToken', data.access);
@@ -145,15 +165,10 @@ export default function SignIn() {
     }
   };
 
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendCooldown]);
-
-  // ── Forgot password handlers ──
   const handleForgotSendCode = async () => {
-    setForgotError(''); setForgotMsg(''); setForgotLoading(true);
+    setForgotError('');
+    setForgotMsg('');
+    setForgotLoading(true);
     try {
       const res = await fetchWithRetry(`${API_BASE}/forgot-password/`, {
         method: 'POST',
@@ -161,7 +176,10 @@ export default function SignIn() {
         body: JSON.stringify({ email: forgotEmail }),
       });
       const data = await res.json();
-      if (!res.ok) { setForgotError(data.message || 'Email not found.'); return; }
+      if (!res.ok) {
+        setForgotError(data.message || 'Email not found.');
+        return;
+      }
       setForgotMsg(data.message);
       setForgotStep('code');
       setResendCooldown(60);
@@ -173,8 +191,12 @@ export default function SignIn() {
   };
 
   const handleForgotVerifyCode = async () => {
-    if (forgotCode.length !== 6) { setForgotError('Enter the 6-digit code'); return; }
-    setForgotError(''); setForgotLoading(true);
+    if (forgotCode.length !== 6) {
+      setForgotError('Enter the 6-digit code');
+      return;
+    }
+    setForgotError('');
+    setForgotLoading(true);
     try {
       const res = await fetchWithRetry(`${API_BASE}/verify-reset-code/`, {
         method: 'POST',
@@ -182,8 +204,11 @@ export default function SignIn() {
         body: JSON.stringify({ email: forgotEmail, code: forgotCode }),
       });
       const data = await res.json();
-      if (res.ok && data.valid) { setForgotStep('newpass'); }
-      else { setForgotError(data.message || 'Invalid code'); }
+      if (res.ok && data.valid) {
+        setForgotStep('newpass');
+      } else {
+        setForgotError(data.message || 'Invalid code');
+      }
     } catch {
       setForgotError('Connection error. Please try again.');
     } finally {
@@ -193,8 +218,15 @@ export default function SignIn() {
 
   const handleForgotReset = async () => {
     setForgotError('');
-    if (newPassword !== confirmNewPassword) { setForgotError('Passwords do not match'); return; }
-    if (newPassword.length < 6) { setForgotError('Password must be at least 6 characters'); return; }
+    const passwordError = getPasswordRuleMessage(newPassword);
+    if (passwordError) {
+      setForgotError(passwordError);
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setForgotError('Passwords do not match');
+      return;
+    }
     setForgotLoading(true);
     try {
       const res = await fetchWithRetry(`${API_BASE}/reset-password/`, {
@@ -207,8 +239,12 @@ export default function SignIn() {
         setForgotMsg(data.message);
         setTimeout(() => {
           setForgotStep(null);
-          setForgotEmail(''); setForgotCode(''); setNewPassword(''); setConfirmNewPassword('');
-          setForgotMsg(''); setForgotError('');
+          setForgotEmail('');
+          setForgotCode('');
+          setNewPassword('');
+          setConfirmNewPassword('');
+          setForgotMsg('');
+          setForgotError('');
         }, 2000);
       } else {
         setForgotError(data.message || 'Reset failed');
@@ -222,8 +258,12 @@ export default function SignIn() {
 
   const closeForgot = () => {
     setForgotStep(null);
-    setForgotEmail(''); setForgotCode(''); setNewPassword(''); setConfirmNewPassword('');
-    setForgotMsg(''); setForgotError('');
+    setForgotEmail('');
+    setForgotCode('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setForgotMsg('');
+    setForgotError('');
   };
 
   return (
@@ -232,7 +272,6 @@ export default function SignIn() {
       <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #0ea5e9 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
 
       <div className="max-w-md w-full relative z-10">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black shadow-lg" style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>S</div>
@@ -253,13 +292,17 @@ export default function SignIn() {
             </button>
           </div>
 
-          <p className="text-sm text-slate-400 mb-6">Enter your credentials &mdash; you&apos;ll be redirected automatically based on your role.</p>
+          <p className="text-sm text-slate-400 mb-6">Enter your credentials and you will be redirected automatically based on your role.</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-slate-300 mb-2">Email Address</label>
               <input
-                type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
                 className="w-full px-4 py-3 rounded-xl border text-white placeholder-slate-500 outline-none transition-all focus:ring-2 focus:ring-sky-500"
                 style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
               />
@@ -270,7 +313,12 @@ export default function SignIn() {
                 <label className="block text-sm font-semibold text-slate-300">Password</label>
                 <button
                   type="button"
-                  onClick={() => { setForgotEmail(email); setForgotStep('email'); setForgotError(''); setForgotMsg(''); }}
+                  onClick={() => {
+                    setForgotEmail(email);
+                    setForgotStep('email');
+                    setForgotError('');
+                    setForgotMsg('');
+                  }}
                   className="text-xs text-sky-400 hover:text-sky-300 transition-colors"
                 >
                   Forgot Password?
@@ -278,7 +326,12 @@ export default function SignIn() {
               </div>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={PASSWORD_MIN_LENGTH}
+                  autoComplete="current-password"
                   className="w-full px-4 py-3 pr-16 rounded-xl border text-white placeholder-slate-500 outline-none transition-all focus:ring-2 focus:ring-sky-500"
                   style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
                 />
@@ -290,16 +343,18 @@ export default function SignIn() {
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
+              <p className="mt-2 text-xs text-slate-400">Login accepts uppercase and special characters. Password must be at least {PASSWORD_MIN_LENGTH} characters.</p>
             </div>
 
             {error && (
               <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}>
-                ⚠️ {error}
+                Warning: {error}
               </div>
             )}
 
             <button
-              type="submit" disabled={loading || isLocked}
+              type="submit"
+              disabled={loading || isLocked}
               className="w-full py-3.5 rounded-xl font-black text-white text-base transition-all hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: loading || isLocked ? 'rgba(14,165,233,0.3)' : 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 24px rgba(14,165,233,0.3)' }}
             >
@@ -308,7 +363,7 @@ export default function SignIn() {
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Signing in...
                 </span>
-              ) : 'Sign In →'}
+              ) : 'Sign In ->'}
             </button>
           </form>
 
@@ -325,25 +380,28 @@ export default function SignIn() {
         </div>
       </div>
 
-      {/* ── Forgot Password Modal ── */}
       {forgotStep && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
           <div className="w-full max-w-sm rounded-2xl p-8 border" style={{ background: '#0d1f35', borderColor: 'rgba(14,165,233,0.2)' }}>
-
             {forgotStep === 'email' && (
               <>
                 <h3 className="text-xl font-black text-white mb-1">Forgot Password</h3>
                 <p className="text-sm text-slate-400 mb-5">Enter your email and we&apos;ll send you a reset code.</p>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">Email</label>
                 <input
-                  type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)}
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500 mb-4"
                   style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
                 />
-                {forgotError && <p className="text-red-400 text-sm mb-3">⚠️ {forgotError}</p>}
-                <button onClick={handleForgotSendCode} disabled={forgotLoading}
+                {forgotError && <p className="text-red-400 text-sm mb-3">Warning: {forgotError}</p>}
+                <button
+                  onClick={handleForgotSendCode}
+                  disabled={forgotLoading}
                   className="w-full py-3 rounded-xl font-bold text-white mb-3 transition-all hover:-translate-y-0.5 disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>
+                  style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}
+                >
                   {forgotLoading ? 'Sending...' : 'Send Reset Code'}
                 </button>
                 <button onClick={closeForgot} className="w-full text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
@@ -357,22 +415,29 @@ export default function SignIn() {
                 <p className="text-sm text-sky-400 font-semibold mb-5">{forgotEmail}</p>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">6-Digit Code</label>
                 <input
-                  type="text" value={forgotCode} onChange={(e) => setForgotCode(e.target.value)}
+                  type="text"
+                  value={forgotCode}
+                  onChange={(e) => setForgotCode(e.target.value)}
                   maxLength={6}
                   className="w-full px-4 py-4 rounded-xl border text-center text-3xl tracking-[0.5em] font-black text-white outline-none focus:ring-2 focus:ring-sky-500 mb-4"
                   style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
                 />
-                {forgotError && <p className="text-red-400 text-sm mb-3">⚠️ {forgotError}</p>}
-                <button onClick={handleForgotVerifyCode}
+                {forgotError && <p className="text-red-400 text-sm mb-3">Warning: {forgotError}</p>}
+                <button
+                  onClick={handleForgotVerifyCode}
                   className="w-full py-3 rounded-xl font-bold text-white mb-3 transition-all hover:-translate-y-0.5"
-                  style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>
+                  style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}
+                >
                   Verify Code
                 </button>
-                <button onClick={handleForgotSendCode} disabled={forgotLoading || resendCooldown > 0}
-                  className="w-full text-sm text-sky-400 hover:text-sky-300 disabled:text-slate-500 mb-2 transition-colors">
+                <button
+                  onClick={handleForgotSendCode}
+                  disabled={forgotLoading || resendCooldown > 0}
+                  className="w-full text-sm text-sky-400 hover:text-sky-300 disabled:text-slate-500 mb-2 transition-colors"
+                >
                   {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
                 </button>
-                <button onClick={() => setForgotStep('email')} className="w-full text-sm text-slate-400 hover:text-slate-200 transition-colors">← Back</button>
+                <button onClick={() => setForgotStep('email')} className="w-full text-sm text-slate-400 hover:text-slate-200 transition-colors">Back</button>
               </>
             )}
 
@@ -382,10 +447,15 @@ export default function SignIn() {
                 <p className="text-sm text-slate-400 mb-5">Choose a strong new password.</p>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">New Password</label>
                 <div className="relative mb-3">
-                  <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    minLength={PASSWORD_MIN_LENGTH}
+                    autoComplete="new-password"
                     className="w-full px-4 py-3 pr-16 rounded-xl border text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500"
                     style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
-                    />
+                  />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword((prev) => !prev)}
@@ -394,12 +464,28 @@ export default function SignIn() {
                     {showNewPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
+                <div className="mb-3 space-y-1 text-xs">
+                  <p className={forgotPasswordRules.hasMinLength ? 'text-emerald-400' : 'text-slate-400'}>
+                    {forgotPasswordRules.hasMinLength ? 'OK' : '-'} Minimum {PASSWORD_MIN_LENGTH} characters
+                  </p>
+                  <p className={forgotPasswordRules.hasUppercase ? 'text-emerald-400' : 'text-slate-400'}>
+                    {forgotPasswordRules.hasUppercase ? 'OK' : '-'} At least 1 uppercase letter
+                  </p>
+                  <p className={forgotPasswordRules.hasSpecialCharacter ? 'text-emerald-400' : 'text-slate-400'}>
+                    {forgotPasswordRules.hasSpecialCharacter ? 'OK' : '-'} At least 1 special character
+                  </p>
+                </div>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">Confirm Password</label>
                 <div className="relative mb-4">
-                  <input type={showConfirmNewPassword ? 'text' : 'password'} value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  <input
+                    type={showConfirmNewPassword ? 'text' : 'password'}
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    minLength={PASSWORD_MIN_LENGTH}
+                    autoComplete="new-password"
                     className="w-full px-4 py-3 pr-16 rounded-xl border text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500"
                     style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
-                    />
+                  />
                   <button
                     type="button"
                     onClick={() => setShowConfirmNewPassword((prev) => !prev)}
@@ -408,14 +494,19 @@ export default function SignIn() {
                     {showConfirmNewPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
-                {forgotError && <p className="text-red-400 text-sm mb-3">⚠️ {forgotError}</p>}
-                {forgotMsg && <p className="text-emerald-400 text-sm mb-3">✅ {forgotMsg}</p>}
-                <button onClick={handleForgotReset} disabled={forgotLoading}
+                {forgotPasswordsMatch && <p className="text-emerald-400 text-sm mb-3">Passwords match.</p>}
+                {forgotPasswordsMismatch && <p className="text-red-400 text-sm mb-3">Passwords do not match.</p>}
+                {forgotError && <p className="text-red-400 text-sm mb-3">Warning: {forgotError}</p>}
+                {forgotMsg && <p className="text-emerald-400 text-sm mb-3">Success: {forgotMsg}</p>}
+                <button
+                  onClick={handleForgotReset}
+                  disabled={forgotLoading}
                   className="w-full py-3 rounded-xl font-bold text-white mb-3 transition-all hover:-translate-y-0.5 disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}>
+                  style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}
+                >
                   {forgotLoading ? 'Resetting...' : 'Reset Password'}
                 </button>
-                <button onClick={() => setForgotStep('code')} className="w-full text-sm text-slate-400 hover:text-slate-200 transition-colors">← Back</button>
+                <button onClick={() => setForgotStep('code')} className="w-full text-sm text-slate-400 hover:text-slate-200 transition-colors">Back</button>
               </>
             )}
           </div>

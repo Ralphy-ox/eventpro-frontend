@@ -153,7 +153,7 @@ function BookingConfirmationContent() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
                 { label: 'Payment Method', value: booking.payment_method || 'N/A' },
-                { label: 'Payment Status', value: booking.payment_status === 'paid' ? 'Paid' : booking.payment_status === 'pending_verification' ? 'Pending Verification' : 'Pending' },
+              { label: 'Payment Status', value: booking.payment_status === 'paid' ? 'Paid' : booking.payment_status === 'pending_review' ? 'Pending Review' : booking.payment_status === 'pending_verification' ? 'Pending Verification' : 'Pending' },
                 { label: 'Venue', value: booking.location },
               ].map((item) => (
                 <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>

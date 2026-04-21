@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE } from '@/lib/api';
+import { PASSWORD_MIN_LENGTH } from '@/lib/password-validation';
 
 export default function ClientLogin() {
   const [email, setEmail] = useState('');
@@ -61,8 +62,11 @@ export default function ClientLogin() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={PASSWORD_MIN_LENGTH}
+              autoComplete="current-password"
               className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
             />
+            <p className="mt-1 text-xs text-gray-500">Password accepts uppercase and special characters and must be at least {PASSWORD_MIN_LENGTH} characters.</p>
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}

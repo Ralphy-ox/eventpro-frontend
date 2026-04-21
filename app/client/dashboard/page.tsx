@@ -269,7 +269,7 @@ export default function ClientDashboard() {
       if (paymentMethod === 'QRPh' || paymentMethod === 'GCash') {
         const downpaymentAmount = Number(data.total_amount || 0) * 0.5;
         router.push(`/payment?id=${data.booking_id}&amount=${downpaymentAmount}&total=${data.total_amount}&method=${encodeURIComponent(paymentMethod.toLowerCase())}`);
-      } else { alert('Booking created! Reference: ' + data.reference_number); router.push('/my-bookings'); }
+      } else { alert('Booking created successfully. Payment will stay unpaid until the owner accepts it.'); router.push('/my-bookings'); }
     } catch { alert('Connection error.'); setSubmitting(false); }
   };
 

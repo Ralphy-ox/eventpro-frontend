@@ -12,7 +12,6 @@ interface Booking {
   date: string; time: string; location: string; status: string;
   payment_status: string; payment_method: string; total_amount: number;
   created_at: string; gcash_reference?: string; payment_proof?: string;
-  reference_number?: string;
   decline_reason?: string; has_review?: boolean;
   end_time?: string | null;
   is_extended?: boolean;
@@ -301,33 +300,16 @@ export default function MyBookings() {
                       <span className="text-sky-400 text-xs font-bold">₱{Number(booking.total_amount).toLocaleString()}</span>
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                         booking.payment_status === 'paid' ? 'text-sky-300 bg-sky-900/40' :
+                        booking.payment_status === 'pending_review' ? 'text-amber-300 bg-amber-900/30' :
                         booking.payment_status === 'pending_verification' ? 'text-yellow-300 bg-yellow-900/30' :
                         booking.payment_status === 'rejected' ? 'text-red-300 bg-red-900/30' : 'text-slate-400 bg-slate-800'
                       }`}>
                         {booking.payment_status === 'paid' ? 'Paid' :
+                         booking.payment_status === 'pending_review' ? 'Pending Review' :
                          booking.payment_status === 'pending_verification' ? 'Verifying' :
                          booking.payment_status === 'rejected' ? 'Rejected' : 'Unpaid'}
                       </span>
                     </div>
-
-                    {(booking.reference_number || booking.gcash_reference) && (
-                      <div className="mb-4 space-y-2">
-                        {booking.reference_number && (
-                          <div className="px-3 py-2.5 rounded-xl"
-                            style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-green-300 mb-1">System Payment Reference</p>
-                            <p className="text-xs font-black text-white break-all">{booking.reference_number}</p>
-                          </div>
-                        )}
-                        {booking.gcash_reference && (
-                          <div className="px-3 py-2.5 rounded-xl"
-                            style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.18)' }}>
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-sky-300 mb-1">Your Entered Reference</p>
-                            <p className="text-xs font-black text-white break-all">{booking.gcash_reference}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {/* Decline reason */}
                     {booking.status === 'declined' && booking.decline_reason && (
@@ -388,6 +370,12 @@ export default function MyBookings() {
                       <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-yellow-300"
                         style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                         Proof submitted. Waiting for organizer verification.
+                      </div>
+                    )}
+                    {booking.payment_method === 'GCash' && booking.payment_status === 'pending_review' && (
+                      <div className="mb-4 px-3 py-2.5 rounded-xl text-center text-xs font-bold text-amber-300"
+                        style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                        Payment received. Waiting for booking acceptance.
                       </div>
                     )}
                     {booking.payment_method === 'GCash' && booking.payment_status === 'rejected' && booking.payment_proof && (
