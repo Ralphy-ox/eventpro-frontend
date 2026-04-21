@@ -85,6 +85,7 @@ export default function ClientDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [eventDetails, setEventDetails] = useState<Record<string, string>>({});
+  const [profileContact, setProfileContact] = useState({ first_name: '', last_name: '' });
   const tomorrow = getTomorrowDate();
   const [invitedEmails, setInvitedEmails] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
@@ -96,10 +97,15 @@ export default function ClientDashboard() {
   const [loadingPublicCalendar, setLoadingPublicCalendar] = useState(false);
 
   const applyClientContactDetails = (profile: { first_name?: string; last_name?: string }) => {
+    const nextContact = {
+      first_name: capitalizeWords(profile.first_name || ''),
+      last_name: capitalizeWords(profile.last_name || ''),
+    };
+    setProfileContact(nextContact);
     setEventDetails(prev => ({
       ...prev,
-      contact_first_name: prev.contact_first_name || capitalizeWords(profile.first_name || ''),
-      contact_last_name: prev.contact_last_name || capitalizeWords(profile.last_name || ''),
+      contact_first_name: prev.contact_first_name || nextContact.first_name,
+      contact_last_name: prev.contact_last_name || nextContact.last_name,
     }));
   };
 
@@ -371,8 +377,8 @@ export default function ClientDashboard() {
   };
 
   const getEventFields = () => [
-    { key: 'contact_first_name', label: 'Contact First Name', placeholder: 'e.g. Ralph', type: 'text' },
-    { key: 'contact_last_name', label: 'Contact Last Name', placeholder: 'e.g. Villarojo', type: 'text' },
+    { key: 'contact_first_name', label: 'Contact First Name', placeholder: 'Auto-filled from your profile', type: 'text', readOnly: true },
+    { key: 'contact_last_name', label: 'Contact Last Name', placeholder: 'Auto-filled from your profile', type: 'text', readOnly: true },
   ];
 
   return (
@@ -425,7 +431,12 @@ export default function ClientDashboard() {
                     <select value={eventType} onChange={e => {
                       const sel = eventTypes.find(et => et.event_type === e.target.value);
                       setEventType(e.target.value); setSelectedEventType(sel || null);
-                      setNumPeopleInvited(getEffectiveIncludedCapacity(sel || null) || 0); setEventDetails({}); setSelectedCombo(null); setRegularTables(0); setPresidentialTables(0);
+                      setNumPeopleInvited(getEffectiveIncludedCapacity(sel || null) || 0);
+                      setEventDetails({
+                        contact_first_name: profileContact.first_name,
+                        contact_last_name: profileContact.last_name,
+                      });
+                      setSelectedCombo(null); setRegularTables(0); setPresidentialTables(0);
                     }} className={iCls} style={iStyle}>
                       <option value="" style={{ background: '#0c2d4a' }}>Select hall type</option>
                       {eventTypes.map(et => <option key={et.id} value={et.event_type} style={{ background: '#0c2d4a' }}>{et.event_type}</option>)}
@@ -437,11 +448,17 @@ export default function ClientDashboard() {
                   <div key={f.key}>
                     <label className={lCls}>{f.label}</label>
                     <input type={f.type} value={eventDetails[f.key] || ''}
-                      onChange={e => setEventDetails(prev => ({
+                      onChange={f.readOnly ? undefined : e => setEventDetails(prev => ({
                         ...prev,
                         [f.key]: shouldCapitalizeEventField(f.key) ? capitalizeWords(e.target.value) : e.target.value,
                       }))}
-                      placeholder={f.placeholder} className={iCls} style={iStyle} />
+                      readOnly={f.readOnly}
+                      placeholder={f.placeholder}
+                      className={iCls}
+                      style={f.readOnly ? { ...iStyle, opacity: 0.8, cursor: 'not-allowed' } : iStyle} />
+                    {f.readOnly && (
+                      <p className="text-xs text-slate-500 mt-1">Using the name from your registered account profile.</p>
+                    )}
                   </div>
                 ))}
 
