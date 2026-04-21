@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { API_BASE } from '@/lib/api';
+import { API_BASE, resolveUploadedAssetUrl } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
 
 const DOWNPAYMENT_RATE = 0.5;
@@ -41,6 +41,14 @@ const PAYMENT_STYLES: Record<string, { bg: string; text: string }> = {
   pending: { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24' },
   pending_verification: { bg: 'rgba(14,165,233,0.15)', text: '#38bdf8' },
   rejected: { bg: 'rgba(239,68,68,0.15)', text: '#f87171' },
+};
+
+const getDisplayPaymentMeta = (booking: Booking) => {
+  if (booking.status === 'pending') return { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24', label: 'PENDING' };
+  if (booking.payment_status === 'paid') return { bg: 'rgba(34,197,94,0.15)', text: '#4ade80', label: 'PAID' };
+  if (booking.payment_status === 'pending_verification') return { bg: 'rgba(14,165,233,0.15)', text: '#38bdf8', label: 'PENDING VERIFICATION' };
+  if (booking.payment_status === 'rejected') return { bg: 'rgba(239,68,68,0.15)', text: '#f87171', label: 'REJECTED' };
+  return { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24', label: 'PENDING' };
 };
 
 const eventDetailLabels: Record<string, string> = {
@@ -182,16 +190,14 @@ export default function BookingDetailPage() {
     : [];
   const downpaymentAmount = Number(booking.total_amount) * DOWNPAYMENT_RATE;
   const remainingBalance = Number(booking.total_amount) - downpaymentAmount;
+  const paymentProofUrl = resolveUploadedAssetUrl(booking.payment_proof);
 
   const statusStyle = STATUS_STYLES[booking.status] ?? {
     bg: 'rgba(148,163,184,0.15)',
     text: '#94a3b8',
     border: 'rgba(148,163,184,0.3)',
   };
-  const payStyle = PAYMENT_STYLES[booking.payment_status] ?? {
-    bg: 'rgba(148,163,184,0.15)',
-    text: '#94a3b8',
-  };
+  const payStyle = getDisplayPaymentMeta(booking);
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a1628', color: '#e2e8f0' }}>
@@ -224,7 +230,7 @@ export default function BookingDetailPage() {
             {booking.status.toUpperCase()}
           </span>
           <span style={{ padding: '6px 16px', borderRadius: 999, fontSize: 13, fontWeight: 600, background: payStyle.bg, color: payStyle.text }}>
-            Payment: {booking.payment_status.replace('_', ' ').toUpperCase()}
+            Payment: {payStyle.label}
           </span>
         </div>
 
@@ -253,13 +259,6 @@ export default function BookingDetailPage() {
             ))}
           </div>
 
-          {booking.reference_number && (
-            <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 12 }}>
-              <p style={{ color: '#4ade80', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>System Payment Reference</p>
-              <p style={{ color: '#dcfce7', fontWeight: 700, fontSize: 16, margin: 0 }}>{booking.reference_number}</p>
-            </div>
-          )}
-
           <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 12 }}>
             <p style={{ color: '#fbbf24', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Booking Downpayment</p>
             <p style={{ color: '#fde68a', fontWeight: 700, fontSize: 16, margin: 0 }}>P{downpaymentAmount.toLocaleString()}</p>
@@ -273,12 +272,12 @@ export default function BookingDetailPage() {
             </div>
           )}
 
-          {booking.payment_proof && (
+          {paymentProofUrl && (
             <div style={{ marginTop: 16 }}>
               <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Uploaded Proof of Payment</p>
-              <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer" style={{ display: 'inline-block', textDecoration: 'none' }}>
+              <a href={paymentProofUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', textDecoration: 'none' }}>
                 <img
-                  src={booking.payment_proof ?? undefined}
+                  src={paymentProofUrl}
                   alt="Payment proof"
                   style={{ width: '100%', maxWidth: 420, borderRadius: 12, border: '1px solid rgba(14,165,233,0.2)' }}
                 />
@@ -296,7 +295,9 @@ export default function BookingDetailPage() {
               </div>
             )}
             <p style={{ color: '#cbd5e1', fontSize: 14, marginTop: 0, marginBottom: 16 }}>
-              {booking.payment_status === 'paid'
+              {booking.status === 'pending'
+                ? 'Your booking is still pending until the owner accepts it. You can still upload or update your proof of payment and your own reference number here.'
+                : booking.payment_status === 'paid'
                 ? 'Your PayMongo payment is already successful. You can still upload your proof of payment and reference number here for organizer records.'
                 : booking.payment_status === 'pending_verification'
                   ? 'You can still replace the uploaded proof or update the payment reference number if needed.'

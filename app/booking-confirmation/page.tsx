@@ -23,6 +23,14 @@ interface BookingDetails {
   whole_day: boolean;
 }
 
+const getDisplayPaymentStatus = (booking: BookingDetails) => {
+  if (booking.status === 'pending') return 'Pending';
+  if (booking.payment_status === 'paid') return 'Paid';
+  if (booking.payment_status === 'pending_review') return 'Pending Review';
+  if (booking.payment_status === 'pending_verification') return 'Pending Verification';
+  return 'Pending';
+};
+
 const card: React.CSSProperties = {
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.08)',
@@ -153,7 +161,7 @@ function BookingConfirmationContent() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
                 { label: 'Payment Method', value: booking.payment_method || 'N/A' },
-              { label: 'Payment Status', value: booking.payment_status === 'paid' ? 'Paid' : booking.payment_status === 'pending_review' ? 'Pending Review' : booking.payment_status === 'pending_verification' ? 'Pending Verification' : 'Pending' },
+              { label: 'Payment Status', value: getDisplayPaymentStatus(booking) },
                 { label: 'Venue', value: booking.location },
               ].map((item) => (
                 <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>

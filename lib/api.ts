@@ -13,13 +13,26 @@ export const WS_BASE = API_BASE
   .replace(/^https:\/\//, 'wss://');
 
 export const WS_ENABLED = (process.env.NEXT_PUBLIC_ENABLE_WS || '').trim().toLowerCase() === 'true';
+export const BACKEND_BASE = API_BASE.replace(/\/api\/user$/, '');
 
 // Keep Render backend alive — ping every 4 minutes to prevent spin-down
 if (typeof window !== 'undefined') {
-  const BACKEND_ROOT = API_BASE.replace(/\/api\/user$/, '');
-  const ping = () => fetch(`${BACKEND_ROOT}/health/`).catch(() => {});
+  const ping = () => fetch(`${BACKEND_BASE}/health/`).catch(() => {});
   ping();
   setInterval(ping, 4 * 60 * 1000);
+}
+
+export function resolveUploadedAssetUrl(value?: string | null): string | undefined {
+  if (!value) return undefined;
+
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  if (trimmed.startsWith('/')) return `${BACKEND_BASE}${trimmed}`;
+  if (trimmed.startsWith('media/')) return `${BACKEND_BASE}/${trimmed}`;
+  if (trimmed.startsWith('payment_proofs/')) return `${BACKEND_BASE}/media/${trimmed}`;
+
+  return `${BACKEND_BASE}/media/payment_proofs/${trimmed}`;
 }
 
 export async function refreshAccessToken(tokenKey: 'clientToken' | 'organizerToken'): Promise<string | null> {

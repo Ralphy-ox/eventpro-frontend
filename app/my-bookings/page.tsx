@@ -37,6 +37,15 @@ const statusBadge: Record<string, { bg: string; text: string }> = {
   declined:  { bg: 'rgba(239,68,68,0.15)',   text: '#f87171' },
 };
 
+const getDisplayPaymentMeta = (booking: Booking) => {
+  if (booking.status === 'pending') return { tone: 'text-amber-300 bg-amber-900/30', label: 'Pending' };
+  if (booking.payment_status === 'paid') return { tone: 'text-sky-300 bg-sky-900/40', label: 'Paid' };
+  if (booking.payment_status === 'pending_review') return { tone: 'text-amber-300 bg-amber-900/30', label: 'Pending Review' };
+  if (booking.payment_status === 'pending_verification') return { tone: 'text-yellow-300 bg-yellow-900/30', label: 'Verifying' };
+  if (booking.payment_status === 'rejected') return { tone: 'text-red-300 bg-red-900/30', label: 'Rejected' };
+  return { tone: 'text-slate-400 bg-slate-800', label: 'Unpaid' };
+};
+
 export default function MyBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -298,16 +307,8 @@ export default function MyBookings() {
                     <div className="flex items-center justify-between mb-4 px-3 py-2.5 rounded-xl"
                       style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.15)' }}>
                       <span className="text-sky-400 text-xs font-bold">₱{Number(booking.total_amount).toLocaleString()}</span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                        booking.payment_status === 'paid' ? 'text-sky-300 bg-sky-900/40' :
-                        booking.payment_status === 'pending_review' ? 'text-amber-300 bg-amber-900/30' :
-                        booking.payment_status === 'pending_verification' ? 'text-yellow-300 bg-yellow-900/30' :
-                        booking.payment_status === 'rejected' ? 'text-red-300 bg-red-900/30' : 'text-slate-400 bg-slate-800'
-                      }`}>
-                        {booking.payment_status === 'paid' ? 'Paid' :
-                         booking.payment_status === 'pending_review' ? 'Pending Review' :
-                         booking.payment_status === 'pending_verification' ? 'Verifying' :
-                         booking.payment_status === 'rejected' ? 'Rejected' : 'Unpaid'}
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${getDisplayPaymentMeta(booking).tone}`}>
+                        {getDisplayPaymentMeta(booking).label}
                       </span>
                     </div>
 

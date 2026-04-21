@@ -16,7 +16,7 @@ import {
   YAxis,
 } from 'recharts';
 import { LogoutOverlay, useLogout } from '@/components/LogoutOverlay';
-import { API_BASE } from '@/lib/api';
+import { API_BASE, resolveUploadedAssetUrl } from '@/lib/api';
 import MobileNav from '@/components/MobileNav';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 
@@ -46,8 +46,7 @@ interface DamageReport {
   reported_by: string | null; created_at: string; updated_at: string;
 }
 
-const isRenderableAssetUrl = (value?: string | null) =>
-  Boolean(value && (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')));
+const isRenderableAssetUrl = (value?: string | null) => Boolean(resolveUploadedAssetUrl(value));
 interface DamageSummary {
   gross_revenue: number; total_damage_cost: number; total_recovered: number;
   total_net_loss: number; net_profit: number; damage_reports_count: number;
@@ -574,12 +573,14 @@ export default function OrganizerDashboard() {
 
         <div className="flex items-center gap-2 mb-3">
           <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${
+            booking.status === 'pending' ? 'text-amber-300 bg-amber-900/30' :
             booking.payment_status === 'paid' ? 'text-sky-300 bg-sky-900/40' :
             booking.payment_status === 'pending_review' ? 'text-amber-300 bg-amber-900/30' :
             booking.payment_status === 'pending_verification' ? 'text-yellow-300 bg-yellow-900/30' :
             booking.payment_status === 'rejected' ? 'text-red-300 bg-red-900/30' : 'text-slate-400 bg-slate-800'
           }`}>
-            {booking.payment_status === 'paid' ? 'Paid' :
+            {booking.status === 'pending' ? 'Pending' :
+             booking.payment_status === 'paid' ? 'Paid' :
              booking.payment_status === 'pending_review' ? 'Pending Review' :
              booking.payment_status === 'pending_verification' ? '⚠ Under Review' :
              booking.payment_status === 'rejected' ? 'Rejected' : 'Unpaid'}
@@ -601,8 +602,8 @@ export default function OrganizerDashboard() {
             <div className="space-y-2 text-xs">
               <p className="text-slate-300"><span className="text-slate-500">Venue:</span> {booking.event_type}</p>
               <p className="text-slate-300"><span className="text-slate-500">Client:</span> {booking.user}</p>
-              {booking.reference_number && (
-                <p className="text-slate-300"><span className="text-slate-500">Reference No.:</span> <span className="font-black text-sky-300">{booking.reference_number}</span></p>
+              {booking.gcash_reference && (
+                <p className="text-slate-300"><span className="text-slate-500">Client reference:</span> <span className="font-black text-white">{booking.gcash_reference}</span></p>
               )}
               <p className="text-slate-300"><span className="text-slate-500">Description:</span> {booking.description || 'No description submitted.'}</p>
               <p className="text-slate-300"><span className="text-slate-500">Guests:</span> {booking.capacity}</p>
@@ -638,11 +639,10 @@ export default function OrganizerDashboard() {
             <p className="text-xs text-slate-300 mb-2">
               Client already submitted the proof of payment. Review the image and reference number first before accepting the booking.
             </p>
-            {booking.reference_number && <p className="text-xs text-slate-400 mb-2">Reference No.: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
             {booking.gcash_reference && <p className="text-xs text-slate-400 mb-1">Your reference: <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {isRenderableAssetUrl(booking.payment_proof) && (
-              <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer">
-                <img src={booking.payment_proof ?? undefined} alt="GCash proof"
+              <a href={resolveUploadedAssetUrl(booking.payment_proof)} target="_blank" rel="noreferrer">
+                <img src={resolveUploadedAssetUrl(booking.payment_proof)} alt="GCash proof"
                   className="w-full rounded-xl mb-2 object-cover cursor-pointer hover:opacity-90"
                   style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
               </a>
@@ -675,14 +675,13 @@ export default function OrganizerDashboard() {
           </div>
         )}
 
-        {booking.payment_status === 'paid' && booking.payment_method === 'GCash' && (
+        {booking.payment_status === 'paid' && booking.payment_method === 'GCash' && booking.status === 'confirmed' && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>
             <p className="text-xs font-bold text-green-400">✓ GCash payment confirmed</p>
-            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">Reference No.: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
             {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">Your reference: <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {isRenderableAssetUrl(booking.payment_proof) && (
-              <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer">
-                <img src={booking.payment_proof ?? undefined} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
+              <a href={resolveUploadedAssetUrl(booking.payment_proof)} target="_blank" rel="noreferrer">
+                <img src={resolveUploadedAssetUrl(booking.payment_proof)} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
               </a>
             )}
           </div>
@@ -691,11 +690,10 @@ export default function OrganizerDashboard() {
         {booking.payment_status === 'pending_review' && booking.payment_method === 'GCash' && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
             <p className="text-xs font-bold text-amber-300">Payment received. Waiting for booking acceptance.</p>
-            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System reference: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
             {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">Your reference: <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {isRenderableAssetUrl(booking.payment_proof) && (
-              <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer">
-                <img src={booking.payment_proof ?? undefined} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
+              <a href={resolveUploadedAssetUrl(booking.payment_proof)} target="_blank" rel="noreferrer">
+                <img src={resolveUploadedAssetUrl(booking.payment_proof)} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
               </a>
             )}
           </div>
@@ -704,11 +702,10 @@ export default function OrganizerDashboard() {
         {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && !booking.payment_proof && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
             <p className="text-xs font-bold text-sky-300 mb-1">GCash — Awaiting proof from client</p>
-            {booking.reference_number && <p className="text-xs text-slate-400">Reference No.: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
             {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">PayMongo Source: <strong className="text-slate-400">{booking.gcash_reference}</strong></p>}
             {isRenderableAssetUrl(booking.payment_proof) && (
-              <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer">
-                <img src={booking.payment_proof ?? undefined} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
+              <a href={resolveUploadedAssetUrl(booking.payment_proof)} target="_blank" rel="noreferrer">
+                <img src={resolveUploadedAssetUrl(booking.payment_proof)} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
               </a>
             )}
           </div>
@@ -718,10 +715,9 @@ export default function OrganizerDashboard() {
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
             <p className="text-xs font-bold text-sky-300 mb-1">Client uploaded proof and reference number</p>
             {booking.gcash_reference && <p className="text-xs text-slate-400">Your reference: <strong className="text-white">{booking.gcash_reference}</strong></p>}
-            {booking.reference_number && <p className="text-xs text-slate-400 mt-1">System reference: <strong className="text-sky-300">{booking.reference_number}</strong></p>}
             {isRenderableAssetUrl(booking.payment_proof) && (
-              <a href={booking.payment_proof ?? undefined} target="_blank" rel="noreferrer">
-                <img src={booking.payment_proof ?? undefined} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
+              <a href={resolveUploadedAssetUrl(booking.payment_proof)} target="_blank" rel="noreferrer">
+                <img src={resolveUploadedAssetUrl(booking.payment_proof)} alt="GCash proof" className="w-full rounded-xl mt-2 object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(14,165,233,0.2)' }} />
               </a>
             )}
           </div>
