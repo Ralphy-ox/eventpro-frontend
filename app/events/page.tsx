@@ -37,7 +37,7 @@ export default function EventsPage() {
     }
     fetch(`${API_BASE}/event-types/`)
       .then(r => r.json())
-      .then(data => setEventTypeOptions(data.map((et: {event_type: string}) => et.event_type)))
+      .then(data => setEventTypeOptions(Array.isArray(data) ? data.map((et: {event_type: string}) => et.event_type) : []))
       .catch(() => {});
     fetchEvents(filter);
   }, [filter, router]);
@@ -64,7 +64,7 @@ export default function EventsPage() {
         : `${API_BASE}/events/public/?status=confirmed`;
       const res = await fetch(url);
       const data = await res.json();
-      const confirmed = data.filter((e: Event) => e.status === 'confirmed');
+      const confirmed = Array.isArray(data) ? data.filter((e: Event) => e.status === 'confirmed') : [];
       setEvents(confirmed);
       setFilteredEvents(confirmed);
     } catch {}

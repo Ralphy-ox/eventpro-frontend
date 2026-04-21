@@ -76,7 +76,7 @@ function BookingConfirmationContent() {
         return res.json();
       })
       .then((data) => {
-        if (data) {
+        if (Array.isArray(data)) {
           const found = data.find((item: BookingDetails) => item.id === parseInt(bookingId));
           if (found) setBooking(found);
         }

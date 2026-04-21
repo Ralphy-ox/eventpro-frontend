@@ -85,14 +85,14 @@ export default function MyBookings() {
     if (!token) { router.push('/signin'); return; }
     fetch(`${API_BASE}/bookings/my/`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => { if (res.status === 401) { localStorage.removeItem('clientToken'); router.push('/signin'); return; } return res.json(); })
-      .then(data => { if (data) setBookings(data); })
+      .then(data => { setBookings(Array.isArray(data) ? data : []); })
       .catch(() => {}).finally(() => setLoading(false));
   }, [router]);
 
   useEffect(() => {
     fetchBookings();
     fetch(`${API_BASE}/event-types/`).then(r => r.json())
-      .then((data: { event_type: string }[]) => setEventTypes(data.map(et => et.event_type))).catch(() => {});
+      .then((data: { event_type: string }[]) => setEventTypes(Array.isArray(data) ? data.map(et => et.event_type) : [])).catch(() => {});
   }, [fetchBookings]);
 
   // Real-time: auto-refresh bookings when organizer confirms/declines

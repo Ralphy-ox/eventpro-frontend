@@ -72,7 +72,13 @@ export default function RatingsPage() {
   const loadMyBookings = async (token: string) => {
     try {
       const res = await fetch(`${API_BASE}/bookings/my/`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { const all: Booking[] = await res.json(); setConfirmedBookings(all.filter(b => b.status === 'confirmed')); }
+      if (res.ok) {
+        const all: Booking[] = await res.json();
+        const bookings = Array.isArray(all) ? all : [];
+        setConfirmedBookings(bookings.filter(b => b.status === 'confirmed'));
+      } else {
+        setConfirmedBookings([]);
+      }
     } catch {}
   };
 

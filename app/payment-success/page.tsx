@@ -32,7 +32,8 @@ function PaymentSuccessContent() {
       .then(res => res.ok ? res.json() : [])
       .then((data: BookingSummary[]) => {
         if (!mounted) return;
-        setBooking(data.find(item => item.id === bookingId) || null);
+        const bookings = Array.isArray(data) ? data : [];
+        setBooking(bookings.find(item => item.id === bookingId) || null);
       })
       .catch(() => {})
       .finally(() => {

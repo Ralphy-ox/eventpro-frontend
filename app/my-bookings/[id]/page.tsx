@@ -106,7 +106,8 @@ export default function BookingDetailPage() {
         throw new Error();
       }
       const data: Booking[] = await response.json();
-      const found = data.find((item) => item.id === parseInt(id));
+      const bookings = Array.isArray(data) ? data : [];
+      const found = bookings.find((item) => item.id === parseInt(id));
       if (!found) {
         setError('Booking not found.');
         return;
