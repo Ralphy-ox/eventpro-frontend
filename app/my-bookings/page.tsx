@@ -14,6 +14,14 @@ interface Booking {
   created_at: string; gcash_reference?: string; payment_proof?: string;
   decline_reason?: string; has_review?: boolean;
   whole_day?: boolean;
+  end_time?: string | null;
+  is_extended?: boolean;
+  extension?: {
+    status: 'pending' | 'approved' | 'declined';
+    extension_hours: number;
+    extension_fee: number;
+    created_at: string;
+  } | null;
 }
 
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
