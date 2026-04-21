@@ -321,7 +321,7 @@ export default function MyBookings() {
                         )}
                         {false && booking.extension?.status === 'pending' && (
                           <p className="text-xs text-amber-300 mt-2">
-                            Extension request pending: +{booking.extension.extension_hours} hours for ₱{Number(booking.extension.extension_fee).toLocaleString()}.
+                            Extension request pending: +{booking.extension?.extension_hours} hours for ₱{Number(booking.extension?.extension_fee).toLocaleString()}.
                           </p>
                         )}
                         {false && booking.extension?.status === 'declined' && !booking.is_extended && (
