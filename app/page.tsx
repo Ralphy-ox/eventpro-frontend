@@ -414,33 +414,33 @@ export default function Home() {
                 Ralphy&apos;s Venue - Cebu City, Philippines
               </div>
 
-              <h1 className="text-4xl sm:text-6xl font-black text-white leading-[0.98] tracking-tight mb-6">
-                Your Grand Space,
+              <h1 className="mx-auto max-w-[11ch] sm:max-w-[12ch] lg:max-w-none text-[3rem] sm:text-[4.35rem] font-black text-white leading-[0.94] tracking-[-0.03em] mb-5 lg:mx-0">
+                <span className="whitespace-nowrap">Your Grand Space,</span>
                 <span className="block text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, #67e8f9, #0ea5e9)' }}>
                   Reserved in Seconds.
                 </span>
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-[34rem] mx-auto lg:mx-0 mb-8">
+              <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-[34rem] mx-auto lg:mx-0 mb-7">
                 {landingHeroSubtitle || 'Browse the hall, check the vibe, and lock in your preferred date without digging through a plain landing page.'}
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-7">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start mb-7">
                 <Link href={ctaHref}
-                  className="inline-flex min-w-[190px] justify-center px-10 py-4 text-white font-bold text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
+                  className="inline-flex w-full sm:w-auto min-w-[190px] justify-center px-8 sm:px-10 py-4 text-white font-bold text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
                   style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.35)' }}>
                   {ctaLabel}
                 </Link>
                 <Link href="/learn-more"
-                  className="inline-flex min-w-[190px] justify-center px-10 py-4 font-semibold text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
+                  className="inline-flex w-full sm:w-auto min-w-[190px] justify-center px-8 sm:px-10 py-4 font-semibold text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
                   style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: '#cbd5e1' }}>
                   Learn More
                 </Link>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto lg:mx-0">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-2xl mx-auto lg:mx-0">
                 {stats.map(s => (
-                  <div key={s.label} className="rounded-xl min-h-[102px] p-4 text-center flex flex-col items-center justify-center"
+                  <div key={s.label} className="rounded-xl min-h-[96px] sm:min-h-[102px] p-3.5 sm:p-4 text-center flex flex-col items-center justify-center"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <p className="text-2xl font-black text-white">{s.value}</p>
                     <p className="text-xs text-slate-400 mt-1">{s.label}</p>

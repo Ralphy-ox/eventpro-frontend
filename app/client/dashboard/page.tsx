@@ -23,14 +23,6 @@ interface ComboSuggestion {
   halls: string[];
 }
 
-interface PublicBookedEvent {
-  id: number;
-  event_type: string;
-  date: string;
-  status: string;
-  user?: string;
-}
-
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
 const iCls = "w-full h-12 px-4 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all text-sm";
 const lCls = "block text-xs font-bold text-sky-400 uppercase tracking-widest mb-2";
@@ -54,7 +46,7 @@ const getTomorrowDate = () => {
 };
 
 const DEFAULT_REGULAR_TABLE_PRICE = 100;
-const DEFAULT_PRESIDENTIAL_TABLE_PRICE = 0;
+const DEFAULT_PRESIDENTIAL_TABLE_PRICE = 5000;
 
 export default function ClientDashboard() {
   const router = useRouter();
@@ -92,9 +84,6 @@ export default function ClientDashboard() {
   const [emailsError, setEmailsError] = useState('');
   const [regularTables, setRegularTables] = useState(0);
   const [presidentialTables, setPresidentialTables] = useState(0);
-  const [calendarDate, setCalendarDate] = useState(new Date());
-  const [publicBookedEvents, setPublicBookedEvents] = useState<PublicBookedEvent[]>([]);
-  const [loadingPublicCalendar, setLoadingPublicCalendar] = useState(false);
 
   const applyClientContactDetails = (profile: { first_name?: string; last_name?: string }) => {
     const nextContact = {
@@ -138,33 +127,7 @@ export default function ClientDashboard() {
   const getPresidentialTablePrice = (venue: EventType | null) => {
     if (!venue) return DEFAULT_PRESIDENTIAL_TABLE_PRICE;
     const rawPrice = Number(venue.presidential_table_price);
-    return Number.isFinite(rawPrice) && rawPrice >= 0 ? rawPrice : DEFAULT_PRESIDENTIAL_TABLE_PRICE;
-  };
-
-  const fetchPublicBookedDates = async () => {
-    try {
-      setLoadingPublicCalendar(true);
-      const res = await fetch(`${API_BASE}/events/public/?status=confirmed`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setPublicBookedEvents(
-        Array.isArray(data)
-          ? data
-              .filter((event) => event?.status === 'confirmed' && typeof event?.date === 'string')
-              .map((event) => ({
-                id: Number(event.id),
-                event_type: String(event.event_type || 'Reserved'),
-                date: String(event.date),
-                status: String(event.status || ''),
-                user: typeof event.user === 'string' ? event.user : '',
-              }))
-          : []
-      );
-    } catch {
-      setPublicBookedEvents([]);
-    } finally {
-      setLoadingPublicCalendar(false);
-    }
+    return Number.isFinite(rawPrice) && rawPrice > 0 ? rawPrice : DEFAULT_PRESIDENTIAL_TABLE_PRICE;
   };
 
   useEffect(() => {
@@ -186,7 +149,6 @@ export default function ClientDashboard() {
         if (data) applyClientContactDetails(data);
       })
       .catch(() => {});
-    fetchPublicBookedDates();
   }, [router]);
 
   const loadEventTypes = async () => {
@@ -244,21 +206,6 @@ export default function ClientDashboard() {
     numPeopleInvited || 0,
     pricingInfo?.included_capacity ?? includedCapacity
   );
-  const calendarYear = calendarDate.getFullYear();
-  const calendarMonth = calendarDate.getMonth();
-  const calendarFirstDay = new Date(calendarYear, calendarMonth, 1).getDay();
-  const calendarDaysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
-  const todayDateOnly = new Date(`${today}T00:00:00`);
-  const bookedDateSet = new Set(publicBookedEvents.map((event) => event.date));
-  const bookedEventsThisMonth = publicBookedEvents.filter((event) => {
-    const eventDate = new Date(`${event.date}T00:00:00`);
-    return eventDate.getFullYear() === calendarYear && eventDate.getMonth() === calendarMonth;
-  });
-  const bookedEventsByDate = bookedEventsThisMonth.reduce<Record<string, PublicBookedEvent[]>>((acc, event) => {
-    if (!acc[event.date]) acc[event.date] = [];
-    acc[event.date].push(event);
-    return acc;
-  }, {});
 
   useEffect(() => {
     if (!date || !eventType) {
@@ -534,7 +481,7 @@ export default function ClientDashboard() {
                   <div>
                     <label className={lCls}>Special Add-ons <span className="text-slate-500 normal-case font-normal">(optional)</span></label>
                     <div className="rounded-xl p-4 space-y-3" style={{ ...iStyle }}>
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                           <p className="text-sm font-bold text-white">Regular Table</p>
                           <p className="text-xs text-slate-400">
@@ -546,11 +493,11 @@ export default function ClientDashboard() {
                           min={0}
                           value={regularTables || ''}
                           onChange={e => setRegularTables(Math.max(0, Number(e.target.value) || 0))}
-                          className="w-24 h-11 px-3 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          className="w-full sm:w-24 h-11 px-3 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                           style={iStyle}
                         />
                       </div>
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                           <p className="text-sm font-bold text-white">Presidential Table</p>
                           <p className="text-xs text-slate-400">
@@ -562,11 +509,11 @@ export default function ClientDashboard() {
                           min={0}
                           value={presidentialTables || ''}
                           onChange={e => setPresidentialTables(Math.max(0, Number(e.target.value) || 0))}
-                          className="w-24 h-11 px-3 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          className="w-full sm:w-24 h-11 px-3 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                           style={iStyle}
                         />
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
                         <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
                           <p className="text-sky-500 mb-1">Regular</p>
                           <p className="font-bold text-white">{regularTables}</p>
@@ -600,7 +547,7 @@ export default function ClientDashboard() {
                 <h2 className="text-sm font-black text-white">Schedule</h2>
               </div>
               <div className="p-5 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className={lCls}>Event Date</label>
                     <input type="date" value={date} onChange={e => setDate(e.target.value)}
@@ -623,139 +570,6 @@ export default function ClientDashboard() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div className="flex items-center justify-between gap-3 mb-4">
-                    <div>
-                      <p className="text-xs font-black text-sky-400 uppercase tracking-widest">Client Calendar Awareness</p>
-                      <p className="text-xs text-slate-400 mt-1">Confirmed booked dates are marked below so clients can check first before choosing a day.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={fetchPublicBookedDates}
-                      className="px-3 py-2 rounded-xl text-xs font-bold text-sky-200 transition-all hover:-translate-y-0.5"
-                      style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.25)' }}
-                    >
-                      Refresh
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <button
-                      type="button"
-                      onClick={() => setCalendarDate(new Date(calendarYear, calendarMonth - 1, 1))}
-                      className="w-10 h-10 rounded-xl text-white font-bold"
-                      style={iStyle}
-                    >
-                      ‹
-                    </button>
-                    <p className="text-white font-black">
-                      {calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setCalendarDate(new Date(calendarYear, calendarMonth + 1, 1))}
-                      className="w-10 h-10 rounded-xl text-white font-bold"
-                      style={iStyle}
-                    >
-                      ›
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
-                      <div key={label}>{label}</div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-2">
-                    {Array.from({ length: calendarFirstDay + calendarDaysInMonth }).map((_, index) => {
-                      const day = index - calendarFirstDay + 1;
-                      if (day <= 0) return <div key={`empty-${index}`} className="aspect-square rounded-xl" />;
-
-                      const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                      const dateObj = new Date(`${dateStr}T00:00:00`);
-                      const isPast = dateObj < todayDateOnly;
-                      const isSelected = date === dateStr;
-                      const isBookedDay = bookedDateSet.has(dateStr);
-
-                      return (
-                        <button
-                          key={dateStr}
-                          type="button"
-                          onClick={() => setDate(dateStr)}
-                          className="aspect-square rounded-xl p-2 text-left transition-all"
-                          style={{
-                            background: isSelected
-                              ? 'rgba(14,165,233,0.22)'
-                              : isBookedDay
-                                ? 'rgba(239,68,68,0.14)'
-                                : 'rgba(255,255,255,0.04)',
-                            border: isSelected
-                              ? '1px solid rgba(14,165,233,0.55)'
-                              : isBookedDay
-                                ? '1px solid rgba(239,68,68,0.35)'
-                                : '1px solid rgba(255,255,255,0.06)',
-                            opacity: isPast ? 0.45 : 1,
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-1">
-                            <span className={`text-sm font-black ${isBookedDay ? 'text-red-300' : 'text-white'}`}>{day}</span>
-                            {isBookedDay && <span className="w-2 h-2 rounded-full bg-red-400 shrink-0 mt-1" />}
-                          </div>
-                          <p className={`text-[10px] mt-2 ${isBookedDay ? 'text-red-200' : 'text-slate-500'}`}>
-                            {isBookedDay ? 'Booked' : 'Open'}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex flex-wrap gap-3 mt-4 text-xs">
-                    <div className="flex items-center gap-2 text-slate-300">
-                      <span className="w-3 h-3 rounded-full bg-red-400" />
-                      Confirmed booked date
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-300">
-                      <span className="w-3 h-3 rounded-full bg-sky-400" />
-                      Selected date
-                    </div>
-                  </div>
-
-                  <div className="mt-4 rounded-xl p-4" style={{ background: 'rgba(2,6,23,0.45)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Booked Dates This Month</p>
-                      {loadingPublicCalendar && <p className="text-xs text-sky-400">Loading...</p>}
-                    </div>
-                    {bookedEventsThisMonth.length === 0 ? (
-                      <p className="text-sm text-slate-500">No confirmed reservations found for this month.</p>
-                    ) : (
-                      <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                        {Object.entries(bookedEventsByDate)
-                          .sort(([a], [b]) => a.localeCompare(b))
-                          .map(([reservedDate, events]) => (
-                            <button
-                              key={reservedDate}
-                              type="button"
-                              onClick={() => setDate(reservedDate)}
-                              className="w-full text-left rounded-xl p-3 transition-all hover:-translate-y-0.5"
-                              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
-                            >
-                              <p className="text-sm font-bold text-white">
-                                {new Date(`${reservedDate}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                              </p>
-                              <p className="text-xs text-red-300 mt-1">
-                                {events.length} confirmed booking{events.length !== 1 ? 's' : ''}
-                              </p>
-                              <p className="text-xs text-slate-400 mt-1">
-                                {events.slice(0, 2).map((event) => event.event_type).join(' • ')}
-                                {events.length > 2 ? ' • ...' : ''}
-                              </p>
-                            </button>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           </div>

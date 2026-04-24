@@ -115,7 +115,7 @@ const DAMAGE_ITEM_TYPE_LABELS: Record<string, string> = {
 const DEFAULT_DAMAGE_CATALOG: DamageCatalogItem[] = [
   { id: -1, item_type: 'glassware', name: 'Regular Glass', unit_price: 25, is_active: true },
   { id: -2, item_type: 'glassware', name: 'Wine Glass', unit_price: 45, is_active: true },
-  { id: -3, item_type: 'table', name: 'Presidential Table', unit_price: 2000, is_active: true },
+  { id: -3, item_type: 'table', name: 'Presidential Table', unit_price: 5000, is_active: true },
   { id: -4, item_type: 'chair', name: 'Regular Chair', unit_price: 100, is_active: true },
   { id: -5, item_type: 'utensil', name: 'Fork', unit_price: 15, is_active: true },
   { id: -6, item_type: 'utensil', name: 'Spoon', unit_price: 15, is_active: true },
@@ -740,7 +740,6 @@ export default function OrganizerDashboard() {
     { key: 'reviews', label: `Reviews (${reviews.length})` },
     { key: 'analytics', label: 'Analytics' },
     { key: 'damages', label: `Damages (${damageSummary.damage_reports_count})` },
-    { key: 'calendar', label: 'Calendar' },
     { key: 'messages', label: `Messages${unreadMsgs > 0 ? ` (${unreadMsgs} new)` : ''}` },
   ] as const;
 
@@ -1802,10 +1801,9 @@ export default function OrganizerDashboard() {
                 })}
               </div>
 
-              <div className="grid md:grid-cols-3 gap-3">
+              <div className="grid md:grid-cols-3 gap-3.5">
                 <div>
-                  <p className="text-xs text-slate-400 mb-1">Recovered (&#8369;)</p>
-                  <input type="number" min="0" value={damageForm.recovered_amount} onChange={e => setDamageForm(f => ({ ...f, recovered_amount: e.target.value }))} placeholder="0.00" className={iCls} style={iStyle} />
+                  <input type="number" min="0" value={damageForm.recovered_amount} onChange={e => setDamageForm(f => ({ ...f, recovered_amount: e.target.value }))} placeholder="Recovered amount (₱)" className={iCls} style={{ ...iStyle, marginTop: 21 }} />
                 </div>
                 <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
                   <p className="text-xs text-slate-500">Damage Cost</p>
@@ -1817,7 +1815,6 @@ export default function OrganizerDashboard() {
                 </div>
               </div>
               <div>
-                <p className="text-xs text-slate-400 mb-1">Notes</p>
                 <textarea rows={3} value={damageForm.notes} onChange={e => setDamageForm(f => ({ ...f, notes: e.target.value }))} placeholder="Describe the damage..." className={iCls + ' resize-none'} style={iStyle} />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -1831,7 +1828,7 @@ export default function OrganizerDashboard() {
                   style={{ ...iStyle, padding: '8px 12px', borderRadius: 12 }} />
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-5">
               <button onClick={handleReportDamage} disabled={damageSubmitting}
                 className="flex-1 py-3 text-white font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40"
                 style={{ background: 'rgba(239,68,68,0.8)', border: '1px solid rgba(239,68,68,0.5)' }}>
