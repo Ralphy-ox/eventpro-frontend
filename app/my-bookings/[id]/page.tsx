@@ -164,18 +164,7 @@ export default function BookingDetailPage() {
         return;
       }
       const normalizedBooking = normalizeBooking(found);
-      try {
-        const damageResponse = await fetch(`${API_BASE}/damages/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (damageResponse.ok) {
-          const damageData = await damageResponse.json();
-          const reports = Array.isArray(damageData?.reports) ? damageData.reports : [];
-          normalizedBooking.damage_reports = reports.filter((report: DamageReport) => report.booking_id === parseInt(id));
-        }
-      } catch {
-        normalizedBooking.damage_reports = normalizedBooking.damage_reports || [];
-      }
+      normalizedBooking.damage_reports = Array.isArray(found.damage_reports) ? found.damage_reports : [];
       setBooking(normalizedBooking);
       setGcashRef(normalizedBooking.gcash_reference || '');
       setError('');
@@ -489,9 +478,9 @@ export default function BookingDetailPage() {
                       <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
                         Damage Proof Image
                       </p>
-                      <a href={resolveUploadedAssetUrl(report.photo)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', textDecoration: 'none' }}>
+                      <a href={resolveUploadedAssetUrl(report.photo, 'damage_reports')} target="_blank" rel="noreferrer" style={{ display: 'inline-block', textDecoration: 'none' }}>
                         <img
-                          src={resolveUploadedAssetUrl(report.photo)}
+                          src={resolveUploadedAssetUrl(report.photo, 'damage_reports')}
                           alt={`Damage proof for report ${report.id}`}
                           style={{ width: '100%', maxWidth: 420, borderRadius: 12, border: '1px solid rgba(239,68,68,0.2)' }}
                         />

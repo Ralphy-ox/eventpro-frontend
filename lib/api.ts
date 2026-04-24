@@ -8,12 +8,12 @@ export const APP_BASE =
     : window.location.origin;
 
 export const WS_BASE = API_BASE
-  .replace(/\/api\/user$/, '')
+  .replace(/\/api(?:\/user)?$/, '')
   .replace(/^http:\/\//, 'ws://')
   .replace(/^https:\/\//, 'wss://');
 
 export const WS_ENABLED = (process.env.NEXT_PUBLIC_ENABLE_WS || '').trim().toLowerCase() === 'true';
-export const BACKEND_BASE = API_BASE.replace(/\/api\/user$/, '');
+export const BACKEND_BASE = API_BASE.replace(/\/api(?:\/user)?$/, '');
 
 // Keep Render backend alive — ping every 4 minutes to prevent spin-down
 if (typeof window !== 'undefined') {
@@ -22,7 +22,10 @@ if (typeof window !== 'undefined') {
   setInterval(ping, 4 * 60 * 1000);
 }
 
-export function resolveUploadedAssetUrl(value?: string | null): string | undefined {
+export function resolveUploadedAssetUrl(
+  value?: string | null,
+  defaultFolder: 'payment_proofs' | 'damage_reports' | 'profile_photos' = 'payment_proofs'
+): string | undefined {
   if (!value) return undefined;
 
   const trimmed = value.trim();
@@ -30,9 +33,15 @@ export function resolveUploadedAssetUrl(value?: string | null): string | undefin
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
   if (trimmed.startsWith('/')) return `${BACKEND_BASE}${trimmed}`;
   if (trimmed.startsWith('media/')) return `${BACKEND_BASE}/${trimmed}`;
-  if (trimmed.startsWith('payment_proofs/')) return `${BACKEND_BASE}/media/${trimmed}`;
+  if (
+    trimmed.startsWith('payment_proofs/') ||
+    trimmed.startsWith('damage_reports/') ||
+    trimmed.startsWith('profile_photos/')
+  ) {
+    return `${BACKEND_BASE}/media/${trimmed}`;
+  }
 
-  return `${BACKEND_BASE}/media/payment_proofs/${trimmed}`;
+  return `${BACKEND_BASE}/media/${defaultFolder}/${trimmed}`;
 }
 
 export async function refreshAccessToken(tokenKey: 'clientToken' | 'organizerToken'): Promise<string | null> {

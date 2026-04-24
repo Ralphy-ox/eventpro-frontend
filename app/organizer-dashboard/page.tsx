@@ -312,29 +312,8 @@ export default function OrganizerDashboard() {
     const token = localStorage.getItem('organizerToken');
     if (!token) return;
     setDamageCatalogLoading(true);
-    const catalogEndpoints = [
-      `${API_BASE}/damages/catalog/`,
-      `${API_BASE}/damages/catalog`,
-      `${API_BASE.replace(/\/user$/, '')}/damages/catalog/`,
-      `${API_BASE.replace(/\/user$/, '')}/damages/catalog`,
-    ];
 
     const load = async () => {
-      for (const endpoint of catalogEndpoints) {
-        try {
-          const response = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
-          if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data) && data.length > 0) {
-              setDamageCatalog(data);
-              return;
-            }
-          }
-        } catch {
-          // Try the next known route shape.
-        }
-      }
-
       try {
         const damageResponse = await fetch(`${API_BASE}/damages/`, { headers: { Authorization: `Bearer ${token}` } });
         if (damageResponse.ok) {
@@ -1720,8 +1699,8 @@ export default function OrganizerDashboard() {
                           {report.reported_by ? ` • Reported by: ${report.reported_by}` : ''}
                         </p>
                         {report.photo && (
-                          <a href={report.photo} target="_blank" rel="noreferrer">
-                            <img src={report.photo} alt="Damage proof" className="w-full rounded-xl object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(239,68,68,0.2)' }} />
+                          <a href={resolveUploadedAssetUrl(report.photo, 'damage_reports')} target="_blank" rel="noreferrer">
+                            <img src={resolveUploadedAssetUrl(report.photo, 'damage_reports')} alt="Damage proof" className="w-full rounded-xl object-cover hover:opacity-90" style={{ maxHeight: 180, border: '1px solid rgba(239,68,68,0.2)' }} />
                           </a>
                         )}
                       </div>
