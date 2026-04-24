@@ -141,10 +141,12 @@ export default function ClientDashboard() {
     return Number.isFinite(rawPrice) && rawPrice > 0 ? rawPrice : DEFAULT_PRESIDENTIAL_TABLE_PRICE;
   };
 
-  const fetchPublicBookedDates = async () => {
+  const fetchPublicBookedDates = async (selectedHall?: string) => {
     try {
       setLoadingPublicCalendar(true);
-      const res = await fetch(`${API_BASE}/events/public/?status=active`);
+      const params = new URLSearchParams({ status: 'active' });
+      if (selectedHall) params.set('type', selectedHall);
+      const res = await fetch(`${API_BASE}/events/public/?${params.toString()}`);
       if (!res.ok) return;
       const data = await res.json();
       setPublicBookedEvents(
@@ -188,6 +190,10 @@ export default function ClientDashboard() {
       .catch(() => {});
     fetchPublicBookedDates();
   }, [router]);
+
+  useEffect(() => {
+    fetchPublicBookedDates(eventType || undefined);
+  }, [eventType]);
 
   const loadEventTypes = async () => {
     try {
@@ -623,7 +629,7 @@ export default function ClientDashboard() {
                     </div>
                     <button
                       type="button"
-                      onClick={fetchPublicBookedDates}
+                      onClick={() => fetchPublicBookedDates(eventType || undefined)}
                       className="px-3 py-2 rounded-xl text-xs font-bold text-sky-200 transition-all hover:-translate-y-0.5"
                       style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.25)' }}
                     >
@@ -669,12 +675,17 @@ export default function ClientDashboard() {
                       const isPast = dateObj < todayDateOnly;
                       const isSelected = date === dateStr;
                       const isBookedDay = bookedDateSet.has(dateStr);
+                      const isDisabledDay = isPast || isBookedDay;
 
                       return (
                         <button
                           key={dateStr}
                           type="button"
-                          onClick={() => setDate(dateStr)}
+                          onClick={() => {
+                            if (isDisabledDay) return;
+                            setDate(dateStr);
+                          }}
+                          disabled={isDisabledDay}
                           className="aspect-square rounded-xl p-1.5 sm:p-2 text-left transition-all"
                           style={{
                             background: isSelected
@@ -688,6 +699,7 @@ export default function ClientDashboard() {
                                 ? '1px solid rgba(239,68,68,0.35)'
                                 : '1px solid rgba(255,255,255,0.06)',
                             opacity: isPast ? 0.45 : 1,
+                            cursor: isDisabledDay ? 'not-allowed' : 'pointer',
                           }}
                         >
                           <div className="flex items-start justify-between gap-1">
@@ -705,7 +717,7 @@ export default function ClientDashboard() {
                   <div className="flex flex-wrap gap-3 mt-4 text-xs">
                     <div className="flex items-center gap-2 text-slate-300">
                       <span className="w-3 h-3 rounded-full bg-red-400" />
-                      Confirmed booked date
+                      Pending or confirmed booked date
                     </div>
                     <div className="flex items-center gap-2 text-slate-300">
                       <span className="w-3 h-3 rounded-full bg-sky-400" />

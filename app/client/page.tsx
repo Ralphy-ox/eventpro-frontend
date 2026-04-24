@@ -115,10 +115,16 @@ export default function ClientDashboard() {
         },
         body: JSON.stringify({
           event_type: eventType,
+          selected_halls: [eventType],
           description: description,
           capacity: capacity,
           date: date,
           invited_emails: emails,
+          payment_method: 'Cash',
+          event_details: {
+            selected_halls: [eventType],
+            reservation_details: description,
+          },
         }),
       });
 
