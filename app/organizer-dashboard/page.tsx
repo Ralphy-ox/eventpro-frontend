@@ -114,7 +114,7 @@ const DAMAGE_ITEM_TYPE_LABELS: Record<string, string> = {
 };
 const getDamageCatalogOptionLabel = (item: DamageCatalogItem) => {
   const typeLabel = DAMAGE_ITEM_TYPE_LABELS[item.item_type] || item.item_type;
-  return `${item.name} (${typeLabel}) - ${formatCurrency(item.unit_price)}`;
+  return `${item.name} (${typeLabel}) - P${Number(item.unit_price || 0).toLocaleString()}`;
 };
 const DEFAULT_DAMAGE_CATALOG: DamageCatalogItem[] = [
   { id: -1, item_type: 'glassware', name: 'Regular Glass', unit_price: 25, is_active: true },

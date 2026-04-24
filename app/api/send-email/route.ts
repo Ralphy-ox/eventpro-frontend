@@ -81,7 +81,7 @@ const buildTransport = () => {
 };
 
 const buildFromAddress = (authenticatedUser: string): string => {
-  const fromName = getOptionalEnv("MAILER_FROM_NAME");
+  const fromName = getOptionalEnv("MAILER_FROM_NAME") || "SpacioGrande";
 
   if (!fromName) {
     return authenticatedUser;
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
       },
       headers: {
         "X-Priority": "1",
-        "X-Mailer": "EventPro Mailer",
+        "X-Mailer": "SpacioGrande Mailer",
       },
     });
 
