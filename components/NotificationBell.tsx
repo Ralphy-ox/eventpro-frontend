@@ -32,6 +32,8 @@ export default function NotificationBell({ tokenKey = 'clientToken' }: Props) {
   const pingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
+  const hasLoadedInitialRef = useRef(false);
+  const seenNotifIdsRef = useRef<Set<number>>(new Set());
 
   const showToast = useCallback((message: string, type: string) => {
     const id = Date.now();
@@ -53,11 +55,28 @@ export default function NotificationBell({ tokenKey = 'clientToken' }: Props) {
       });
       if (res.ok) {
         const data = await res.json();
-        setNotifs(data.notifications);
+        const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+        const nextIds = new Set<number>();
+        notifications.forEach((notif: Notif) => {
+          if (typeof notif?.id === 'number') nextIds.add(notif.id);
+        });
+
+        if (hasLoadedInitialRef.current) {
+          notifications.forEach((notif: Notif) => {
+            if (!notif.is_read && typeof notif.id === 'number' && !seenNotifIdsRef.current.has(notif.id)) {
+              showToast(notif.message, notif.message.toLowerCase().includes('damage report') ? 'damage_report' : 'info');
+            }
+          });
+        } else {
+          hasLoadedInitialRef.current = true;
+        }
+
+        seenNotifIdsRef.current = nextIds;
+        setNotifs(notifications);
         setUnread(data.unread_count);
       }
     } catch {}
-  }, [tokenKey]);
+  }, [tokenKey, showToast]);
 
   const connectWS = useCallback(async () => {
     if (!mountedRef.current) return;

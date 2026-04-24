@@ -28,7 +28,7 @@ export function resolveUploadedAssetUrl(
 ): string | undefined {
   if (!value) return undefined;
 
-  const trimmed = value.trim();
+  const trimmed = value.trim().replace(/\\/g, '/');
   if (!trimmed) return undefined;
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
   if (trimmed.startsWith('/')) return `${BACKEND_BASE}${trimmed}`;

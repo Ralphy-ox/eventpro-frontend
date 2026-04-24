@@ -141,6 +141,9 @@ const normalizeBooking = (booking: Booking): Booking => {
     total_amount: Number(booking.total_amount || 0) + getNumericEventDetail(eventDetails, 'add_on_total'),
   };
 };
+
+const getBookingDescription = (booking: Booking) =>
+  booking.description || booking.event_details?.reservation_details || booking.event_details?.description || '';
 const deriveCatalogFromDamageReports = (reports: DamageReport[]): DamageCatalogItem[] => {
   const seen = new Map<string, DamageCatalogItem>();
 
@@ -798,7 +801,7 @@ export default function OrganizerDashboard() {
               {booking.gcash_reference && (
                 <p className="text-slate-300"><span className="text-slate-500">Client reference:</span> <span className="font-black text-white">{booking.gcash_reference}</span></p>
               )}
-              <p className="text-slate-300"><span className="text-slate-500">Description:</span> {booking.description || 'No description submitted.'}</p>
+              <p className="text-slate-300"><span className="text-slate-500">Description:</span> {getBookingDescription(booking) || 'No description submitted.'}</p>
               <p className="text-slate-300"><span className="text-slate-500">Guests:</span> {booking.capacity}</p>
               <p className="text-slate-300"><span className="text-slate-500">Schedule:</span> {formatDate(booking.date)} | {booking.whole_day ? 'Whole day' : formatTime(booking.time)}</p>
               <p className="text-slate-300"><span className="text-slate-500">Payment method:</span> {booking.payment_method || 'N/A'}</p>

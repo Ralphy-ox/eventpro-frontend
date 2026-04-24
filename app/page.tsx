@@ -318,7 +318,7 @@ export default function Home() {
       <MobileNav links={navLinks} showNotification={isLoggedIn} />
 
       {/* HERO */}
-      <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden"
+      <section className="relative min-h-[78vh] sm:min-h-[84vh] lg:min-h-[88vh] flex items-center justify-center overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #07111f 0%, #0c2d4a 50%, #07111f 100%)' }}>
         {hasLandingImages && activeLandingItem?.image && (
           <div
@@ -343,13 +343,13 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, #38bdf8, transparent 60%)' }} />
         <div className="absolute bottom-0 left-0 w-[420px] h-[420px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at bottom left, #0ea5e9, transparent 60%)' }} />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 py-20 sm:py-24 w-full">
-          <div className="grid items-center gap-10 lg:gap-12 xl:gap-16 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16 w-full">
+          <div className="grid items-center gap-6 sm:gap-8 lg:gap-10 xl:gap-14 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
             <div className="order-2 lg:order-1">
               <div className="relative h-full overflow-hidden rounded-[34px] border p-3 sm:p-4"
                 style={{ background: 'rgba(10,22,40,0.42)', borderColor: 'rgba(255,255,255,0.12)', boxShadow: '0 26px 60px rgba(2, 12, 27, 0.5)', backdropFilter: 'blur(12px)' }}>
                 {hasLandingImages ? (
-                  <div className="relative aspect-[4/3] min-h-[300px] sm:min-h-[360px] overflow-hidden rounded-[28px]">
+                  <div className="relative aspect-[4/3] min-h-[220px] sm:min-h-[300px] lg:min-h-[340px] overflow-hidden rounded-[28px]">
                     <img
                       src={activeLandingItem?.image}
                       alt={activeLandingItem?.title || 'Venue setup preview'}
@@ -408,47 +408,47 @@ export default function Home() {
             </div>
 
             <div className="order-1 lg:order-2 text-center lg:text-left lg:pl-2 xl:pl-4">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold mb-6"
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[11px] sm:text-xs font-semibold mb-4 sm:mb-5"
                 style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', color: '#7dd3fc' }}>
                 <span className="w-1.5 h-1.5 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
                 Ralphy&apos;s Venue - Cebu City, Philippines
               </div>
 
-              <h1 className="mx-auto max-w-[11ch] sm:max-w-[12ch] lg:max-w-none text-[3rem] sm:text-[4.35rem] font-black text-white leading-[0.94] tracking-[-0.03em] mb-5 lg:mx-0">
-                <span className="whitespace-nowrap">Your Grand Space,</span>
+              <h1 className="mx-auto max-w-[11ch] sm:max-w-[12ch] lg:max-w-none text-[2.5rem] sm:text-[3.4rem] lg:text-[4.35rem] font-black text-white leading-[0.94] tracking-[-0.03em] mb-4 sm:mb-5 lg:mx-0">
+                <span className="sm:whitespace-nowrap">Your Grand Space,</span>
                 <span className="block text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, #67e8f9, #0ea5e9)' }}>
                   Reserved in Seconds.
                 </span>
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-[34rem] mx-auto lg:mx-0 mb-7">
+              <p className="text-sm sm:text-base lg:text-lg text-slate-300 leading-relaxed max-w-[34rem] mx-auto lg:mx-0 mb-5 sm:mb-6">
                 {landingHeroSubtitle || 'Browse the hall, check the vibe, and lock in your preferred date without digging through a plain landing page.'}
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start mb-7">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start mb-5 sm:mb-6">
                 <Link href={ctaHref}
-                  className="inline-flex w-full sm:w-auto min-w-[190px] justify-center px-8 sm:px-10 py-4 text-white font-bold text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
+                  className="inline-flex w-full sm:w-auto min-w-[190px] justify-center px-6 sm:px-9 py-3.5 sm:py-4 text-white font-bold text-sm sm:text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
                   style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.35)' }}>
                   {ctaLabel}
                 </Link>
                 <Link href="/learn-more"
-                  className="inline-flex w-full sm:w-auto min-w-[190px] justify-center px-8 sm:px-10 py-4 font-semibold text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
+                  className="inline-flex w-full sm:w-auto min-w-[190px] justify-center px-6 sm:px-9 py-3.5 sm:py-4 font-semibold text-sm sm:text-base rounded-xl border transition-all hover:-translate-y-0.5 active:scale-95"
                   style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: '#cbd5e1' }}>
                   Learn More
                 </Link>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-2xl mx-auto lg:mx-0">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 max-w-2xl mx-auto lg:mx-0">
                 {stats.map(s => (
-                  <div key={s.label} className="rounded-xl min-h-[96px] sm:min-h-[102px] p-3.5 sm:p-4 text-center flex flex-col items-center justify-center"
+                  <div key={s.label} className="rounded-xl min-h-[82px] sm:min-h-[96px] p-3 sm:p-4 text-center flex flex-col items-center justify-center"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <p className="text-2xl font-black text-white">{s.value}</p>
-                    <p className="text-xs text-slate-400 mt-1">{s.label}</p>
+                    <p className="text-xl sm:text-2xl font-black text-white">{s.value}</p>
+                    <p className="text-[11px] sm:text-xs text-slate-400 mt-1">{s.label}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="sm:hidden flex items-center justify-center gap-3 mt-6">
+              <div className="sm:hidden flex items-center justify-center gap-3 mt-4">
                 <button
                   type="button"
                   aria-label="Show previous venue image"
@@ -476,7 +476,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-slate-600">
+        <div className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-slate-600">
           <span className="text-xs tracking-widest uppercase">Scroll</span>
           <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -484,9 +484,9 @@ export default function Home() {
         </div>
       </section>
       {/* HALL TYPES */}
-      <section className="py-20" style={{ background: '#0d1f35', borderTop: '1px solid rgba(14,165,233,0.1)' }}>
-        <div className="max-w-6xl mx-auto px-6 sm:px-8">
-          <div className="text-center mb-12">
+      <section className="py-14 sm:py-16 lg:py-20" style={{ background: '#0d1f35', borderTop: '1px solid rgba(14,165,233,0.1)' }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-10 lg:mb-12">
             <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-3">What We Offer</p>
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Available Venue Halls</h2>
             <p className="text-slate-400 max-w-md mx-auto">From intimate gatherings to grand celebrations — we handle it all.</p>
@@ -519,10 +519,10 @@ export default function Home() {
                       key={e.id}
                       data-event-card="true"
                       onClick={() => setPreviewHall(e)}
-                      className="min-w-[260px] sm:min-w-[280px] lg:min-w-[320px] overflow-hidden rounded-[26px] text-left transition-all duration-300 hover:-translate-y-1 snap-start"
+                      className="min-w-[240px] sm:min-w-[280px] lg:min-w-[320px] overflow-hidden rounded-[26px] text-left transition-all duration-300 hover:-translate-y-1 snap-start"
                       style={{ background: 'rgba(8,47,73,0.4)', border: '1px solid rgba(14,165,233,0.15)', boxShadow: '0 18px 45px rgba(2,12,27,0.28)' }}
                     >
-                      <div className="relative h-48 overflow-hidden">
+                      <div className="relative h-40 sm:h-48 overflow-hidden">
                         {e.image ? (
                           <>
                             <img
@@ -618,9 +618,9 @@ export default function Home() {
       </section>
 
       {/* FEATURES */}
-      <section className="py-20" style={{ background: '#0a1628', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="max-w-6xl mx-auto px-6 sm:px-8">
-          <div className="text-center mb-12">
+      <section className="py-14 sm:py-16 lg:py-20" style={{ background: '#0a1628', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-10 lg:mb-12">
             <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mb-3">Why Choose Us</p>
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Everything You Need</h2>
             <p className="text-slate-400 max-w-md mx-auto">All the tools and features to make your event a success.</p>
@@ -648,11 +648,11 @@ export default function Home() {
       </section>
 
       {!isLoggedIn && (
-        <section className="py-20 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c2d4a, #0a1628)' }}>
+        <section className="py-14 sm:py-16 lg:py-20 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c2d4a, #0a1628)' }}>
           <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, #0ea5e9 1px, transparent 1px)', backgroundSize: '25px 25px' }} />
-          <div className="max-w-3xl mx-auto px-6 sm:px-8 text-center relative z-10">
-            <h2 className="text-3xl sm:text-5xl font-black text-white mb-5 leading-tight">Ready to Create Your Dream Event?</h2>
-            <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">Join hundreds of happy clients who&apos;ve hosted unforgettable events at Ralphy&apos;s Venue.</p>
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <h2 className="text-3xl sm:text-5xl font-black text-white mb-4 sm:mb-5 leading-tight">Ready to Create Your Dream Event?</h2>
+            <p className="text-slate-400 text-base sm:text-lg mb-7 sm:mb-10 max-w-xl mx-auto">Join hundreds of happy clients who&apos;ve hosted unforgettable events at Ralphy&apos;s Venue.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href={ctaHref}
                 className="px-10 py-4 font-black text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95 text-white"
@@ -761,7 +761,7 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer style={{ background: '#060e1a', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="max-w-6xl mx-auto px-6 sm:px-8 py-12 grid grid-cols-1 sm:grid-cols-3 gap-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10">
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black text-white"

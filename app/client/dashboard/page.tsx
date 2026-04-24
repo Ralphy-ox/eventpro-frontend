@@ -144,13 +144,13 @@ export default function ClientDashboard() {
   const fetchPublicBookedDates = async () => {
     try {
       setLoadingPublicCalendar(true);
-      const res = await fetch(`${API_BASE}/events/public/?status=confirmed`);
+      const res = await fetch(`${API_BASE}/events/public/?status=active`);
       if (!res.ok) return;
       const data = await res.json();
       setPublicBookedEvents(
         Array.isArray(data)
           ? data
-              .filter((event) => event?.status === 'confirmed' && typeof event?.date === 'string')
+              .filter((event) => ['pending', 'confirmed'].includes(String(event?.status || '')) && typeof event?.date === 'string')
               .map((event) => ({
                 id: Number(event.id),
                 event_type: String(event.event_type || 'Reserved'),
@@ -619,7 +619,7 @@ export default function ClientDashboard() {
                   <div className="flex items-center justify-between gap-3 mb-4">
                     <div>
                       <p className="text-xs font-black text-sky-400 uppercase tracking-widest">Client Calendar Awareness</p>
-                      <p className="text-xs text-slate-400 mt-1">Confirmed booked dates are marked below so clients can check first before choosing a day.</p>
+                      <p className="text-xs text-slate-400 mt-1">Pending and confirmed booked dates are marked below so clients can check first before choosing a day.</p>
                     </div>
                     <button
                       type="button"
