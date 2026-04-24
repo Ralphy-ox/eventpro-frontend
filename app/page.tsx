@@ -318,7 +318,7 @@ export default function Home() {
       <MobileNav links={navLinks} showNotification={isLoggedIn} />
 
       {/* HERO */}
-      <section className="relative min-h-[78vh] sm:min-h-[84vh] lg:min-h-[88vh] flex items-center justify-center overflow-hidden"
+      <section className="relative min-h-[66vh] sm:min-h-[72vh] lg:min-h-[76vh] flex items-center justify-center overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #07111f 0%, #0c2d4a 50%, #07111f 100%)' }}>
         {hasLandingImages && activeLandingItem?.image && (
           <div
@@ -343,13 +343,13 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, #38bdf8, transparent 60%)' }} />
         <div className="absolute bottom-0 left-0 w-[420px] h-[420px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at bottom left, #0ea5e9, transparent 60%)' }} />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16 w-full">
-          <div className="grid items-center gap-6 sm:gap-8 lg:gap-10 xl:gap-14 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 w-full">
+          <div className="grid items-center gap-5 sm:gap-6 lg:gap-8 xl:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.88fr)]">
             <div className="order-2 lg:order-1">
-              <div className="relative h-full overflow-hidden rounded-[34px] border p-3 sm:p-4"
+              <div className="relative h-full overflow-hidden rounded-[28px] sm:rounded-[34px] border p-2.5 sm:p-4"
                 style={{ background: 'rgba(10,22,40,0.42)', borderColor: 'rgba(255,255,255,0.12)', boxShadow: '0 26px 60px rgba(2, 12, 27, 0.5)', backdropFilter: 'blur(12px)' }}>
                 {hasLandingImages ? (
-                  <div className="relative aspect-[4/3] min-h-[220px] sm:min-h-[300px] lg:min-h-[340px] overflow-hidden rounded-[28px]">
+                  <div className="relative aspect-[4/3] min-h-[200px] sm:min-h-[260px] lg:min-h-[300px] overflow-hidden rounded-[22px] sm:rounded-[28px]">
                     <img
                       src={activeLandingItem?.image}
                       alt={activeLandingItem?.title || 'Venue setup preview'}
@@ -407,25 +407,25 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="order-1 lg:order-2 text-center lg:text-left lg:pl-2 xl:pl-4">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[11px] sm:text-xs font-semibold mb-4 sm:mb-5"
+            <div className="order-1 lg:order-2 text-center lg:text-left lg:pl-1 xl:pl-2">
+              <div className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-semibold mb-3 sm:mb-4"
                 style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', color: '#7dd3fc' }}>
                 <span className="w-1.5 h-1.5 bg-sky-400 rounded-full" style={{ animation: 'pulse 2s infinite' }} />
                 Ralphy&apos;s Venue - Cebu City, Philippines
               </div>
 
-              <h1 className="mx-auto max-w-[11ch] sm:max-w-[12ch] lg:max-w-none text-[2.5rem] sm:text-[3.4rem] lg:text-[4.35rem] font-black text-white leading-[0.94] tracking-[-0.03em] mb-4 sm:mb-5 lg:mx-0">
+              <h1 className="mx-auto max-w-[11ch] sm:max-w-[12ch] lg:max-w-none text-[2.2rem] sm:text-[3rem] lg:text-[3.9rem] xl:text-[4.2rem] font-black text-white leading-[0.92] tracking-[-0.035em] mb-3 sm:mb-4 lg:mx-0">
                 <span className="sm:whitespace-nowrap">Your Grand Space,</span>
                 <span className="block text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, #67e8f9, #0ea5e9)' }}>
                   Reserved in Seconds.
                 </span>
               </h1>
 
-              <p className="text-sm sm:text-base lg:text-lg text-slate-300 leading-relaxed max-w-[34rem] mx-auto lg:mx-0 mb-5 sm:mb-6">
+              <p className="text-sm sm:text-[15px] lg:text-lg text-slate-300 leading-relaxed max-w-[30rem] xl:max-w-[34rem] mx-auto lg:mx-0 mb-4 sm:mb-5">
                 {landingHeroSubtitle || 'Browse the hall, check the vibe, and lock in your preferred date without digging through a plain landing page.'}
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start mb-5 sm:mb-6">
+              <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-center lg:justify-start mb-4 sm:mb-5">
                 <Link href={ctaHref}
                   className="inline-flex w-full sm:w-auto min-w-[190px] justify-center px-6 sm:px-9 py-3.5 sm:py-4 text-white font-bold text-sm sm:text-base rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
                   style={{ background: 'linear-gradient(135deg, #0ea5e9, #0369a1)', boxShadow: '0 8px 32px rgba(14,165,233,0.35)' }}>
@@ -438,11 +438,11 @@ export default function Home() {
                 </Link>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 max-w-2xl mx-auto lg:mx-0">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 max-w-2xl mx-auto lg:mx-0">
                 {stats.map(s => (
-                  <div key={s.label} className="rounded-xl min-h-[82px] sm:min-h-[96px] p-3 sm:p-4 text-center flex flex-col items-center justify-center"
+                  <div key={s.label} className="rounded-xl min-h-[74px] sm:min-h-[88px] p-2.5 sm:p-3.5 text-center flex flex-col items-center justify-center"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <p className="text-xl sm:text-2xl font-black text-white">{s.value}</p>
+                    <p className="text-lg sm:text-2xl font-black text-white">{s.value}</p>
                     <p className="text-[11px] sm:text-xs text-slate-400 mt-1">{s.label}</p>
                   </div>
                 ))}
@@ -476,8 +476,8 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-slate-600">
-          <span className="text-xs tracking-widest uppercase">Scroll</span>
+        <div className="hidden sm:flex absolute bottom-3 lg:bottom-5 left-1/2 -translate-x-1/2 flex-col items-center gap-1 text-slate-600">
+          <span className="text-[10px] tracking-widest uppercase">Scroll</span>
           <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
