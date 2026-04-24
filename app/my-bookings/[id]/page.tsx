@@ -114,6 +114,22 @@ const infoItem: React.CSSProperties = {
   padding: '14px 16px',
 };
 
+const getNumericEventDetail = (eventDetails: Record<string, string> | undefined, key: string) => {
+  const rawValue = eventDetails?.[key];
+  const parsed = Number(rawValue ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeBooking = (booking: Booking): Booking => {
+  const eventDetails = booking.event_details || {};
+  const addOnTotal = getNumericEventDetail(eventDetails, 'add_on_total');
+  return {
+    ...booking,
+    description: booking.description || eventDetails.reservation_details || eventDetails.description || '',
+    total_amount: Number(booking.total_amount || 0) + addOnTotal,
+  };
+};
+
 export default function BookingDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -147,8 +163,21 @@ export default function BookingDetailPage() {
         setError('Booking not found.');
         return;
       }
-      setBooking(found);
-      setGcashRef(found.gcash_reference || '');
+      const normalizedBooking = normalizeBooking(found);
+      try {
+        const damageResponse = await fetch(`${API_BASE}/damages/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (damageResponse.ok) {
+          const damageData = await damageResponse.json();
+          const reports = Array.isArray(damageData?.reports) ? damageData.reports : [];
+          normalizedBooking.damage_reports = reports.filter((report: DamageReport) => report.booking_id === parseInt(id));
+        }
+      } catch {
+        normalizedBooking.damage_reports = normalizedBooking.damage_reports || [];
+      }
+      setBooking(normalizedBooking);
+      setGcashRef(normalizedBooking.gcash_reference || '');
       setError('');
     } catch {
       setError('Failed to load booking.');
@@ -251,6 +280,7 @@ export default function BookingDetailPage() {
           { label: 'Reviews', href: '/ratings' },
           { label: 'Profile', href: '/profile' },
         ]}
+        showNotification
       />
 
       <div style={{ background: 'linear-gradient(135deg, #0f172a, #0c2d4a, #0f172a)', borderBottom: '1px solid rgba(14,165,233,0.15)', padding: '40px 24px 32px', position: 'relative', overflow: 'hidden' }}>
@@ -382,7 +412,7 @@ export default function BookingDetailPage() {
           <div style={card}>
             <p style={{ color: '#94a3b8', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 20 }}>{booking.event_type} Details</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
-              {Object.entries(booking.event_details).map(([key, value]) => (
+              {Object.entries(booking.event_details).filter(([key]) => !['reservation_details', 'description'].includes(key)).map(([key, value]) => (
                 <div key={key} style={{ ...infoItem, borderColor: 'rgba(14,165,233,0.15)' }}>
                   <p style={{ color: '#38bdf8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>{eventDetailLabels[key] ?? key}</p>
                   <p style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 15, margin: 0 }}>{value}</p>
@@ -453,6 +483,21 @@ export default function BookingDetailPage() {
                       <p style={{ color: '#fde68a', fontWeight: 800, margin: 0 }}>P{Number(report.net_loss).toLocaleString()}</p>
                     </div>
                   </div>
+
+                  {report.photo && (
+                    <div style={{ marginTop: 12 }}>
+                      <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
+                        Damage Proof Image
+                      </p>
+                      <a href={resolveUploadedAssetUrl(report.photo)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', textDecoration: 'none' }}>
+                        <img
+                          src={resolveUploadedAssetUrl(report.photo)}
+                          alt={`Damage proof for report ${report.id}`}
+                          style={{ width: '100%', maxWidth: 420, borderRadius: 12, border: '1px solid rgba(239,68,68,0.2)' }}
+                        />
+                      </a>
+                    </div>
+                  )}
 
                   {report.notes && (
                     <p style={{ color: '#cbd5e1', fontSize: 14, margin: '12px 0 0', whiteSpace: 'pre-wrap' }}>{report.notes}</p>

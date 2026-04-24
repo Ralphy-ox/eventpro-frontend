@@ -23,6 +23,14 @@ interface ComboSuggestion {
   halls: string[];
 }
 
+interface PublicBookedEvent {
+  id: number;
+  event_type: string;
+  date: string;
+  status: string;
+  user?: string;
+}
+
 const iStyle = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' };
 const iCls = "w-full h-12 px-4 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all text-sm";
 const lCls = "block text-xs font-bold text-sky-400 uppercase tracking-widest mb-2";
@@ -84,6 +92,9 @@ export default function ClientDashboard() {
   const [emailsError, setEmailsError] = useState('');
   const [regularTables, setRegularTables] = useState(0);
   const [presidentialTables, setPresidentialTables] = useState(0);
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [publicBookedEvents, setPublicBookedEvents] = useState<PublicBookedEvent[]>([]);
+  const [loadingPublicCalendar, setLoadingPublicCalendar] = useState(false);
 
   const applyClientContactDetails = (profile: { first_name?: string; last_name?: string }) => {
     const nextContact = {
@@ -130,6 +141,32 @@ export default function ClientDashboard() {
     return Number.isFinite(rawPrice) && rawPrice > 0 ? rawPrice : DEFAULT_PRESIDENTIAL_TABLE_PRICE;
   };
 
+  const fetchPublicBookedDates = async () => {
+    try {
+      setLoadingPublicCalendar(true);
+      const res = await fetch(`${API_BASE}/events/public/?status=confirmed`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setPublicBookedEvents(
+        Array.isArray(data)
+          ? data
+              .filter((event) => event?.status === 'confirmed' && typeof event?.date === 'string')
+              .map((event) => ({
+                id: Number(event.id),
+                event_type: String(event.event_type || 'Reserved'),
+                date: String(event.date),
+                status: String(event.status || ''),
+                user: typeof event.user === 'string' ? event.user : '',
+              }))
+          : []
+      );
+    } catch {
+      setPublicBookedEvents([]);
+    } finally {
+      setLoadingPublicCalendar(false);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('clientToken');
     if (!token) { alert('Please login to access this page'); router.push('/signin'); return; }
@@ -149,6 +186,7 @@ export default function ClientDashboard() {
         if (data) applyClientContactDetails(data);
       })
       .catch(() => {});
+    fetchPublicBookedDates();
   }, [router]);
 
   const loadEventTypes = async () => {
@@ -206,6 +244,12 @@ export default function ClientDashboard() {
     numPeopleInvited || 0,
     pricingInfo?.included_capacity ?? includedCapacity
   );
+  const calendarYear = calendarDate.getFullYear();
+  const calendarMonth = calendarDate.getMonth();
+  const calendarFirstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+  const calendarDaysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const todayDateOnly = new Date(`${today}T00:00:00`);
+  const bookedDateSet = new Set(publicBookedEvents.map((event) => event.date));
 
   useEffect(() => {
     if (!date || !eventType) {
@@ -294,6 +338,7 @@ export default function ClientDashboard() {
               key,
               shouldCapitalizeEventField(key) ? capitalizeWords(value) : value,
             ]),
+            ['reservation_details', capitalizeWords(description ?? '')],
             ['regular_tables', String(regularTables)],
             ['regular_table_price', String(regularTablePrice)],
             ['extra_chairs_included', String(bundledChairCount)],
@@ -567,6 +612,105 @@ export default function ClientDashboard() {
                     <p className="text-xs text-slate-400 mt-1">
                       Start time removed. This reservation blocks the entire selected date.
                     </p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                      <p className="text-xs font-black text-sky-400 uppercase tracking-widest">Client Calendar Awareness</p>
+                      <p className="text-xs text-slate-400 mt-1">Confirmed booked dates are marked below so clients can check first before choosing a day.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={fetchPublicBookedDates}
+                      className="px-3 py-2 rounded-xl text-xs font-bold text-sky-200 transition-all hover:-translate-y-0.5"
+                      style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.25)' }}
+                    >
+                      {loadingPublicCalendar ? 'Loading...' : 'Refresh'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setCalendarDate(new Date(calendarYear, calendarMonth - 1, 1))}
+                      className="w-10 h-10 rounded-xl text-white font-bold"
+                      style={iStyle}
+                    >
+                      ‹
+                    </button>
+                    <p className="text-white font-black">
+                      {calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCalendarDate(new Date(calendarYear, calendarMonth + 1, 1))}
+                      className="w-10 h-10 rounded-xl text-white font-bold"
+                      style={iStyle}
+                    >
+                      ›
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
+                      <div key={label}>{label}</div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                    {Array.from({ length: calendarFirstDay + calendarDaysInMonth }).map((_, index) => {
+                      const day = index - calendarFirstDay + 1;
+                      if (day <= 0) return <div key={`empty-${index}`} className="aspect-square rounded-xl" />;
+
+                      const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      const dateObj = new Date(`${dateStr}T00:00:00`);
+                      const isPast = dateObj < todayDateOnly;
+                      const isSelected = date === dateStr;
+                      const isBookedDay = bookedDateSet.has(dateStr);
+
+                      return (
+                        <button
+                          key={dateStr}
+                          type="button"
+                          onClick={() => setDate(dateStr)}
+                          className="aspect-square rounded-xl p-1.5 sm:p-2 text-left transition-all"
+                          style={{
+                            background: isSelected
+                              ? 'rgba(14,165,233,0.22)'
+                              : isBookedDay
+                                ? 'rgba(239,68,68,0.14)'
+                                : 'rgba(255,255,255,0.04)',
+                            border: isSelected
+                              ? '1px solid rgba(14,165,233,0.55)'
+                              : isBookedDay
+                                ? '1px solid rgba(239,68,68,0.35)'
+                                : '1px solid rgba(255,255,255,0.06)',
+                            opacity: isPast ? 0.45 : 1,
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-1">
+                            <span className={`text-xs sm:text-sm font-black ${isBookedDay ? 'text-red-300' : 'text-white'}`}>{day}</span>
+                            {isBookedDay && <span className="w-2 h-2 rounded-full bg-red-400 shrink-0 mt-1" />}
+                          </div>
+                          <p className={`text-[9px] sm:text-[10px] mt-1 sm:mt-2 ${isBookedDay ? 'text-red-200' : 'text-slate-500'}`}>
+                            {isBookedDay ? 'Booked' : 'Open'}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-wrap gap-3 mt-4 text-xs">
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <span className="w-3 h-3 rounded-full bg-red-400" />
+                      Confirmed booked date
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <span className="w-3 h-3 rounded-full bg-sky-400" />
+                      Selected date
+                    </div>
                   </div>
                 </div>
 

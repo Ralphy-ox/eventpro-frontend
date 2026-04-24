@@ -21,7 +21,23 @@ interface BookingDetails {
   total_amount: number;
   location: string;
   whole_day: boolean;
+  event_details?: Record<string, string>;
 }
+
+const getNumericEventDetail = (eventDetails: Record<string, string> | undefined, key: string) => {
+  const rawValue = eventDetails?.[key];
+  const parsed = Number(rawValue ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeBooking = (booking: BookingDetails): BookingDetails => {
+  const eventDetails = booking.event_details || {};
+  return {
+    ...booking,
+    description: booking.description || eventDetails.reservation_details || eventDetails.description || '',
+    total_amount: Number(booking.total_amount || 0) + getNumericEventDetail(eventDetails, 'add_on_total'),
+  };
+};
 
 const getDisplayPaymentStatus = (booking: BookingDetails) => {
   if (booking.status === 'pending') return 'Pending';
@@ -78,7 +94,7 @@ function BookingConfirmationContent() {
       .then((data) => {
         if (Array.isArray(data)) {
           const found = data.find((item: BookingDetails) => item.id === parseInt(bookingId));
-          if (found) setBooking(found);
+          if (found) setBooking(normalizeBooking(found));
         }
         setLoading(false);
       })

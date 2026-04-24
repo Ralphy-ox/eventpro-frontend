@@ -14,6 +14,7 @@ interface Booking {
   created_at: string; gcash_reference?: string; payment_proof?: string;
   decline_reason?: string; has_review?: boolean;
   damage_count?: number;
+  event_details?: Record<string, string>;
   whole_day?: boolean;
   end_time?: string | null;
   is_extended?: boolean;
@@ -46,6 +47,24 @@ const getDisplayPaymentMeta = (booking: Booking) => {
   if (booking.payment_status === 'pending_verification') return { tone: 'text-yellow-300 bg-yellow-900/30', label: 'Verifying' };
   if (booking.payment_status === 'rejected') return { tone: 'text-red-300 bg-red-900/30', label: 'Rejected' };
   return { tone: 'text-slate-400 bg-slate-800', label: 'Unpaid' };
+};
+
+const getNumericEventDetail = (eventDetails: Record<string, string> | undefined, key: string) => {
+  const rawValue = eventDetails?.[key];
+  const parsed = Number(rawValue ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeBooking = (booking: Booking): Booking => {
+  const eventDetails = booking.event_details || {};
+  const addOnTotal = getNumericEventDetail(eventDetails, 'add_on_total');
+  const normalizedTotal = Number(booking.total_amount || 0) + addOnTotal;
+  const normalizedDescription = booking.description || eventDetails.reservation_details || eventDetails.description || '';
+  return {
+    ...booking,
+    description: normalizedDescription,
+    total_amount: normalizedTotal,
+  };
 };
 
 export default function MyBookings() {
@@ -86,7 +105,7 @@ export default function MyBookings() {
     if (!token) { router.push('/signin'); return; }
     fetch(`${API_BASE}/bookings/my/`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => { if (res.status === 401) { localStorage.removeItem('clientToken'); router.push('/signin'); return; } return res.json(); })
-      .then(data => { setBookings(Array.isArray(data) ? data : []); })
+      .then(data => { setBookings(Array.isArray(data) ? data.map((booking) => normalizeBooking(booking)) : []); })
       .catch(() => {}).finally(() => setLoading(false));
   }, [router]);
 

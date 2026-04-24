@@ -126,6 +126,21 @@ const createDamageDraftItem = (): DamageDraftItem => ({
   quantity: '1',
   unit_price: '',
 });
+
+const getNumericEventDetail = (eventDetails: Record<string, string> | undefined, key: string) => {
+  const rawValue = eventDetails?.[key];
+  const parsed = Number(rawValue ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeBooking = (booking: Booking): Booking => {
+  const eventDetails = booking.event_details || {};
+  return {
+    ...booking,
+    description: booking.description || eventDetails.reservation_details || eventDetails.description || '',
+    total_amount: Number(booking.total_amount || 0) + getNumericEventDetail(eventDetails, 'add_on_total'),
+  };
+};
 const deriveCatalogFromDamageReports = (reports: DamageReport[]): DamageCatalogItem[] => {
   const seen = new Map<string, DamageCatalogItem>();
 
@@ -236,7 +251,7 @@ export default function OrganizerDashboard() {
       const res = await fetch(`${API_BASE}/bookings/`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setBookings(Array.isArray(data) ? data : []);
+      setBookings(Array.isArray(data) ? data.map((booking) => normalizeBooking(booking)) : []);
     } catch { alert('Failed to load bookings'); }
     finally { setLoading(false); }
   }, [router]);
@@ -820,7 +835,7 @@ export default function OrganizerDashboard() {
               {booking.invited_emails && (
                 <p className="text-slate-300 break-words"><span className="text-slate-500">Invited guests:</span> {booking.invited_emails}</p>
               )}
-              {Object.entries(booking.event_details || {}).map(([key, value]) => (
+              {Object.entries(booking.event_details || {}).filter(([key]) => !['reservation_details', 'description'].includes(key)).map(([key, value]) => (
                 <p key={key} className="text-slate-300 break-words">
                   <span className="text-slate-500">{key.replace(/_/g, ' ')}:</span> {String(value)}
                 </p>
@@ -1801,10 +1816,7 @@ export default function OrganizerDashboard() {
                 })}
               </div>
 
-              <div className="grid md:grid-cols-3 gap-3.5">
-                <div>
-                  <input type="number" min="0" value={damageForm.recovered_amount} onChange={e => setDamageForm(f => ({ ...f, recovered_amount: e.target.value }))} placeholder="Recovered amount (₱)" className={iCls} style={{ ...iStyle, marginTop: 21 }} />
-                </div>
+              <div className="grid md:grid-cols-2 gap-3.5">
                 <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
                   <p className="text-xs text-slate-500">Damage Cost</p>
                   <p className="text-lg font-black text-white mt-1">{formatCurrency(selectedDamageLineTotal)}</p>
@@ -1813,9 +1825,6 @@ export default function OrganizerDashboard() {
                   <p className="text-xs text-slate-500">Net Loss</p>
                   <p className="text-lg font-black text-red-300 mt-1">{formatCurrency(selectedNetLoss)}</p>
                 </div>
-              </div>
-              <div>
-                <textarea rows={3} value={damageForm.notes} onChange={e => setDamageForm(f => ({ ...f, notes: e.target.value }))} placeholder="Describe the damage..." className={iCls + ' resize-none'} style={iStyle} />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={damageForm.charge_to_client} onChange={e => setDamageForm(f => ({ ...f, charge_to_client: e.target.checked }))} className="w-4 h-4 rounded" />
