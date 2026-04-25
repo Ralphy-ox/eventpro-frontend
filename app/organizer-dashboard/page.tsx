@@ -112,6 +112,8 @@ const DAMAGE_ITEM_TYPE_LABELS: Record<string, string> = {
   equipment: 'Equipment',
   other: 'Other',
 };
+const normalizeDamageCatalogName = (name: string) =>
+  name.replace(/\s*x\d+\s*$/i, '').trim();
 const getDamageCatalogOptionLabel = (item: DamageCatalogItem) => {
   const typeLabel = DAMAGE_ITEM_TYPE_LABELS[item.item_type] || item.item_type;
   return `${item.name} (${typeLabel}) - P${Number(item.unit_price || 0).toLocaleString()}`;
@@ -130,6 +132,31 @@ const createDamageDraftItem = (): DamageDraftItem => ({
   quantity: '1',
   unit_price: '',
 });
+const getBookingEventEnd = (booking: Booking) => {
+  if (!booking.date) return null;
+  const eventDate = new Date(booking.date);
+  if (Number.isNaN(eventDate.getTime())) return null;
+
+  if (booking.whole_day || !booking.time) {
+    eventDate.setHours(23, 59, 59, 999);
+    return eventDate;
+  }
+
+  const [hoursText = '0', minutesText = '0'] = booking.time.split(':');
+  const hours = Number(hoursText);
+  const minutes = Number(minutesText);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    eventDate.setHours(23, 59, 59, 999);
+    return eventDate;
+  }
+
+  eventDate.setHours(hours, minutes, 0, 0);
+  return eventDate;
+};
+const isBookingEventFinished = (booking: Booking) => {
+  const eventEnd = getBookingEventEnd(booking);
+  return eventEnd ? Date.now() > eventEnd.getTime() : false;
+};
 
 const getNumericEventDetail = (eventDetails: Record<string, string> | undefined, key: string) => {
   const rawValue = eventDetails?.[key];
@@ -160,7 +187,7 @@ const deriveCatalogFromDamageReports = (reports: DamageReport[]): DamageCatalogI
       seen.set(key, {
         id: item.catalog_item_id ?? -(seen.size + 1),
         item_type: item.item_type || 'other',
-        name: item.item_name || 'Unknown item',
+        name: normalizeDamageCatalogName(item.item_name || 'Unknown item'),
         unit_price: Number(item.unit_price || 0),
         is_active: true,
       });
@@ -175,7 +202,7 @@ const deriveCatalogFromDamageReports = (reports: DamageReport[]): DamageCatalogI
       seen.set(key, {
         id: -(seen.size + 1),
         item_type: report.item_type || 'other',
-        name: report.item_name,
+        name: normalizeDamageCatalogName(report.item_name),
         unit_price: Number.isFinite(fallbackUnitPrice) ? fallbackUnitPrice : 0,
         is_active: true,
       });
@@ -188,9 +215,10 @@ const mergeDamageCatalog = (items: DamageCatalogItem[]): DamageCatalogItem[] => 
   const merged = new Map<string, DamageCatalogItem>();
 
   [...items, ...DEFAULT_DAMAGE_CATALOG].forEach((item) => {
-    const key = `${item.item_type}:${item.name.toLowerCase()}`;
+    const normalizedName = normalizeDamageCatalogName(item.name);
+    const key = `${item.item_type}:${normalizedName.toLowerCase()}`;
     if (!merged.has(key)) {
-      merged.set(key, item);
+      merged.set(key, { ...item, name: normalizedName });
     }
   });
 
@@ -517,6 +545,11 @@ export default function OrganizerDashboard() {
 
   const handleReportDamage = async () => {
     if (!damageModal) return;
+    const targetBooking = bookings.find((booking) => booking.id === damageModal.bookingId);
+    if (!targetBooking || !isBookingEventFinished(targetBooking)) {
+      alert('You can submit a damage report only after the event is finished.');
+      return;
+    }
     const normalizedItems = damageItems.map((item) => {
       const selectedCatalogItem = activeDamageCatalog.find(entry => entry.id === Number(item.catalog_item_id));
       return {
@@ -746,7 +779,10 @@ export default function OrganizerDashboard() {
 
   const currentList = activeTab === 'pending' ? pending : activeTab === 'confirmed' ? confirmed : activeTab === 'declined' ? declined : [];
 
-  const renderBookingCard = (booking: Booking) => (
+  const renderBookingCard = (booking: Booking) => {
+    const canReportDamage = isBookingEventFinished(booking);
+
+    return (
     <div key={booking.id} className="rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5"
       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
       <div className="h-1" style={{ background: activeTab === 'pending' ? 'linear-gradient(90deg,#22c55e,#16a34a)' : activeTab === 'confirmed' ? 'linear-gradient(90deg,#0ea5e9,#0369a1)' : 'linear-gradient(90deg,#ef4444,#dc2626)' }} />
@@ -758,7 +794,7 @@ export default function OrganizerDashboard() {
           </div>
           <div className="text-right shrink-0">
             <p className="text-xs text-slate-500">{booking.capacity} guests</p>
-            {booking.total_amount > 0 && <p className="text-sm font-black text-sky-400 mt-0.5">â‚±{Number(booking.total_amount).toLocaleString()}</p>}
+            {booking.total_amount > 0 && <p className="text-sm font-black text-sky-400 mt-0.5">P{Number(booking.total_amount).toLocaleString()}</p>}
           </div>
         </div>
 
@@ -782,7 +818,7 @@ export default function OrganizerDashboard() {
             {booking.status === 'pending' ? 'Pending' :
              booking.payment_status === 'paid' ? 'Paid' :
              booking.payment_status === 'pending_review' ? 'Pending Review' :
-             booking.payment_status === 'pending_verification' ? 'âš  Under Review' :
+             booking.payment_status === 'pending_verification' ? 'Under Review' :
              booking.payment_status === 'rejected' ? 'Rejected' : 'Unpaid'}
           </span>
           {booking.status === 'pending' && (
@@ -877,7 +913,7 @@ export default function OrganizerDashboard() {
 
         {booking.payment_status === 'paid' && booking.payment_method === 'GCash' && booking.status === 'confirmed' && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>
-            <p className="text-xs font-bold text-green-400">âœ“ GCash payment confirmed</p>
+            <p className="text-xs font-bold text-green-400">GCash payment confirmed</p>
             {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">Your reference: <strong className="text-white">{booking.gcash_reference}</strong></p>}
             {isRenderableAssetUrl(booking.payment_proof) && (
               <a href={resolveUploadedAssetUrl(booking.payment_proof)} target="_blank" rel="noreferrer">
@@ -901,7 +937,7 @@ export default function OrganizerDashboard() {
 
         {booking.payment_method === 'GCash' && booking.payment_status === 'pending' && !booking.payment_proof && (
           <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)' }}>
-            <p className="text-xs font-bold text-sky-300 mb-1">GCash â€” Awaiting proof from client</p>
+            <p className="text-xs font-bold text-sky-300 mb-1">GCash - Awaiting proof from client</p>
             {booking.gcash_reference && <p className="text-xs text-slate-400 mt-1">PayMongo Source: <strong className="text-slate-400">{booking.gcash_reference}</strong></p>}
             {isRenderableAssetUrl(booking.payment_proof) && (
               <a href={resolveUploadedAssetUrl(booking.payment_proof)} target="_blank" rel="noreferrer">
@@ -945,8 +981,17 @@ export default function OrganizerDashboard() {
               style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
               {expandedBookingId === booking.id ? 'Hide Details' : 'View Details'}
             </button>
-            <button onClick={() => setDamageModal({ bookingId: booking.id, eventType: booking.event_type })}
-              className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5"
+            <button
+              onClick={() => {
+                if (!canReportDamage) {
+                  alert('You can submit a damage report only after the event is finished.');
+                  return;
+                }
+                setDamageModal({ bookingId: booking.id, eventType: booking.event_type });
+              }}
+              disabled={!canReportDamage}
+              title={canReportDamage ? 'Report damage' : 'Available after the event is finished'}
+              className="flex-1 py-2.5 text-white text-sm font-black rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}>
               Report Damage
             </button>
@@ -977,7 +1022,8 @@ export default function OrganizerDashboard() {
         )}
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen" style={{ background: '#0a1628' }}>
@@ -1306,7 +1352,7 @@ export default function OrganizerDashboard() {
                       {/* Existing reply */}
                       {msg.reply && (
                         <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.15)' }}>
-                          <p className="text-xs font-bold text-green-400 mb-1">Your Reply Â· {msg.replied_at ? new Date(msg.replied_at).toLocaleDateString() : ''}</p>
+                          <p className="text-xs font-bold text-green-400 mb-1">Your Reply - {msg.replied_at ? new Date(msg.replied_at).toLocaleDateString() : ''}</p>
                           <p className="text-sm text-slate-300">{msg.reply}</p>
                         </div>
                       )}
@@ -1410,7 +1456,7 @@ export default function OrganizerDashboard() {
                           style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.12)' }}>
                           <div>
                             <p className="text-xs font-bold text-white">{b.event_type}</p>
-                            <p className="text-xs text-slate-400">{b.user} Â· {b.capacity} guests</p>
+                            <p className="text-xs text-slate-400">{b.user} - {b.capacity} guests</p>
                           </div>
                           <p className="text-xs font-bold text-sky-400">{b.date}</p>
                         </div>
@@ -1424,12 +1470,12 @@ export default function OrganizerDashboard() {
                 {/* Revenue summary */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
                   {[
-                    { label: 'Accepted Revenue', value: `â‚±${totalRevenue.toLocaleString()}` },
-                    { label: 'Downpayments', value: `â‚±${totalDownpaymentRevenue.toLocaleString()}` },
+                    { label: 'Accepted Revenue', value: `P${totalRevenue.toLocaleString()}` },
+                    { label: 'Downpayments', value: `P${totalDownpaymentRevenue.toLocaleString()}` },
                     { label: 'Confirmed Bookings', value: analyticsConfirmedCount },
                     { label: 'Popular Venue', value: analyticsMostPopular },
-                    { label: 'Damage Cost', value: `â‚±${damageSummary.total_damage_cost.toLocaleString()}` },
-                    { label: 'Net Profit', value: `â‚±${damageSummary.net_profit.toLocaleString()}` },
+                    { label: 'Damage Cost', value: `P${damageSummary.total_damage_cost.toLocaleString()}` },
+                    { label: 'Net Profit', value: `P${damageSummary.net_profit.toLocaleString()}` },
                   ].map(s => (
                     <div key={s.label} className="rounded-2xl p-5 text-center"
                       style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)' }}>
@@ -1510,8 +1556,8 @@ export default function OrganizerDashboard() {
                         <p className="text-sm font-black text-white mb-1">Monthly Revenue</p>
                         <p className="text-xs text-slate-400 mb-3">
                           {analyticsEventType === 'all'
-                            ? `Accepted booking revenue: PHP ${analyticsRevenue.toLocaleString()} â€¢ Downpayments: PHP ${analyticsDownpaymentRevenue.toLocaleString()}`
-                            : `${analyticsEventType} accepted revenue: PHP ${analyticsRevenue.toLocaleString()} â€¢ Downpayments: PHP ${analyticsDownpaymentRevenue.toLocaleString()}`}
+                            ? `Accepted booking revenue: PHP ${analyticsRevenue.toLocaleString()} - Downpayments: PHP ${analyticsDownpaymentRevenue.toLocaleString()}`
+                            : `${analyticsEventType} accepted revenue: PHP ${analyticsRevenue.toLocaleString()} - Downpayments: PHP ${analyticsDownpaymentRevenue.toLocaleString()}`}
                         </p>
                         {latestRevenueMonth && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
@@ -1622,7 +1668,7 @@ export default function OrganizerDashboard() {
                         <div key={type} className="flex items-center justify-between p-3 rounded-xl"
                           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
                           <span className="text-sm font-bold text-white">{type}</span>
-                          <span className="text-sm font-black text-sky-400">â‚±{rev.toLocaleString()}</span>
+                          <span className="text-sm font-black text-sky-400">P{rev.toLocaleString()}</span>
                         </div>
                       ))}
                     </div>
@@ -1633,9 +1679,9 @@ export default function OrganizerDashboard() {
                   <p className="text-sm font-black text-white mb-5">Damage and Profit Snapshot</p>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {[
-                      { label: 'Total Damage Cost', value: `â‚±${damageSummary.total_damage_cost.toLocaleString()}`, tone: '#f87171' },
-                      { label: 'Recovered', value: `â‚±${damageSummary.total_recovered.toLocaleString()}`, tone: '#38bdf8' },
-                      { label: 'Net Loss', value: `â‚±${damageSummary.total_net_loss.toLocaleString()}`, tone: '#f59e0b' },
+                      { label: 'Total Damage Cost', value: `P${damageSummary.total_damage_cost.toLocaleString()}`, tone: '#f87171' },
+                      { label: 'Recovered', value: `P${damageSummary.total_recovered.toLocaleString()}`, tone: '#38bdf8' },
+                      { label: 'Net Loss', value: `P${damageSummary.total_net_loss.toLocaleString()}`, tone: '#f59e0b' },
                       { label: 'Damage Reports', value: damageSummary.damage_reports_count, tone: '#f8fafc' },
                     ].map(item => (
                       <div key={item.label} className="rounded-xl p-4" style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.12)' }}>
@@ -1651,9 +1697,9 @@ export default function OrganizerDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                   {[
                     { label: 'Damage Reports', value: damageSummary.damage_reports_count },
-                    { label: 'Total Damage Cost', value: `â‚±${damageSummary.total_damage_cost.toLocaleString()}` },
-                    { label: 'Recovered', value: `â‚±${damageSummary.total_recovered.toLocaleString()}` },
-                    { label: 'Net Loss', value: `â‚±${damageSummary.total_net_loss.toLocaleString()}` },
+                    { label: 'Total Damage Cost', value: `P${damageSummary.total_damage_cost.toLocaleString()}` },
+                    { label: 'Recovered', value: `P${damageSummary.total_recovered.toLocaleString()}` },
+                    { label: 'Net Loss', value: `P${damageSummary.total_net_loss.toLocaleString()}` },
                   ].map(card => (
                     <div key={card.label} className="rounded-2xl p-5 text-center"
                       style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.16)' }}>
@@ -1676,7 +1722,7 @@ export default function OrganizerDashboard() {
                         <div className="flex justify-between items-start gap-3 mb-3">
                           <div>
                             <p className="font-black text-white text-sm">{report.item_name || report.item_type}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">{report.booking_event_type} â€¢ {report.client_name}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{report.booking_event_type} - {report.client_name}</p>
                           </div>
                           <span className="px-2.5 py-1 text-xs font-bold rounded-full text-red-300 bg-red-900/30">
                             {report.status}
@@ -1689,21 +1735,21 @@ export default function OrganizerDashboard() {
                           </div>
                           <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
                             <p className="text-xs text-slate-500">Damage Cost</p>
-                            <p className="text-sm font-bold text-white">â‚±{report.estimated_cost.toLocaleString()}</p>
+                            <p className="text-sm font-bold text-white">P{report.estimated_cost.toLocaleString()}</p>
                           </div>
                           <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
                             <p className="text-xs text-slate-500">Recovered</p>
-                            <p className="text-sm font-bold text-sky-400">â‚±{report.recovered_amount.toLocaleString()}</p>
+                            <p className="text-sm font-bold text-sky-400">P{report.recovered_amount.toLocaleString()}</p>
                           </div>
                           <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
                             <p className="text-xs text-slate-500">Net Loss</p>
-                            <p className="text-sm font-bold text-red-300">â‚±{report.net_loss.toLocaleString()}</p>
+                            <p className="text-sm font-bold text-red-300">P{report.net_loss.toLocaleString()}</p>
                           </div>
                         </div>
                         <p className="text-xs text-slate-300 mb-2">{report.notes || 'No notes added.'}</p>
                         <p className="text-xs text-slate-500 mb-3">
-                          Booking #{report.booking_id} â€¢ {formatDate(report.booking_date)} â€¢ {report.charge_to_client ? 'Charged to client' : 'Not charged to client'}
-                          {report.reported_by ? ` â€¢ Reported by: ${report.reported_by}` : ''}
+                          Booking #{report.booking_id} - {formatDate(report.booking_date)} - {report.charge_to_client ? 'Charged to client' : 'Not charged to client'}
+                          {report.reported_by ? ` - Reported by: ${report.reported_by}` : ''}
                         </p>
                         {report.photo && (
                           <a href={resolveUploadedAssetUrl(report.photo, 'damage_reports')} target="_blank" rel="noreferrer">
@@ -1782,7 +1828,7 @@ export default function OrganizerDashboard() {
                         </select>
                         {selectedCatalogItem && (
                           <p className="text-xs text-slate-500 mt-1">
-                            {selectedCatalogItem.name} • {DAMAGE_ITEM_TYPE_LABELS[selectedCatalogItem.item_type] || selectedCatalogItem.item_type} • Line total {formatCurrency(lineTotal)}
+                            {selectedCatalogItem.name} - {DAMAGE_ITEM_TYPE_LABELS[selectedCatalogItem.item_type] || selectedCatalogItem.item_type} - Line total {formatCurrency(lineTotal)}
                           </p>
                         )}
                       </div>
@@ -1791,7 +1837,7 @@ export default function OrganizerDashboard() {
                         <input type="number" min="1" value={item.quantity} onChange={e => setDamageItems(items => items.map(entry => entry.rowId === item.rowId ? { ...entry, quantity: e.target.value } : entry))} className={iCls} style={iStyle} />
                       </div>
                       <div>
-                        <p className="text-xs text-slate-400 mb-1">Unit Price (&#8369;)</p>
+                        <p className="text-xs text-slate-400 mb-1">Unit Price (P)</p>
                         <input type="text" value={item.unit_price ? formatCurrency(Number(item.unit_price)) : ''} readOnly className={iCls} style={{ ...iStyle, opacity: 0.9, minWidth: 0 }} />
                       </div>
                       <button onClick={() => removeDamageItemRow(item.rowId)} type="button" disabled={damageItems.length === 1} className="px-4 py-3 font-black rounded-xl text-slate-300 disabled:opacity-40" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -1877,3 +1923,7 @@ export default function OrganizerDashboard() {
     </div>
   );
 }
+
+
+
+
