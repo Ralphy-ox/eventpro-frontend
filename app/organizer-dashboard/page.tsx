@@ -118,6 +118,12 @@ const getDamageCatalogOptionLabel = (item: DamageCatalogItem) => {
   const typeLabel = DAMAGE_ITEM_TYPE_LABELS[item.item_type] || item.item_type;
   return `${item.name} (${typeLabel}) - P${Number(item.unit_price || 0).toLocaleString()}`;
 };
+const getDamageCatalogSelectionKey = (item?: { item_type?: string; name?: string | null; item_name?: string | null }) => {
+  const itemType = String(item?.item_type || 'other').trim().toLowerCase();
+  const rawName = String(item?.name || item?.item_name || '').trim();
+  const normalizedName = normalizeDamageCatalogName(rawName).toLowerCase();
+  return `${itemType}:${normalizedName}`;
+};
 const DEFAULT_DAMAGE_CATALOG: DamageCatalogItem[] = [
   { id: -1, item_type: 'glassware', name: 'Regular Glass', unit_price: 25, is_active: true },
   { id: -2, item_type: 'glassware', name: 'Wine Glass', unit_price: 45, is_active: true },
@@ -485,6 +491,19 @@ export default function OrganizerDashboard() {
       .map((item) => Number(item.catalog_item_id))
       .filter((value) => Number.isInteger(value) && value > 0)
   );
+  const existingReportedCatalogKeys = new Set(
+    damageReports
+      .filter((report) => report.booking_id === damageModal?.bookingId)
+      .flatMap((report) => (report.items || []).map((item) => getDamageCatalogSelectionKey({ item_type: item.item_type, item_name: item.item_name })))
+      .filter((value) => value !== 'other:')
+  );
+  const draftSelectedCatalogKeys = new Set(
+    damageItems
+      .map((entry) => activeDamageCatalog.find((item) => item.id === Number(entry.catalog_item_id)))
+      .filter((value): value is DamageCatalogItem => Boolean(value))
+      .map((item) => getDamageCatalogSelectionKey(item))
+      .filter((value) => value !== 'other:')
+  );
   const selectedDamageLineTotal = damageItems.reduce((sum, item) => {
     const quantity = Number(item.quantity || 0);
     const unitPrice = Number(item.unit_price || 0);
@@ -504,7 +523,15 @@ export default function OrganizerDashboard() {
     const selected = activeDamageCatalog.find(item => item.id === Number(catalogItemId));
     setDamageItems(items => {
       const selectedId = Number(catalogItemId);
-      const duplicateExists = items.some((item) => item.rowId !== rowId && Number(item.catalog_item_id) === selectedId && selectedId > 0);
+      const selectedKey = getDamageCatalogSelectionKey(selected);
+      const duplicateExists = items.some((item) => {
+        if (item.rowId === rowId) return false;
+        const existingItem = activeDamageCatalog.find((catalogItem) => catalogItem.id === Number(item.catalog_item_id));
+        return (
+          (Number(item.catalog_item_id) === selectedId && selectedId > 0) ||
+          (selectedKey !== 'other:' && getDamageCatalogSelectionKey(existingItem) === selectedKey)
+        );
+      });
       if (duplicateExists) {
         alert(`${selected?.name || 'This item'} is already selected in this report.`);
         return items;
@@ -587,7 +614,13 @@ export default function OrganizerDashboard() {
     if (normalizedItems.some(item => !Number.isInteger(item.quantity) || item.quantity <= 0)) { alert('Each item needs a valid quantity.'); return; }
     const selectedIds = normalizedItems.map((item) => item.catalog_item_id);
     if (new Set(selectedIds).size !== selectedIds.length) { alert('Each damaged item can only be selected once per report.'); return; }
+    const selectedKeys = normalizedItems.map((item) => getDamageCatalogSelectionKey({ item_type: item.item_type, item_name: item.item_name }));
+    if (new Set(selectedKeys).size !== selectedKeys.length) { alert('Each damaged item can only be selected once per report.'); return; }
     if (selectedIds.some((itemId) => existingReportedCatalogIds.has(itemId))) {
+      alert('One of the selected items was already reported for this booking.');
+      return;
+    }
+    if (selectedKeys.some((itemKey) => existingReportedCatalogKeys.has(itemKey))) {
       alert('One of the selected items was already reported for this booking.');
       return;
     }
@@ -1852,7 +1885,7 @@ export default function OrganizerDashboard() {
                         <select value={item.catalog_item_id} onChange={e => applyCatalogItemToDamageRow(item.rowId, e.target.value)} className={iCls} style={{ ...iStyle, minWidth: 0 }}>
                           <option value="" style={{ background: '#0c2d4a' }}>Select item</option>
                           {activeDamageCatalog.map((catalogItem) => (
-                            <option key={catalogItem.id} value={catalogItem.id} disabled={(existingReportedCatalogIds.has(catalogItem.id) || draftSelectedCatalogIds.has(catalogItem.id)) && Number(item.catalog_item_id) !== catalogItem.id} style={{ background: '#0c2d4a' }}>
+                            <option key={catalogItem.id} value={catalogItem.id} disabled={((existingReportedCatalogIds.has(catalogItem.id) || draftSelectedCatalogIds.has(catalogItem.id) || existingReportedCatalogKeys.has(getDamageCatalogSelectionKey(catalogItem)) || draftSelectedCatalogKeys.has(getDamageCatalogSelectionKey(catalogItem))) && Number(item.catalog_item_id) !== catalogItem.id)} style={{ background: '#0c2d4a' }}>
                               {getDamageCatalogOptionLabel(catalogItem)}
                             </option>
                           ))}
