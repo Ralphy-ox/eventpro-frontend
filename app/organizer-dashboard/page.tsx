@@ -359,6 +359,19 @@ export default function OrganizerDashboard() {
 
     const load = async () => {
       try {
+        const catalogResponse = await fetch(`${API_BASE}/damages/catalog/`, { headers: { Authorization: `Bearer ${token}` } });
+        if (catalogResponse.ok) {
+          const catalogData = await catalogResponse.json();
+          if (Array.isArray(catalogData) && catalogData.length > 0) {
+            setDamageCatalog(mergeDamageCatalog(catalogData));
+            return;
+          }
+        }
+      } catch {
+        // Try fallback sources below.
+      }
+
+      try {
         const damageResponse = await fetch(`${API_BASE}/damages/`, { headers: { Authorization: `Bearer ${token}` } });
         if (damageResponse.ok) {
           const damageData = await damageResponse.json();
