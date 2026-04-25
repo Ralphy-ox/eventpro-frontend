@@ -343,13 +343,13 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, #38bdf8, transparent 60%)' }} />
         <div className="absolute bottom-0 left-0 w-[420px] h-[420px] opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at bottom left, #0ea5e9, transparent 60%)' }} />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 w-full">
-          <div className="grid items-center gap-5 sm:gap-6 lg:gap-8 xl:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.88fr)]">
-            <div className="order-2 lg:order-1">
+        <div className="relative z-10 mx-auto w-full max-w-[88rem] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+          <div className="grid items-center gap-5 sm:gap-6 lg:gap-8 xl:gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]">
+            <div className="order-2 lg:order-1 lg:-ml-8 xl:-ml-14 2xl:-ml-20">
               <div className="relative h-full overflow-hidden rounded-[28px] sm:rounded-[34px] border p-2.5 sm:p-4"
                 style={{ background: 'rgba(10,22,40,0.42)', borderColor: 'rgba(255,255,255,0.12)', boxShadow: '0 26px 60px rgba(2, 12, 27, 0.5)', backdropFilter: 'blur(12px)' }}>
                 {hasLandingImages ? (
-                  <div className="relative aspect-[4/3] min-h-[200px] sm:min-h-[260px] lg:min-h-[300px] overflow-hidden rounded-[22px] sm:rounded-[28px]">
+                  <div className="relative aspect-[4/3] min-h-[200px] sm:min-h-[260px] lg:min-h-[320px] xl:min-h-[360px] overflow-hidden rounded-[22px] sm:rounded-[28px]">
                     <img
                       src={activeLandingItem?.image}
                       alt={activeLandingItem?.title || 'Venue setup preview'}
