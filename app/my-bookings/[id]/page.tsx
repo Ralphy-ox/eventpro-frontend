@@ -114,19 +114,12 @@ const infoItem: React.CSSProperties = {
   padding: '14px 16px',
 };
 
-const getNumericEventDetail = (eventDetails: Record<string, string> | undefined, key: string) => {
-  const rawValue = eventDetails?.[key];
-  const parsed = Number(rawValue ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
 const normalizeBooking = (booking: Booking): Booking => {
   const eventDetails = booking.event_details || {};
-  const addOnTotal = getNumericEventDetail(eventDetails, 'add_on_total');
   return {
     ...booking,
     description: booking.description || eventDetails.reservation_details || eventDetails.description || '',
-    total_amount: Number(booking.total_amount || 0) + addOnTotal,
+    total_amount: Number(booking.total_amount || 0),
   };
 };
 

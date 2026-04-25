@@ -367,7 +367,7 @@ export default function ClientDashboard() {
       if (!res.ok) { const e = await res.json(); alert(e.message || 'Failed to create booking'); setSubmitting(false); return; }
       const data = await res.json();
       if (paymentMethod === 'QRPh' || paymentMethod === 'GCash') {
-        const finalTotalAmount = Number(data.total_amount || 0) + addOnTotal;
+        const finalTotalAmount = Number(data.total_amount || 0);
         const downpaymentAmount = finalTotalAmount * 0.5;
         router.push(`/payment?id=${data.booking_id}&amount=${downpaymentAmount}&total=${finalTotalAmount}&method=${encodeURIComponent(paymentMethod.toLowerCase())}`);
       } else { alert('Booking created successfully. Payment will stay unpaid until the owner accepts it.'); router.push('/my-bookings'); }

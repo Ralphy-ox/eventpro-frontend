@@ -158,23 +158,26 @@ const isBookingEventFinished = (booking: Booking) => {
   return eventEnd ? Date.now() > eventEnd.getTime() : false;
 };
 
-const getNumericEventDetail = (eventDetails: Record<string, string> | undefined, key: string) => {
-  const rawValue = eventDetails?.[key];
-  const parsed = Number(rawValue ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
 const normalizeBooking = (booking: Booking): Booking => {
   const eventDetails = booking.event_details || {};
   return {
     ...booking,
     description: booking.description || eventDetails.reservation_details || eventDetails.description || '',
-    total_amount: Number(booking.total_amount || 0) + getNumericEventDetail(eventDetails, 'add_on_total'),
+    total_amount: Number(booking.total_amount || 0),
   };
 };
 
 const getBookingDescription = (booking: Booking) =>
   booking.description || booking.event_details?.reservation_details || booking.event_details?.description || '';
+const getBookingAddonSummary = (booking: Booking) => {
+  const eventDetails = booking.event_details || {};
+  const parts: string[] = [];
+  const regularTables = Number(eventDetails.regular_tables || 0);
+  const presidentialTables = Number(eventDetails.presidential_tables || 0);
+  if (regularTables > 0) parts.push(`Regular Table x${regularTables}`);
+  if (presidentialTables > 0) parts.push(`Presidential Table x${presidentialTables}`);
+  return parts.join(', ');
+};
 const deriveCatalogFromDamageReports = (reports: DamageReport[]): DamageCatalogItem[] => {
   const seen = new Map<string, DamageCatalogItem>();
 
@@ -471,6 +474,17 @@ export default function OrganizerDashboard() {
   const formatDate = (date: string) => date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
   const formatCurrency = (value: number) => `P${Number(value || 0).toLocaleString()}`;
   const activeDamageCatalog = damageCatalog.filter(item => item.is_active !== false);
+  const existingReportedCatalogIds = new Set(
+    damageReports
+      .filter((report) => report.booking_id === damageModal?.bookingId)
+      .flatMap((report) => (report.items || []).map((item) => item.catalog_item_id))
+      .filter((value): value is number => value !== null)
+  );
+  const draftSelectedCatalogIds = new Set(
+    damageItems
+      .map((item) => Number(item.catalog_item_id))
+      .filter((value) => Number.isInteger(value) && value > 0)
+  );
   const selectedDamageLineTotal = damageItems.reduce((sum, item) => {
     const quantity = Number(item.quantity || 0);
     const unitPrice = Number(item.unit_price || 0);
@@ -488,11 +502,19 @@ export default function OrganizerDashboard() {
 
   const applyCatalogItemToDamageRow = (rowId: string, catalogItemId: string) => {
     const selected = activeDamageCatalog.find(item => item.id === Number(catalogItemId));
-    setDamageItems(items => items.map(item => item.rowId === rowId ? {
-      ...item,
-      catalog_item_id: catalogItemId,
-      unit_price: selected ? String(selected.unit_price) : '',
-    } : item));
+    setDamageItems(items => {
+      const selectedId = Number(catalogItemId);
+      const duplicateExists = items.some((item) => item.rowId !== rowId && Number(item.catalog_item_id) === selectedId && selectedId > 0);
+      if (duplicateExists) {
+        alert(`${selected?.name || 'This item'} is already selected in this report.`);
+        return items;
+      }
+      return items.map(item => item.rowId === rowId ? {
+        ...item,
+        catalog_item_id: catalogItemId,
+        unit_price: selected ? String(selected.unit_price) : '',
+      } : item);
+    });
   };
 
   const addDamageItemRow = () => setDamageItems(items => [...items, createDamageDraftItem()]);
@@ -563,6 +585,12 @@ export default function OrganizerDashboard() {
     });
     if (normalizedItems.some(item => !item.catalog_item_id)) { alert('Select all damaged items first.'); return; }
     if (normalizedItems.some(item => !Number.isInteger(item.quantity) || item.quantity <= 0)) { alert('Each item needs a valid quantity.'); return; }
+    const selectedIds = normalizedItems.map((item) => item.catalog_item_id);
+    if (new Set(selectedIds).size !== selectedIds.length) { alert('Each damaged item can only be selected once per report.'); return; }
+    if (selectedIds.some((itemId) => existingReportedCatalogIds.has(itemId))) {
+      alert('One of the selected items was already reported for this booking.');
+      return;
+    }
     const token = localStorage.getItem('organizerToken');
     setDamageSubmitting(true);
     try {
@@ -853,6 +881,9 @@ export default function OrganizerDashboard() {
               )}
               {booking.special_requests && (
                 <p className="text-slate-300"><span className="text-slate-500">Special requests:</span> {booking.special_requests}</p>
+              )}
+              {getBookingAddonSummary(booking) && (
+                <p className="text-slate-300"><span className="text-slate-500">Add-ons:</span> {getBookingAddonSummary(booking)}</p>
               )}
               {booking.invited_emails && (
                 <p className="text-slate-300 break-words"><span className="text-slate-500">Invited guests:</span> {booking.invited_emails}</p>
@@ -1821,7 +1852,7 @@ export default function OrganizerDashboard() {
                         <select value={item.catalog_item_id} onChange={e => applyCatalogItemToDamageRow(item.rowId, e.target.value)} className={iCls} style={{ ...iStyle, minWidth: 0 }}>
                           <option value="" style={{ background: '#0c2d4a' }}>Select item</option>
                           {activeDamageCatalog.map((catalogItem) => (
-                            <option key={catalogItem.id} value={catalogItem.id} style={{ background: '#0c2d4a' }}>
+                            <option key={catalogItem.id} value={catalogItem.id} disabled={(existingReportedCatalogIds.has(catalogItem.id) || draftSelectedCatalogIds.has(catalogItem.id)) && Number(item.catalog_item_id) !== catalogItem.id} style={{ background: '#0c2d4a' }}>
                               {getDamageCatalogOptionLabel(catalogItem)}
                             </option>
                           ))}

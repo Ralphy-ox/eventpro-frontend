@@ -24,18 +24,12 @@ interface BookingDetails {
   event_details?: Record<string, string>;
 }
 
-const getNumericEventDetail = (eventDetails: Record<string, string> | undefined, key: string) => {
-  const rawValue = eventDetails?.[key];
-  const parsed = Number(rawValue ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
 const normalizeBooking = (booking: BookingDetails): BookingDetails => {
   const eventDetails = booking.event_details || {};
   return {
     ...booking,
     description: booking.description || eventDetails.reservation_details || eventDetails.description || '',
-    total_amount: Number(booking.total_amount || 0) + getNumericEventDetail(eventDetails, 'add_on_total'),
+    total_amount: Number(booking.total_amount || 0),
   };
 };
 
